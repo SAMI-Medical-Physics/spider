@@ -1,5 +1,6 @@
-;; This file, which is best viewed as -*- Scheme -*-, lists the OpenPGP keys
-;; currently authorised to sign commits in this repository.
+;; This file, which is best viewed as -*- Scheme -*-, lists the
+;; OpenPGP keys currently authorised to sign commits in this
+;; repository.
 
 (authorizations
  (version 0)
