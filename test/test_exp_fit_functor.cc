@@ -32,7 +32,7 @@ TEST(ExpFitFunctorTest, Pixel)
 
   // The data is a perfect fit to: 20 * exp(-log(2) * t / (6 h)).  TIA
   // is in units of pixel units * seconds.
-  constexpr float tia = 20.0 * 6.0 * 60.0 * 60.0 / std::log(2);
+  const float tia = 20.0 * 6.0 * 60.0 * 60.0 / std::log(2);
   EXPECT_EQ(pixel_out, tia);
 }
 
@@ -73,7 +73,7 @@ TEST(ExpFitFunctorTest, Image)
 
   // The data is a perfect fit to: 20 * exp(-log(2) * t / (6 h)).  TIA
   // is in units of pixel units * seconds.
-  constexpr float tia = 20.0 * 6.0 * 60.0 * 60.0 / std::log(2);
+  const float tia = 20.0 * 6.0 * 60.0 * 60.0 / std::log(2);
   auto tia_image = spider::test::CreateImage<ScalarImageType>();
   tia_image->FillBuffer(tia);
 
@@ -87,7 +87,7 @@ TEST(ExpFitFunctorTest, Image)
   EXPECT_EQ(diff->GetNumberOfPixelsWithDifferences(), 0);
 
   // Ensure this appproach identifies different pixel values.
-  constexpr float tia_wrong = tia + 0.1;
+  const float tia_wrong = tia + 0.1;
   auto tia_wrong_image = spider::test::CreateImage<ScalarImageType>();
   tia_wrong_image->FillBuffer(tia_wrong);
   diff->SetValidInput(tia_wrong_image);
