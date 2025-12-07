@@ -11,13 +11,11 @@ target_compile_features(test_exp_fit_functor PRIVATE cxx_std_17)
 add_executable(
   test_tia_pipeline
   test_tia_pipeline.cc
-  ${CMAKE_SOURCE_DIR}/src/tia_pipeline.cc
 )
-target_include_directories(test_tia_pipeline PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(
   test_tia_pipeline
+  spider_tia
   GTest::gtest_main
-  ${ITK_LIBRARIES}
 )
 target_compile_features(test_tia_pipeline PRIVATE cxx_std_17)
 
