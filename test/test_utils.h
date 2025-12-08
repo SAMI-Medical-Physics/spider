@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025 South Australia Medical Imaging
 
-#ifndef SPIDER_TEST_UTILS_H
-#define SPIDER_TEST_UTILS_H
+#ifndef SPIDER_TEST_TEST_UTILS_H
+#define SPIDER_TEST_TEST_UTILS_H
 
 namespace spider
 {
@@ -28,4 +28,4 @@ CreateImage(unsigned long extent = 2)
 } // namespace test
 } // namespace spider
 
-#endif // SPIDER_TEST_UTILS_H
+#endif // SPIDER_TEST_TEST_UTILS_H
