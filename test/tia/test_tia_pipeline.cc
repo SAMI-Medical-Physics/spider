@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025 South Australia Medical Imaging
 
-#include "tia_pipeline.h"
+#include "tia/tia_pipeline.h"
 
 #include <cmath>   // std::log
 #include <cstddef> // std::size_t
@@ -15,7 +15,7 @@
 #include <itkImageFileWriter.h>
 #include <itkTestingComparisonImageFilter.h>
 
-#include "exp_fit_functor.h"
+#include "tia/exp_fit_functor.h"
 #include "test_utils.h"
 
 TEST(TiaPipelineTest, NoDecay)

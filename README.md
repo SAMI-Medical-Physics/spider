@@ -10,11 +10,11 @@ dataset from the [SNMMI Lu-177 Dosimetry Challenge
 2021](https://snmmi.org/Therapy/SNMMI-THERAPY/Dosimetry_Challenge.aspx)
 (hereafter referred to as the benchmark dataset).
 Pass CMake the flag `-DSPIDER_BUILD_BENCHMARKS=ON` to download the
-benchmark dataset and build the script `benchmark/tia.sh`.
+benchmark dataset and build the script `benchmark/tia/run.sh`.
 Run this script with
 
 ```sh
-./tia.sh
+./run.sh
 ```
 
 to excecute Spider on the benchmark dataset.
@@ -29,5 +29,5 @@ Spider can also be executed on the benchmark dataset using [GNU
 Guix](https://guix.gnu.org) with the command:
 
 ```sh
-guix build -f benchmark/tia.scm
+guix build -f benchmark/tia/guix.scm
 ```

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025 South Australia Medical Imaging
 
-#include "exp_fit_functor.h"
+#include "tia/exp_fit_functor.h"
 
 #include <cmath>  // std::log
 #include <limits> // for std::numeric_limits<float>::epsilon()

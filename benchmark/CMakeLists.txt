@@ -46,10 +46,4 @@ if(NOT SPIDER_BENCHMARK_SPECTCTS_DIR OR NOT SPIDER_BENCHMARK_TIA_DIR)
   )
 endif()
 
-configure_file(tia.sh.in tia.sh @ONLY)
-
-file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/tia.sh"
-  PERMISSIONS OWNER_READ OWNER_EXECUTE)
-
-add_executable(log10_ratio log10_ratio.cc)
-target_link_libraries(log10_ratio ${ITK_LIBRARIES})
+add_subdirectory(tia)

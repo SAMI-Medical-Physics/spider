@@ -1,0 +1,12 @@
+add_library(spider_tia
+  STATIC
+  tia_pipeline.cc
+)
+target_include_directories(spider_tia
+  PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/.."
+)
+target_link_libraries(spider_tia
+  PUBLIC
+  ${ITK_LIBRARIES}
+)

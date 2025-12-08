@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025 South Australia Medical Imaging
 
-#ifndef SPIDER_EXP_FIT_FUNCTOR_H
-#define SPIDER_EXP_FIT_FUNCTOR_H
+#ifndef SPIDER_TIA_EXP_FIT_FUNCTOR_H
+#define SPIDER_TIA_EXP_FIT_FUNCTOR_H
 
 #include <cmath>   // std::log, std::exp
 #include <cstddef> // std::size_t
@@ -100,4 +100,4 @@ private:
 };
 } // namespace spider
 
-#endif // SPIDER_EXP_FIT_FUNCTOR_H
+#endif // SPIDER_TIA_EXP_FIT_FUNCTOR_H

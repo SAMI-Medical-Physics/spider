@@ -11,7 +11,7 @@
 #include <itkMacro.h> // itk::ExceptionObject
 
 #include "logging.h"
-#include "tia_pipeline.h"
+#include "tia/tia_pipeline.h"
 
 int
 main(int argc, char* argv[])

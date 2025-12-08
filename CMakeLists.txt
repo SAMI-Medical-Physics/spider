@@ -14,6 +14,7 @@ find_package(ITK REQUIRED
 include(${ITK_USE_FILE})        # sets CMAKE_CXX_STANDARD to 17 if unset
 
 add_subdirectory(src)
+add_subdirectory(apps)
 
 option(BUILD_TESTING "Build the testing tree." OFF)
 if(BUILD_TESTING)

@@ -72,11 +72,11 @@
                        (invoke (string-append #$elastix "/bin/elastix")
                                "-f" (string-append #$(spect 1) "/spect.nii")
                                "-m" (string-append #$(spect n) "/spect.nii")
-                               "-p" #$(local-file "../etc/Parameters_Rigid.txt")
+                               "-p" #$(local-file "../../etc/Parameters_Rigid.txt")
                                "-out" #$output)))))
 
 ;; Include the top-level file, which provides spider.
-(include "../guix.scm")
+(include "../../guix.scm")
 
 ;; Variant of spider that builds, potentially tests, and installs
 ;; benchmark targets.
@@ -92,7 +92,7 @@
         #~(modify-phases #$phases
             (replace 'install
               (lambda _
-                (install-file "benchmark/log10_ratio" #$output)))))))))
+                (install-file "benchmark/tia/log10_ratio" #$output)))))))))
 
 (define spider-tia
   (computed-file "benchmark-patient-4-spider-tia"

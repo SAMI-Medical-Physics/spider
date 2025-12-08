@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025 South Australia Medical Imaging
 
-#ifndef SPIDER_TIA_PIPELINE_H
-#define SPIDER_TIA_PIPELINE_H
+#ifndef SPIDER_TIA_TIA_PIPELINE_H
+#define SPIDER_TIA_TIA_PIPELINE_H
 
 #include <string>
 #include <vector>
@@ -14,7 +14,7 @@
 #include <itkUnaryFunctorImageFilter.h>
 #include <itkVectorImage.h>
 
-#include "exp_fit_functor.h"
+#include "tia/exp_fit_functor.h"
 
 namespace spider
 {
@@ -49,4 +49,4 @@ PrepareTiaPipeline(const std::vector<double>& time_points,
                    const std::vector<double>& decay_factors);
 } // namespace spider
 
-#endif // SPIDER_TIA_PIPELINE_H
+#endif // SPIDER_TIA_TIA_PIPELINE_H
