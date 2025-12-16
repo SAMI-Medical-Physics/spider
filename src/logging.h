@@ -4,8 +4,12 @@
 #ifndef SPIDER_LOGGING_H
 #define SPIDER_LOGGING_H
 
+#include <iostream>
+#include <ostream>
+
 namespace spider
 {
+
 inline std::ostream&
 Log()
 {
