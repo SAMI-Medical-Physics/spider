@@ -6,6 +6,7 @@
              (guix build-system cmake)
              (guix git-download)
              (gnu packages check)
+             (gnu packages compression)
              (gnu packages image-processing)
              (gnu packages maths)
              (guix-science packages neuroscience)) ;dcm2niix, elastix
@@ -22,15 +23,36 @@
    (arguments
     (list
      #:configure-flags
-     ;; Development flags.
-     #~(list "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror")))
+     #~(list "-DSPIDER_DOWNLOAD_TEST_DATA=OFF"
+             (string-append "-DSPIDER_TEST_DATA_DIR=" (canonicalize-path ".")
+                            "/source/pet-images-01")
+             ;; Development flags.
+             "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror")
+    #:phases
+    #~(modify-phases %standard-phases
+        (add-after 'unpack 'prepare-test-data
+          (lambda* (#:key inputs native-inputs tests? #:allow-other-keys)
+            (when tests?
+              (invoke (search-input-file (or native-inputs inputs) "bin/unzip")
+                      #$(this-package-native-input
+                         "zenodo-4751233-pet-images-01.zip"))))))))
    (inputs (list insight-toolkit
                  ;; Development inputs.
                  dcm2niix
                  elastix
                  gnuplot
                  itk-snap))
-   (native-inputs (list googletest))
+   (native-inputs
+    (list (origin
+            (method url-fetch)
+            (uri (string-append "https://zenodo.org/records/4751233"
+                                "/files/pet-images-01.zip?download=1"))
+            (sha256
+             (base32
+              "1nffcmql6g3c1l5s8fkpqk66gmingfmgiiyx37jvmz80zznn99wn"))
+            (file-name "zenodo-4751233-pet-images-01.zip"))
+          googletest
+          unzip))
    (synopsis "Radionuclide therapy patient dosimetry")
    (description
     "Spider is a software pipeline for performing image-based radiation

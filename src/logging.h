@@ -16,6 +16,13 @@ Log()
   std::cerr << "\033[34m[Spider]\033[0m ";
   return std::cerr;
 }
+
+inline std::ostream&
+Warning()
+{
+  std::cerr << "\033[38;5;208m[Spider Warning]\033[0m ";
+  return std::cerr;
+}
 } // namespace spider
 
 #endif // SPIDER_LOGGING_H
