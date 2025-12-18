@@ -19,19 +19,23 @@ namespace
 {
 
 bool
-ReadDicomFileInDir(const std::string_view dir, std::string& filename_found,
-                   gdcm::Reader& r)
+ReadDicomFileInDir(const std::string_view dir,
+                   std::filesystem::path& path_found, gdcm::Reader& r)
 {
   for (const auto& f : std::filesystem::directory_iterator(dir))
     {
-      if (f.is_regular_file())
+      if (!f.is_regular_file())
+        continue;
+      // Use SetStream instead of SetFileName because filesystem::path
+      // is wchar_t on Windows.
+      std::ifstream is(f.path(), std::ios::binary);
+      if (!is)
+        continue;
+      r.SetStream(is);
+      if (r.Read())
         {
-          r.SetFileName(f.path().c_str());
-          if (r.Read())
-            {
-              filename_found = f.path().string();
-              return true;
-            }
+          path_found = f.path();
+          return true;
         }
     }
   return false;
@@ -53,15 +57,15 @@ main(int argc, char* argv[])
   std::vector<spider::Spect> spects;
   for (int i = 1; i < argc; ++i)
     {
-      std::string filename;
+      std::filesystem::path p;
       gdcm::Reader r;
-      if (!ReadDicomFileInDir(argv[i], filename, r))
+      if (!ReadDicomFileInDir(argv[i], p, r))
         {
           std::cerr << "Error: No DICOM file in " << argv[i] << "\n";
           return EXIT_FAILURE;
         }
       const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-      spider::Log() << "reading DICOM attributes in " << filename << "\n";
+      spider::Log() << "reading DICOM attributes in " << p << "\n";
       spects.emplace_back(spider::ReadDicomSpect(ds));
     }
 
