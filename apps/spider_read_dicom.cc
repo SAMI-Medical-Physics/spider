@@ -45,7 +45,6 @@ ReadDicomFileInDir(const std::string_view dir,
 int
 main(int argc, char* argv[])
 {
-  spider::Log() << "Version " << SPIDER_VERSION << "\n";
   if (argc < 3)
     {
       // Need at least 2 SPECT time points to fit an exponential.
@@ -54,6 +53,7 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
+  spider::Log() << "Version " << SPIDER_VERSION << "\n";
   std::vector<spider::Spect> spects;
   for (int i = 1; i < argc; ++i)
     {

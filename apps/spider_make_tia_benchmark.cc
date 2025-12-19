@@ -16,16 +16,16 @@
 int
 main(int argc, char* argv[])
 {
-  spider::Log() << "Version " << SPIDER_VERSION << "\n";
   if (argc < 3)
     {
       std::cerr << "Usage: " << argv[0]
                 << " image1 image2 image3 image4 (in time order)\n";
       return EXIT_FAILURE;
     }
+
+  spider::Log() << "Version " << SPIDER_VERSION << "\n";
   std::vector<std::string> input_filenames(argv + 1, argv + argc);
   std::vector<double> time_points{ 3.73, 27.72, 103.08, 123.98 }; // hours
-
   // The benchmark SPECTs are decay corrected to the administration
   // time.  Apply decay correction to the acquisiton time.
   constexpr double half_life = 574300.0 / (60.0 * 60.0); // hours
