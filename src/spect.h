@@ -47,6 +47,32 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os);
 std::vector<Spect>
 ReadSpects(std::istream& in);
 
+struct Date
+{
+  int year;
+  int month; // [1, 12]
+  int day;   // [1, 31]
+};
+
+struct Time
+{
+  int hour = 0;   // [0, 23]
+  int minute = 0; // [0, 59]
+  int second = 0; // [0, 60], 60 for leap second
+};
+
+// Parse a DICOM Date (DA) value from V into DATE.  If parsing fails,
+// return false and leave DATE unchanged.
+bool
+ParseDicomDate(const std::string_view v, Date& date);
+
+// Parse a DICOM Time (TM) value from V into TIME.  If parsing fails,
+// return false and leave TIME unchanged.  Characters after the SS
+// component are ignored, so non-DICOM-conformant strings may be
+// parsed successfully.
+bool
+ParseDicomTime(std::string_view v, Time& time);
+
 } // namespace spider
 
 #endif // SPIDER_SPECT_H

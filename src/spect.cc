@@ -187,4 +187,61 @@ ReadSpects(std::istream& in)
   return spects;
 }
 
+bool
+ParseDicomDate(const std::string_view v, Date& date)
+{
+  if (v.size() != 8)
+    return false;
+  int y{}, m{}, d{};
+  auto [ptr_y, ec_y] = std::from_chars(v.data(), v.data() + 4, y);
+  auto [ptr_m, ec_m] = std::from_chars(ptr_y, ptr_y + 2, m);
+  auto [ptr_d, ec_d] = std::from_chars(ptr_m, ptr_m + 2, d);
+  if (ec_y != std::errc() || ec_m != std::errc() || ec_d != std::errc()
+      || ptr_d != v.data() + 8 || y < 0 || m < 0 || d < 0)
+    return false;
+  date.year = y;
+  date.month = m;
+  date.day = d;
+  return true;
+}
+
+bool
+ParseDicomTime(std::string_view v, Time& time)
+{
+  if (v.size() < 2)
+    return false;
+  // Hours as HH.
+  int h{};
+  auto [ptr_h, ec_h] = std::from_chars(v.data(), v.data() + 2, h);
+  if (ec_h != std::errc() || ptr_h != v.data() + 2 || h < 0 || h > 23)
+    return false;
+  // Minutes as MM.
+  v.remove_prefix(2);
+  if (v.size() == 1)
+    return false;
+  int m = 0;
+  if (v.size() >= 2)
+    {
+      auto [ptr_m, ec_m] = std::from_chars(v.data(), v.data() + 2, m);
+      if (ec_m != std::errc() || ptr_m != v.data() + 2 || m < 0 || m > 59)
+        return false;
+      v.remove_prefix(2);
+    }
+  // Seconds as SS.
+  if (v.size() == 1)
+    return false;
+  int s = 0;
+  if (v.size() >= 2)
+    {
+      // Discard fractional seconds.
+      auto [ptr_s, ec_s] = std::from_chars(v.data(), v.data() + 2, s);
+      if (ec_s != std::errc() || ptr_s != v.data() + 2 || s < 0 || s > 60)
+        return false;
+    }
+  time.hour = h;
+  time.minute = m;
+  time.second = s;
+  return true;
+}
+
 } // namespace spider

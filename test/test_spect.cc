@@ -211,3 +211,57 @@ TEST(ReadSpectsTest, Example)
   EXPECT_EQ(spects[1].decay_correction_method, "NONE");
   EXPECT_EQ(spects[1].half_life, 23121);
 }
+
+TEST(ParseDicomDateTest, Example)
+{
+  spider::Date date;
+  spider::ParseDicomDate("19930822", date);
+  EXPECT_EQ(date.year, 1993);
+  EXPECT_EQ(date.month, 8);
+  EXPECT_EQ(date.day, 22);
+}
+
+TEST(ParseDicomDateTest, NonFourDigitYear)
+{
+  spider::Date date;
+  spider::ParseDicomDate("00310822", date);
+  EXPECT_EQ(date.year, 31);
+  EXPECT_EQ(date.month, 8);
+  EXPECT_EQ(date.day, 22);
+}
+
+TEST(ParseDicomTimeTest, HourOnly)
+{
+  spider::Time time;
+  spider::ParseDicomTime("07", time);
+  EXPECT_EQ(time.hour, 7);
+  EXPECT_EQ(time.minute, 0);
+  EXPECT_EQ(time.second, 0);
+}
+
+TEST(ParseDicomTimeTest, HourAndMinuteOnly)
+{
+  spider::Time time;
+  spider::ParseDicomTime("1009", time);
+  EXPECT_EQ(time.hour, 10);
+  EXPECT_EQ(time.minute, 9);
+  EXPECT_EQ(time.second, 0);
+}
+
+TEST(ParseDicomTimeTest, HourAndMinuteAndSecondOnly)
+{
+  spider::Time time;
+  spider::ParseDicomTime("151305", time);
+  EXPECT_EQ(time.hour, 15);
+  EXPECT_EQ(time.minute, 13);
+  EXPECT_EQ(time.second, 5);
+}
+
+TEST(ParseDicomTimeTest, HourAndMinuteAndSecondAndFraction)
+{
+  spider::Time time;
+  spider::ParseDicomTime("030914.0103", time);
+  EXPECT_EQ(time.hour, 3);
+  EXPECT_EQ(time.minute, 9);
+  EXPECT_EQ(time.second, 14);
+}
