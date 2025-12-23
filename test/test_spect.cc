@@ -5,6 +5,7 @@
 
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <gdcmAttribute.h>
 #include <gdcmDataSet.h>
@@ -190,4 +191,23 @@ TEST(ReadDicomAttributesTest, RealDataset)
                    "\nC11Phantom\n20181105122601.000000 \nSTART \n1223\n" };
 
   EXPECT_EQ(oss.str(), ans);
+}
+
+TEST(ReadSpectsTest, Example)
+{
+  std::istringstream input("This file was created by Spider.\n"
+                           "If you edit it by hand, you could mess it up.\n"
+                           "\nDOE^JOHN\n20241013123250.1123 \nSTART \n23.11\n"
+                           "\nDOE^JANE\n2022031102\nNONE\n23121\n");
+  std::vector<spider::Spect> spects = spider::ReadSpects(input);
+
+  ASSERT_EQ(spects.size(), 2);
+  EXPECT_EQ(spects[0].patient_name, "DOE^JOHN");
+  EXPECT_EQ(spects[0].acquisition_timestamp, "20241013123250.1123 ");
+  EXPECT_EQ(spects[0].decay_correction_method, "START ");
+  EXPECT_EQ(spects[0].half_life, 23.11);
+  EXPECT_EQ(spects[1].patient_name, "DOE^JANE");
+  EXPECT_EQ(spects[1].acquisition_timestamp, "2022031102");
+  EXPECT_EQ(spects[1].decay_correction_method, "NONE");
+  EXPECT_EQ(spects[1].half_life, 23121);
 }

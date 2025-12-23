@@ -3,11 +3,14 @@
 
 #include "spect.h"
 
+#include <charconv> // std::from_chars
 #include <cstddef> // std::size_t
 #include <iomanip>  // std::quoted
+#include <istream>
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <system_error> // std::errc
 #include <vector>
 
 #include <gdcmAttribute.h>
@@ -145,6 +148,43 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
          << GetFirstLine(spect.decay_correction_method) << "\n"
          << spect.half_life << "\n";
     }
+}
+
+std::vector<Spect>
+ReadSpects(std::istream& in)
+{
+  std::string line;
+  // Skip the first two lines containing commentary.
+  std::getline(in, line);
+  std::getline(in, line);
+  if (!in)
+    return {};
+  std::vector<Spect> spects;
+  for (;;)
+    {
+      // Skip leading empty line.
+      if (!std::getline(in, line))
+        break;
+      // Keep an incomplete SPECT.
+      spects.emplace_back();
+      Spect& s = spects.back();
+      if (!std::getline(in, s.patient_name))
+        break;
+      if (!std::getline(in, s.acquisition_timestamp))
+        break;
+      if (!std::getline(in, s.decay_correction_method))
+        break;
+      if (!std::getline(in, line))
+        break;
+      auto [ptr, ec] = std::from_chars(line.data(), line.data() + line.size(),
+                                       s.half_life);
+      if (ec != std::errc())
+        {
+          Warning() << "SPECT " << spects.size()
+                    << ": failed to set radionuclide half-life\n";
+        }
+    }
+  return spects;
 }
 
 } // namespace spider

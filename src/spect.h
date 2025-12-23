@@ -4,6 +4,7 @@
 #ifndef SPIDER_SPECT_H
 #define SPIDER_SPECT_H
 
+#include <istream>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -42,6 +43,9 @@ GetFirstLine(const std::string_view v);
 
 void
 WriteSpects(const std::vector<Spect>& spects, std::ostream& os);
+
+std::vector<Spect>
+ReadSpects(std::istream& in);
 
 } // namespace spider
 
