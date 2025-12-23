@@ -30,6 +30,9 @@ GetAcquisitionTimestamp(const gdcm::DataSet& ds);
 double
 GetHalfLife(const gdcm::DataSet& ds);
 
+std::ostream&
+operator<<(std::ostream& os, const Spect& s);
+
 // Fill a Spect from the DICOM attributes in dataset DS.
 Spect
 ReadDicomSpect(const gdcm::DataSet& ds);

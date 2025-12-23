@@ -3,6 +3,7 @@
 
 #include "spect.h"
 
+#include <iomanip>  // std::quoted
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -64,6 +65,17 @@ GetHalfLife(const gdcm::DataSet& ds)
   gdcm::Attribute<0x0018, 0x1075> a;
   a.SetFromDataElement(nds.GetDataElement(tag));
   return a.GetValue();
+}
+
+std::ostream&
+operator<<(std::ostream& os, const Spect& s)
+{
+  return os << "Spect{"
+            << "half_life=" << s.half_life << " s, acquisition_timestamp="
+            << std::quoted(s.acquisition_timestamp)
+            << ", decay_correction_method="
+            << std::quoted(s.decay_correction_method)
+            << ", patient_name=" << std::quoted(s.patient_name) << "}";
 }
 
 Spect

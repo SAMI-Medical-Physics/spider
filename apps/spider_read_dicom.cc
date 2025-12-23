@@ -78,6 +78,7 @@ main(int argc, char* argv[])
       const gdcm::DataSet& ds = r.GetFile().GetDataSet();
       spider::Log() << "reading DICOM attributes in " << p << "\n";
       spects.emplace_back(spider::ReadDicomSpect(ds));
+      spider::Log() << "SPECT " << i << ": " << spects.back() << "\n";
     }
 
   std::string out_filename = "spider_read_dicom.txt";
