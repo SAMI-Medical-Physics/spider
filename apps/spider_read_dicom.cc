@@ -72,16 +72,18 @@ main(int argc, char* argv[])
       gdcm::Reader r;
       if (!ReadDicomFileInDir(argv[i], p, r))
         {
-          std::cerr << "Error: No DICOM file in " << argv[i] << "\n";
+          std::cerr << "Error: Failed to read a DICOM file in directory '"
+                    << argv[i] << "'\n";
           return EXIT_FAILURE;
         }
       const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-      spider::Log() << "reading DICOM attributes in " << p << "\n";
+      spider::Log() << "SPECT " << i << ": reading DICOM attributes in " << p
+                    << "...\n";
       spects.emplace_back(spider::ReadDicomSpect(ds));
       spider::Log() << "SPECT " << i << ": " << spects.back() << "\n";
     }
 
-  std::string out_filename = "spider_read_dicom.txt";
+  constexpr const char out_filename[] = "spider_read_dicom.txt";
   std::ofstream out(out_filename);
   if (!out)
     {
