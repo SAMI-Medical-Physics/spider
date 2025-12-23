@@ -82,7 +82,19 @@ main(int argc, char* argv[])
 
   std::string out_filename = "spider_read_dicom.txt";
   std::ofstream out(out_filename);
+  if (!out)
+    {
+      std::cerr << "Error: Failed to open output file '" << out_filename
+                << "' for writing\n";
+      return EXIT_FAILURE;
+    }
   spider::WriteSpects(spects, out);
+  out.close();
+  if (!out)
+    {
+      std::cerr << "Error: Failed while writing '" << out_filename << "'\n";
+      return EXIT_FAILURE;
+    }
   spider::Log() << "Wrote: " << out_filename << "\n";
   return EXIT_SUCCESS;
 }
