@@ -3,6 +3,7 @@
 
 #include "spect.h"
 
+#include <cstddef> // std::size_t
 #include <iomanip>  // std::quoted
 #include <ostream>
 #include <string>
@@ -120,20 +121,18 @@ void
 WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
 {
   // Ensure each value is on a separate line and on contiguous lines.
-  std::string warning_msg = "contains a newline; discarding characters "
-                            "after and including the first newline\n";
-  for (size_t i = 0; i < spects.size(); ++i)
+  constexpr const char msg[] = "contains a newline; discarding characters "
+                               "after and including the first newline\n";
+  for (std::size_t i = 0; i < spects.size(); ++i)
     {
       if (GetFirstLine(spects[i].patient_name) != spects[i].patient_name)
-        Warning() << "SPECT " << i + 1 << ": patient name: " << warning_msg;
+        Warning() << "SPECT " << i + 1 << ": patient name: " << msg;
       if (GetFirstLine(spects[i].acquisition_timestamp)
           != spects[i].acquisition_timestamp)
-        Warning() << "SPECT " << i + 1
-                  << ": acquisition time: " << warning_msg;
+        Warning() << "SPECT " << i + 1 << ": acquisition time: " << msg;
       if (GetFirstLine(spects[i].decay_correction_method)
           != spects[i].decay_correction_method)
-        Warning() << "SPECT " << i + 1
-                  << ": decay correction: " << warning_msg;
+        Warning() << "SPECT " << i + 1 << ": decay correction: " << msg;
     }
 
   os << "This file was created by Spider.\n"
