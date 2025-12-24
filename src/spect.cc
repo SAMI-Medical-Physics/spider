@@ -22,6 +22,7 @@
 #include <gdcmTag.h>
 
 #include "logging.h"
+#include "tz_compat.h"
 
 namespace spider
 {
@@ -246,38 +247,37 @@ ParseDicomTime(std::string_view v, Time& time)
   return true;
 }
 
-std::expected<std::chrono::zoned_time<std::chrono::seconds>,
-              DatetimeParseError>
-MakeZonedTime(const Date& d, const Time& t, const std::chrono::time_zone* tz)
+std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
+MakeZonedTime(const Date& d, const Time& t, const tz::time_zone* tz)
 {
-  using namespace std::chrono;
-  const year_month_day ymd{ year{ d.year },
-                            month{ static_cast<unsigned>(d.month) },
-                            day{ static_cast<unsigned>(d.day) } };
+  const tz::year_month_day ymd{ tz::year{ d.year },
+                                tz::month{ static_cast<unsigned>(d.month) },
+                                tz::day{ static_cast<unsigned>(d.day) } };
   if (!ymd.ok())
     return std::unexpected(DatetimeParseError::kInvalidDate);
-  const local_seconds lt = local_days{ ymd } + hours{ t.hour }
-                           + minutes{ t.minute } + seconds{ t.second };
+  const tz::local_seconds lt
+      = tz::local_days{ ymd } + std::chrono::hours{ t.hour }
+        + std::chrono::minutes{ t.minute } + std::chrono::seconds{ t.second };
   try
     {
-      return zoned_time<seconds>{ tz, lt };
+      return tz::zoned_time<std::chrono::seconds>{ tz, lt };
     }
-  catch (const std::chrono::ambiguous_local_time& e)
+  catch (const tz::ambiguous_local_time& e)
     {
       // DST fall-back.
       Warning() << e.what() << "\nChoosing the earlier time point\n";
-      return zoned_time<seconds>{ tz, lt, choose::earliest };
+      return tz::zoned_time<std::chrono::seconds>{ tz, lt,
+                                                   tz::choose::earliest };
     }
-  catch (const std::chrono::nonexistent_local_time&)
+  catch (const tz::nonexistent_local_time&)
     {
       // DST spring-forward.
       return std::unexpected(DatetimeParseError::kNonexistentLocalTime);
     }
 }
 
-std::expected<std::chrono::zoned_time<std::chrono::seconds>,
-              DatetimeParseError>
-ParseTimestamp(std::string_view v, const std::chrono::time_zone* tz)
+std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
+ParseTimestamp(std::string_view v, const tz::time_zone* tz)
 {
   if (v.size() < 10)
     return std::unexpected(DatetimeParseError::kTooShort);
@@ -292,8 +292,8 @@ ParseTimestamp(std::string_view v, const std::chrono::time_zone* tz)
 }
 
 std::chrono::seconds
-DiffTime(const std::chrono::zoned_time<std::chrono::seconds>& time_end,
-         const std::chrono::zoned_time<std::chrono::seconds>& time_beg)
+DiffTime(const tz::zoned_time<std::chrono::seconds>& time_end,
+         const tz::zoned_time<std::chrono::seconds>& time_beg)
 {
   return time_end.get_sys_time() - time_beg.get_sys_time();
 }

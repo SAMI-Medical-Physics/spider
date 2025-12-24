@@ -14,6 +14,8 @@
 
 #include <gdcmDataSet.h>
 
+#include "tz_compat.h"
+
 namespace spider
 {
 
@@ -91,9 +93,8 @@ enum class DatetimeParseError
 // DatetimeParseError::kNonexistentLocalTime.  If the local time is
 // ambiguous (e.g. during a DST fall-back), the earlier time point is
 // chosen.
-std::expected<std::chrono::zoned_time<std::chrono::seconds>,
-              DatetimeParseError>
-MakeZonedTime(const Date& d, const Time& t, const std::chrono::time_zone* tz);
+std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
+MakeZonedTime(const Date& d, const Time& t, const tz::time_zone* tz);
 
 // Return a zoned time constructed from the timestamp V in the time
 // zone TZ.  The timestamp should be of the form "YYYYMMDDHH[MMSS]",
@@ -104,9 +105,8 @@ MakeZonedTime(const Date& d, const Time& t, const std::chrono::time_zone* tz);
 // DateTimeParseError::kFailedDate if it fails to parse the date
 // component of the timestamp, and DateTimeParseError::kFailedTime if
 // it fails to parse the time component of the timestamp.
-std::expected<std::chrono::zoned_time<std::chrono::seconds>,
-              DatetimeParseError>
-ParseTimestamp(std::string_view v, const std::chrono::time_zone* tz);
+std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
+ParseTimestamp(std::string_view v, const tz::time_zone* tz);
 
 constexpr std::string_view
 ToString(DatetimeParseError e)
@@ -128,8 +128,8 @@ ToString(DatetimeParseError e)
 }
 
 std::chrono::seconds
-DiffTime(const std::chrono::zoned_time<std::chrono::seconds>& time_end,
-         const std::chrono::zoned_time<std::chrono::seconds>& time_beg);
+DiffTime(const tz::zoned_time<std::chrono::seconds>& time_end,
+         const tz::zoned_time<std::chrono::seconds>& time_beg);
 
 } // namespace spider
 

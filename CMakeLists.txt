@@ -6,6 +6,24 @@ project(Spider VERSION 0.0.0)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Determine whether the C++ standard library has C++20 calendar and
+# time zone.  If not, fall back to Howard Hinnant's date and time
+# library.
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles("
+  #include <chrono>
+
+  int
+  main()
+  {
+    std::chrono::zoned_time<std::chrono::seconds> {};
+    return 0;
+  }
+" SPIDER_HAVE_STD_CHRONO_TZ)
+if(NOT SPIDER_HAVE_STD_CHRONO_TZ)
+  find_package(date CONFIG REQUIRED) # https://github.com/HowardHinnant/date
+endif()
+
 find_package(ITK REQUIRED
   COMPONENTS
   ITKCommon

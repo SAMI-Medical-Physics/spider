@@ -19,6 +19,8 @@
 #include <gdcmVR.h>
 #include <gtest/gtest.h>
 
+#include "tz_compat.h"
+
 namespace
 {
 
@@ -272,7 +274,7 @@ TEST(MakeZonedTimeTest, Example)
 {
   spider::Date date = { .year = 1997, .month = 7, .day = 15 };
   spider::Time time = { .hour = 16, .minute = 43, .second = 9 };
-  const std::chrono::time_zone* tz = std::chrono::locate_zone("Asia/Tokyo");
+  const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Tokyo");
   auto zt = spider::MakeZonedTime(date, time, tz);
   ASSERT_EQ(zt.has_value(), true);
   EXPECT_EQ(std::format("{:%F %T}", zt.value()), "1997-07-15 16:43:09");
@@ -284,8 +286,8 @@ TEST(MakeZonedTimeTest, NonexistentLocalTime)
   // during a DST spring-forward.
   spider::Date date = { .year = 2024, .month = 10, .day = 6 };
   spider::Time time = { .hour = 2, .minute = 45, .second = 0 };
-  const std::chrono::time_zone* tz
-      = std::chrono::locate_zone("Australia/Adelaide");
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_test = spider::MakeZonedTime(date, time, tz);
   EXPECT_EQ(zt_test.has_value(), false);
 }
@@ -294,7 +296,7 @@ TEST(MakeZonedTimeTest, NonexistentLocalTimeDifferentTimeZone)
 {
   spider::Date date = { .year = 2025, .month = 3, .day = 30 };
   spider::Time time = { .hour = 2, .minute = 20, .second = 0 };
-  const std::chrono::time_zone* tz = std::chrono::locate_zone("Europe/Berlin");
+  const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Berlin");
   auto zt_test = spider::MakeZonedTime(date, time, tz);
   EXPECT_EQ(zt_test.has_value(), false);
 }
@@ -303,25 +305,29 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
 {
   // If the local time is ambiguous, e.g. due to a DST fall-back,
   // MakeZonedTime returns the earlier time point.
-  using namespace std::chrono;
   spider::Date date = { .year = 2024, .month = 4, .day = 7 };
   spider::Time time = { .hour = 2, .minute = 45, .second = 0 };
-  const time_zone* tz = locate_zone("Australia/Adelaide");
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_beg = spider::MakeZonedTime(date, time, tz);
   ASSERT_EQ(zt_beg.has_value(), true);
 
-  local_seconds lt_end = local_days{ year{ 2024 } / month{ 4 } / day{ 7 } }
-                         + hours{ 4 } + minutes{ 0 } + seconds{ 0 };
-  auto zt_end = zoned_time<seconds>{ tz, lt_end };
-  seconds secs = spider::DiffTime(zt_end, zt_beg.value());
+  spider::tz::local_seconds lt_end
+      = spider::tz::local_days{ spider::tz::year{ 2024 }
+                                / spider::tz::month{ 4 }
+                                / spider::tz::day{ 7 } }
+        + std::chrono::hours{ 4 } + std::chrono::minutes{ 0 }
+        + std::chrono::seconds{ 0 };
+  auto zt_end = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_end };
+  std::chrono::seconds secs = spider::DiffTime(zt_end, zt_beg.value());
   // If the later time point was chosen, the difference would be 1
   // hour and 15 mins.
-  EXPECT_EQ(secs, seconds{ (2 * 60 * 60) + (15 * 60) });
+  EXPECT_EQ(secs, std::chrono::seconds{ (2 * 60 * 60) + (15 * 60) });
 }
 
 TEST(ParseTimestampTest, Example)
 {
-  const std::chrono::time_zone* tz = std::chrono::locate_zone("Europe/Paris");
+  const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Paris");
   auto zt = spider::ParseTimestamp("19970715164309", tz);
   ASSERT_EQ(zt.has_value(), true);
   EXPECT_EQ(std::format("{:%F %T}", zt.value()), "1997-07-15 16:43:09");
@@ -335,34 +341,46 @@ TEST(ToStringTest, Example)
 
 TEST(DiffTimeTest, Example)
 {
-  using namespace std::chrono;
-  local_seconds lt_beg = local_days{ year{ 1997 } / month{ 7 } / day{ 15 } }
-                         + hours{ 16 } + minutes{ 43 } + seconds{ 9 };
-  const time_zone* tz = locate_zone("America/New_York");
-  auto zt_beg = zoned_time<seconds>{ tz, lt_beg };
+  spider::tz::local_seconds lt_beg
+      = spider::tz::local_days{ spider::tz::year{ 1997 }
+                                / spider::tz::month{ 7 }
+                                / spider::tz::day{ 15 } }
+        + std::chrono::hours{ 16 } + std::chrono::minutes{ 43 }
+        + std::chrono::seconds{ 9 };
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/New_York");
+  auto zt_beg = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_beg };
 
-  local_seconds lt_end = local_days{ year{ 1997 } / month{ 7 } / day{ 15 } }
-                         + hours{ 16 } + minutes{ 45 } + seconds{ 13 };
-  auto zt_end = zoned_time<seconds>{ tz, lt_end };
+  spider::tz::local_seconds lt_end
+      = spider::tz::local_days{ spider::tz::year{ 1997 }
+                                / spider::tz::month{ 7 }
+                                / spider::tz::day{ 15 } }
+        + std::chrono::hours{ 16 } + std::chrono::minutes{ 45 }
+        + std::chrono::seconds{ 13 };
+  auto zt_end = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_end };
 
-  seconds secs = spider::DiffTime(zt_end, zt_beg);
-  EXPECT_EQ(secs, seconds{ 124 });
+  std::chrono::seconds secs = spider::DiffTime(zt_end, zt_beg);
+  EXPECT_EQ(secs, std::chrono::seconds{ 124 });
 }
 
 TEST(DiffTimeTest, SpringForward)
 {
-  using namespace std::chrono;
-  year_month_day ymd{ year{ 2024 }, month{ 10 }, day{ 6 } };
-  local_seconds lt_beg
-      = local_days{ ymd } + hours{ 1 } + minutes{ 30 } + seconds{ 0 };
+  spider::tz::year_month_day ymd{ spider::tz::year{ 2024 },
+                                  spider::tz::month{ 10 },
+                                  spider::tz::day{ 6 } };
+  spider::tz::local_seconds lt_beg
+      = spider::tz::local_days{ ymd } + std::chrono::hours{ 1 }
+        + std::chrono::minutes{ 30 } + std::chrono::seconds{ 0 };
   // In Adelaide, Australia, this time point is 1 hour later, not 2
   // hours, due to a DST spring-forward.
-  local_seconds lt_end
-      = local_days{ ymd } + hours{ 3 } + minutes{ 30 } + seconds{ 0 };
-  const time_zone* tz = locate_zone("Australia/Adelaide");
-  auto zt_beg = zoned_time<seconds>{ tz, lt_beg };
-  auto zt_end = zoned_time<seconds>{ tz, lt_end };
+  spider::tz::local_seconds lt_end
+      = spider::tz::local_days{ ymd } + std::chrono::hours{ 3 }
+        + std::chrono::minutes{ 30 } + std::chrono::seconds{ 0 };
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("Australia/Adelaide");
+  auto zt_beg = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_beg };
+  auto zt_end = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_end };
 
-  seconds secs = spider::DiffTime(zt_end, zt_beg);
-  EXPECT_EQ(secs, seconds{ 60 * 60 });
+  std::chrono::seconds secs = spider::DiffTime(zt_end, zt_beg);
+  EXPECT_EQ(secs, std::chrono::seconds{ 60 * 60 });
 }
