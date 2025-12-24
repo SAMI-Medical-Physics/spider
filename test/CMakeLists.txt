@@ -37,7 +37,6 @@ target_link_libraries(
 )
 target_compile_definitions(test_spect
   PRIVATE SPIDER_TEST_DATA_DIR="${SPIDER_TEST_DATA_DIR}")
-target_compile_features(test_spect PRIVATE cxx_std_17)
 
 include(GoogleTest)
 gtest_discover_tests(test_spect)

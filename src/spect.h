@@ -4,6 +4,8 @@
 #ifndef SPIDER_SPECT_H
 #define SPIDER_SPECT_H
 
+#include <chrono>
+#include <expected>
 #include <istream>
 #include <ostream>
 #include <string>
@@ -72,6 +74,62 @@ ParseDicomDate(const std::string_view v, Date& date);
 // parsed successfully.
 bool
 ParseDicomTime(std::string_view v, Time& time);
+
+enum class DatetimeParseError
+{
+  kTooShort,
+  kFailedDate,
+  kFailedTime,
+  kInvalidDate,
+  kNonexistentLocalTime,
+};
+
+// Return a zoned time constructed from the local calendar date D and
+// clock time T in time zone TZ.  If D is not a valid calendar date,
+// return DatetimeParseError::kInvalidDate.  If the local time is
+// nonexistent (e.g. during a DST spring-forward), return
+// DatetimeParseError::kNonexistentLocalTime.  If the local time is
+// ambiguous (e.g. during a DST fall-back), the earlier time point is
+// chosen.
+std::expected<std::chrono::zoned_time<std::chrono::seconds>,
+              DatetimeParseError>
+MakeZonedTime(const Date& d, const Time& t, const std::chrono::time_zone* tz);
+
+// Return a zoned time constructed from the timestamp V in the time
+// zone TZ.  The timestamp should be of the form "YYYYMMDDHH[MMSS]",
+// where the components in brackets are optional.  Any additional
+// trailing characters are ignored.  In addition to the return values
+// of MakeZonedTime, it also returns DateTimeParseError::kTooShort if
+// the timestamp is less than 10 characters,
+// DateTimeParseError::kFailedDate if it fails to parse the date
+// component of the timestamp, and DateTimeParseError::kFailedTime if
+// it fails to parse the time component of the timestamp.
+std::expected<std::chrono::zoned_time<std::chrono::seconds>,
+              DatetimeParseError>
+ParseTimestamp(std::string_view v, const std::chrono::time_zone* tz);
+
+constexpr std::string_view
+ToString(DatetimeParseError e)
+{
+  switch (e)
+    {
+    case DatetimeParseError::kTooShort:
+      return "timestamp is less than 10 characters";
+    case DatetimeParseError::kFailedDate:
+      return "failed to parse date component";
+    case DatetimeParseError::kFailedTime:
+      return "failed to parse time component";
+    case DatetimeParseError::kInvalidDate:
+      return "invalid date";
+    case DatetimeParseError::kNonexistentLocalTime:
+      return "nonexistent local time";
+    }
+  return "unknown parse error";
+}
+
+std::chrono::seconds
+DiffTime(const std::chrono::zoned_time<std::chrono::seconds>& time_end,
+         const std::chrono::zoned_time<std::chrono::seconds>& time_beg);
 
 } // namespace spider
 

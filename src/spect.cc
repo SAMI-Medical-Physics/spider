@@ -4,8 +4,10 @@
 #include "spect.h"
 
 #include <charconv> // std::from_chars
+#include <chrono>
 #include <cstddef> // std::size_t
-#include <iomanip>  // std::quoted
+#include <expected>
+#include <iomanip> // std::quoted
 #include <istream>
 #include <ostream>
 #include <string>
@@ -242,6 +244,58 @@ ParseDicomTime(std::string_view v, Time& time)
   time.minute = m;
   time.second = s;
   return true;
+}
+
+std::expected<std::chrono::zoned_time<std::chrono::seconds>,
+              DatetimeParseError>
+MakeZonedTime(const Date& d, const Time& t, const std::chrono::time_zone* tz)
+{
+  using namespace std::chrono;
+  const year_month_day ymd{ year{ d.year },
+                            month{ static_cast<unsigned>(d.month) },
+                            day{ static_cast<unsigned>(d.day) } };
+  if (!ymd.ok())
+    return std::unexpected(DatetimeParseError::kInvalidDate);
+  const local_seconds lt = local_days{ ymd } + hours{ t.hour }
+                           + minutes{ t.minute } + seconds{ t.second };
+  try
+    {
+      return zoned_time<seconds>{ tz, lt };
+    }
+  catch (const std::chrono::ambiguous_local_time& e)
+    {
+      // DST fall-back.
+      Warning() << e.what() << "\nChoosing the earlier time point\n";
+      return zoned_time<seconds>{ tz, lt, choose::earliest };
+    }
+  catch (const std::chrono::nonexistent_local_time&)
+    {
+      // DST spring-forward.
+      return std::unexpected(DatetimeParseError::kNonexistentLocalTime);
+    }
+}
+
+std::expected<std::chrono::zoned_time<std::chrono::seconds>,
+              DatetimeParseError>
+ParseTimestamp(std::string_view v, const std::chrono::time_zone* tz)
+{
+  if (v.size() < 10)
+    return std::unexpected(DatetimeParseError::kTooShort);
+  Date date;
+  if (!ParseDicomDate(v.substr(0, 8), date))
+    return std::unexpected(DatetimeParseError::kFailedDate);
+  v.remove_prefix(8);
+  Time time;
+  if (!ParseDicomTime(v, time))
+    return std::unexpected(DatetimeParseError::kFailedTime);
+  return MakeZonedTime(date, time, tz);
+}
+
+std::chrono::seconds
+DiffTime(const std::chrono::zoned_time<std::chrono::seconds>& time_end,
+         const std::chrono::zoned_time<std::chrono::seconds>& time_beg)
+{
+  return time_end.get_sys_time() - time_beg.get_sys_time();
 }
 
 } // namespace spider

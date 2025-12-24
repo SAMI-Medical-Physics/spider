@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(Spider VERSION 0.0.0)
 
+# This requirement is driven by the calendar and time zone
+# functionality added in C++20 and std::expected from C++23.
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(ITK REQUIRED
   COMPONENTS
   ITKCommon
