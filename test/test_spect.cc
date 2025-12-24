@@ -4,7 +4,6 @@
 #include "spect.h"
 
 #include <chrono>
-#include <format>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -277,7 +276,15 @@ TEST(MakeZonedTimeTest, Example)
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Tokyo");
   auto zt = spider::MakeZonedTime(date, time, tz);
   ASSERT_EQ(zt.has_value(), true);
-  EXPECT_EQ(std::format("{:%F %T}", zt.value()), "1997-07-15 16:43:09");
+
+  spider::tz::local_seconds lt_valid
+      = spider::tz::local_days{ spider::tz::year{ 1997 }
+                                / spider::tz::month{ 7 }
+                                / spider::tz::day{ 15 } }
+        + std::chrono::hours{ 16 } + std::chrono::minutes{ 43 }
+        + std::chrono::seconds{ 9 };
+  auto zt_valid = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_valid };
+  EXPECT_EQ(zt.value(), zt_valid);
 }
 
 TEST(MakeZonedTimeTest, NonexistentLocalTime)
@@ -330,7 +337,15 @@ TEST(ParseTimestampTest, Example)
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Paris");
   auto zt = spider::ParseTimestamp("19970715164309", tz);
   ASSERT_EQ(zt.has_value(), true);
-  EXPECT_EQ(std::format("{:%F %T}", zt.value()), "1997-07-15 16:43:09");
+
+  spider::tz::local_seconds lt_valid
+      = spider::tz::local_days{ spider::tz::year{ 1997 }
+                                / spider::tz::month{ 7 }
+                                / spider::tz::day{ 15 } }
+        + std::chrono::hours{ 16 } + std::chrono::minutes{ 43 }
+        + std::chrono::seconds{ 9 };
+  auto zt_valid = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_valid };
+  EXPECT_EQ(zt.value(), zt_valid);
 }
 
 TEST(ToStringTest, Example)
