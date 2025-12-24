@@ -3,9 +3,9 @@
 
 #include "spect.h"
 
-#include <charconv> // std::from_chars
 #include <chrono>
 #include <cstddef> // std::size_t
+#include <cstdlib> // std::strtod
 #include <expected>
 #include <iomanip> // std::quoted
 #include <istream>
@@ -179,9 +179,9 @@ ReadSpects(std::istream& in)
         break;
       if (!std::getline(in, line))
         break;
-      auto [ptr, ec] = std::from_chars(line.data(), line.data() + line.size(),
-                                       s.half_life);
-      if (ec != std::errc())
+      char* end{};
+      s.half_life = std::strtod(line.c_str(), &end);
+      if (end == line.c_str())
         {
           Warning() << "SPECT " << spects.size()
                     << ": failed to set radionuclide half-life\n";
