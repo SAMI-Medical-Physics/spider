@@ -112,7 +112,7 @@ enum class DatetimeParseError
 // chosen.
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
 MakeZonedTime(const DateComplete& d, const TimeComplete& t,
-              const tz::time_zone* tz);
+              const tz::time_zone& tz);
 
 constexpr std::string_view
 ToString(DatetimeParseError e)

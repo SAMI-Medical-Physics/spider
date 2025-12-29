@@ -284,7 +284,7 @@ TEST(MakeZonedTimeTest, Example)
   spider::DateComplete date = { .year = 1997, .month = 7, .day = 15 };
   spider::TimeComplete time = { .hour = 16, .minute = 43, .second = 9 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Tokyo");
-  auto zt = spider::MakeZonedTime(date, time, tz);
+  auto zt = spider::MakeZonedTime(date, time, *tz);
   ASSERT_EQ(zt.has_value(), true);
 
   spider::tz::local_seconds lt_valid
@@ -305,7 +305,7 @@ TEST(MakeZonedTimeTest, NonexistentLocalTime)
   spider::TimeComplete time = { .hour = 2, .minute = 45, .second = 0 };
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
-  auto zt_test = spider::MakeZonedTime(date, time, tz);
+  auto zt_test = spider::MakeZonedTime(date, time, *tz);
   EXPECT_EQ(zt_test.has_value(), false);
 }
 
@@ -314,7 +314,7 @@ TEST(MakeZonedTimeTest, NonexistentLocalTimeDifferentTimeZone)
   spider::DateComplete date = { .year = 2025, .month = 3, .day = 30 };
   spider::TimeComplete time = { .hour = 2, .minute = 20, .second = 0 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Berlin");
-  auto zt_test = spider::MakeZonedTime(date, time, tz);
+  auto zt_test = spider::MakeZonedTime(date, time, *tz);
   EXPECT_EQ(zt_test.has_value(), false);
 }
 
@@ -326,7 +326,7 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
   spider::TimeComplete time = { .hour = 2, .minute = 45, .second = 0 };
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
-  auto zt_beg = spider::MakeZonedTime(date, time, tz);
+  auto zt_beg = spider::MakeZonedTime(date, time, *tz);
   ASSERT_EQ(zt_beg.has_value(), true);
 
   spider::tz::local_seconds lt_end

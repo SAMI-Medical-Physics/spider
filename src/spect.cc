@@ -292,7 +292,7 @@ ParseDicomTime(std::string_view v, TimeParsed& time)
 
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
 MakeZonedTime(const DateComplete& d, const TimeComplete& t,
-              const tz::time_zone* tz)
+              const tz::time_zone& tz)
 {
   const tz::year_month_day ymd{ tz::year{ d.year },
                                 tz::month{ static_cast<unsigned>(d.month) },
@@ -304,13 +304,13 @@ MakeZonedTime(const DateComplete& d, const TimeComplete& t,
         + std::chrono::minutes{ t.minute } + std::chrono::seconds{ t.second };
   try
     {
-      return tz::zoned_time<std::chrono::seconds>{ tz, lt };
+      return tz::zoned_time<std::chrono::seconds>{ &tz, lt };
     }
   catch (const tz::ambiguous_local_time& e)
     {
       // DST fall-back.
       Warning() << e.what() << "\nChoosing the earlier time point\n";
-      return tz::zoned_time<std::chrono::seconds>{ tz, lt,
+      return tz::zoned_time<std::chrono::seconds>{ &tz, lt,
                                                    tz::choose::earliest };
     }
   catch (const tz::nonexistent_local_time&)
