@@ -320,11 +320,4 @@ MakeZonedTime(const DateComplete& d, const TimeComplete& t,
     }
 }
 
-std::chrono::seconds
-DiffTime(const tz::zoned_time<std::chrono::seconds>& time_end,
-         const tz::zoned_time<std::chrono::seconds>& time_beg)
-{
-  return time_end.get_sys_time() - time_beg.get_sys_time();
-}
-
 } // namespace spider

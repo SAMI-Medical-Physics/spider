@@ -133,9 +133,6 @@ ToString(DatetimeParseError e)
   return "unknown parse error";
 }
 
-std::chrono::seconds
-DiffTime(const tz::zoned_time<std::chrono::seconds>& time_end,
-         const tz::zoned_time<std::chrono::seconds>& time_beg);
 
 } // namespace spider
 
