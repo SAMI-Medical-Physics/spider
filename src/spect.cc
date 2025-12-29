@@ -359,6 +359,38 @@ ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& date,
   return true;
 }
 
+bool
+ParseDicomUtcOffset(std::string_view v, std::chrono::minutes& offset)
+{
+  if (v.size() < 5)
+    return false;
+  // C.12.1.1.8: "Leading space characters shall not be present."
+  const char sign = v[0];
+  if (sign != '+' && sign != '-')
+    return false;
+  v.remove_prefix(1);
+  int hour = 0;
+  if (!ParseHour(v, hour))
+    return false;
+  v.remove_prefix(2);
+  int minute = 0;
+  if (!ParseMinute(v, minute))
+    return false;
+  std::chrono::minutes off{ hour * 60 + minute };
+  if (sign == '-')
+    off = -off;
+  // C.12.1.1.8: "-0000 shall not be used."
+  if (sign == '-' && off == std::chrono::minutes{ 0 })
+    return false;
+  // Table 6.2-1, Date Time VR, Note 1: "The range of the offset is
+  // -1200 to +1400."
+  if ((off < std::chrono::minutes{ -12 * 60 })
+      || (off > std::chrono::minutes{ 14 * 60 }))
+    return false;
+  offset = off;
+  return true;
+}
+
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
 MakeZonedTime(const DateComplete& d, const TimeComplete& t,
               const tz::time_zone& tz)

@@ -396,6 +396,20 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondFraction)
   EXPECT_EQ(time.second.value(), 56);
 }
 
+TEST(ParseDicomUtcOffsetTest, PositiveOffset)
+{
+  std::chrono::minutes offset;
+  EXPECT_TRUE(spider::ParseDicomUtcOffset("+0930", offset));
+  EXPECT_EQ(offset, std::chrono::minutes{ 9 * 60 + 30 });
+}
+
+TEST(ParseDicomUtcOffsetTest, NegativeOffset)
+{
+  std::chrono::minutes offset;
+  EXPECT_TRUE(spider::ParseDicomUtcOffset("-0500", offset));
+  EXPECT_EQ(offset, std::chrono::minutes{ -5 * 60 });
+}
+
 TEST(MakeZonedTimeTest, Example)
 {
   spider::DateComplete date = { .year = 1997, .month = 7, .day = 15 };

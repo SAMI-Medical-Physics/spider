@@ -103,6 +103,12 @@ bool
 ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& d,
                                TimeParsed& t);
 
+// Parse a DICOM TimezoneOffsetFromUTC value from V into OFFSET.  For
+// example, "-0200" is parsed as -120 minutes.  If parsing fails,
+// return false and leave OFFSET unchanged.
+bool
+ParseDicomUtcOffset(std::string_view v, std::chrono::minutes& offset);
+
 enum class DatetimeParseError
 {
   kTooShort,
