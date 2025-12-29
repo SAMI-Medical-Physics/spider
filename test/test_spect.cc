@@ -410,6 +410,32 @@ TEST(ParseDicomUtcOffsetTest, NegativeOffset)
   EXPECT_EQ(offset, std::chrono::minutes{ -5 * 60 });
 }
 
+TEST(ToStringTest, Example)
+{
+  spider::MakeTimePointError e{};
+  spider::ToString(e);
+}
+
+TEST(MakeDateCompleteTest, Example)
+{
+  spider::DateParsed date_parsed{ .year = 2023, .month = 2, .day = 14 };
+  auto date_complete = spider::MakeDateComplete(date_parsed);
+  ASSERT_TRUE(date_complete.has_value());
+  EXPECT_EQ(date_complete.value().year, 2023);
+  EXPECT_EQ(date_complete.value().month, 2);
+  EXPECT_EQ(date_complete.value().day, 14);
+}
+
+TEST(MakeTimeCompleteTest, Example)
+{
+  spider::TimeParsed time_parsed{ .hour = 14, .minute = 34, .second = 1 };
+  auto time_complete = spider::MakeTimeComplete(time_parsed);
+  ASSERT_TRUE(time_complete.has_value());
+  EXPECT_EQ(time_complete.value().hour, 14);
+  EXPECT_EQ(time_complete.value().minute, 34);
+  EXPECT_EQ(time_complete.value().second, 1);
+}
+
 TEST(MakeZonedTimeTest, Example)
 {
   spider::DateComplete date = { .year = 1997, .month = 7, .day = 15 };
@@ -474,8 +500,156 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
   EXPECT_EQ(secs, std::chrono::seconds{ (2 * 60 * 60) + (15 * 60) });
 }
 
-TEST(ToStringTest, Example)
+TEST(MakeSysTimeFromOffsetTest, PositiveOffset)
 {
-  spider::DatetimeParseError e{};
-  EXPECT_NE(spider::ToString(e), "");
+  spider::DateComplete d{ 2025, 1, 2 };
+  spider::TimeComplete t{ 0, 0, 0 };
+  std::chrono::minutes offset{ 9 * 60 + 30 };
+  auto s = spider::MakeSysTimeFromOffset(d, t, offset);
+  ASSERT_TRUE(s.has_value());
+
+  std::chrono::sys_seconds expected
+      = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 1 }
+        + std::chrono::hours{ 14 } + std::chrono::minutes{ 30 };
+  EXPECT_EQ(s.value(), expected);
+}
+
+TEST(MakeSysTimeFromOffsetTest, NegativeOffset)
+{
+  spider::DateComplete d{ 2025, 1, 2 };
+  spider::TimeComplete t{ 0, 0, 0 };
+  std::chrono::minutes offset{ -(9 * 60 + 30) };
+  auto s = spider::MakeSysTimeFromOffset(d, t, offset);
+  ASSERT_TRUE(s.has_value());
+
+  std::chrono::sys_seconds expected
+      = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 2 }
+        + std::chrono::hours{ 9 } + std::chrono::minutes{ 30 };
+  EXPECT_EQ(s.value(), expected);
+}
+
+TEST(MakeSysTimeFromOffsetOrTimeZoneTest, WithOffset)
+{
+  // If a UTC offset is provided, it is used and the time zone
+  // argument has no effect.
+  spider::DateComplete d{ 2025, 1, 2 };
+  spider::TimeComplete t{ 0, 0, 0 };
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver"); // not used
+  auto s = spider::MakeSysTimeFromOffsetOrTimeZone(d, t, "-0930", tz);
+  ASSERT_TRUE(s.has_value());
+
+  std::chrono::sys_seconds expected
+      = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 2 }
+        + std::chrono::hours{ 9 } + std::chrono::minutes{ 30 };
+  EXPECT_EQ(s.value(), expected);
+}
+
+TEST(MakeSysTimeFromOffsetOrTimeZoneTest, NoOffset)
+{
+  // If the UTC offset is empty, the time zone is used.
+  spider::DateComplete d{ 2025, 1, 2 };
+  spider::TimeComplete t{ 15, 23, 12 };
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  auto s = spider::MakeSysTimeFromOffsetOrTimeZone(d, t, "", tz);
+  ASSERT_TRUE(s.has_value());
+
+  spider::tz::local_seconds lt
+      = spider::tz::local_days{ spider::tz::year{ 2025 }
+                                / spider::tz::month{ 1 }
+                                / spider::tz::day{ 2 } }
+        + std::chrono::hours{ 15 } + std::chrono::minutes{ 23 }
+        + std::chrono::seconds{ 12 };
+  auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
+  EXPECT_EQ(s.value(), zt.get_sys_time());
+}
+
+TEST(MakeSysTimeFromDicomDateAndTimeTest, WithOffset)
+{
+  // If a UTC offset is provided, it is used and the time zone
+  // argument has no effect.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver"); // not used
+  auto s = spider::MakeSysTimeFromDicomDateAndTime("20250102", "000000",
+                                                   "+1030", tz);
+  ASSERT_TRUE(s.has_value());
+
+  std::chrono::sys_seconds expected
+      = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 1 }
+        + std::chrono::hours{ 13 } + std::chrono::minutes{ 30 };
+  EXPECT_EQ(s.value(), expected);
+}
+
+TEST(MakeSysTimeFromDicomDateAndTimeTest, NoOffset)
+{
+  // If the UTC offset is empty, the time zone is used.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  auto s
+      = spider::MakeSysTimeFromDicomDateAndTime("20230314", "123301", "", tz);
+  ASSERT_TRUE(s.has_value());
+
+  spider::tz::local_seconds lt
+      = spider::tz::local_days{ spider::tz::year{ 2023 }
+                                / spider::tz::month{ 3 }
+                                / spider::tz::day{ 14 } }
+        + std::chrono::hours{ 12 } + std::chrono::minutes{ 33 }
+        + std::chrono::seconds{ 1 };
+  auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
+  EXPECT_EQ(s.value(), zt.get_sys_time());
+}
+
+TEST(MakeSysTimeFromDicomDateTimeTest, OffsetInDateTime)
+{
+  // If the DT value contains a UTC offset suffix, it is used and the
+  // separate offset argument and time zone argument have no effect.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  auto s = spider::MakeSysTimeFromDicomDateTime("20250102000000+0330",
+                                                "-0500", // not used
+                                                tz);     // not used
+  ASSERT_TRUE(s.has_value());
+
+  std::chrono::sys_seconds expected
+      = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 1 }
+        + std::chrono::hours{ 20 } + std::chrono::minutes{ 30 };
+  EXPECT_EQ(s.value(), expected);
+}
+
+TEST(MakeSysTimeFromDicomDateTimeTest, SeparateOffset)
+{
+  // If the DT value does not contain a UTC offset suffix, the
+  // separate offset argument is used.  If the separate offset
+  // argument is not empty, the time zone argument has no effect.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  auto s = spider::MakeSysTimeFromDicomDateTime("20250102000000",
+                                                "-0500", // used
+                                                tz);     // not used
+  ASSERT_TRUE(s.has_value());
+
+  std::chrono::sys_seconds expected
+      = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 2 }
+        + std::chrono::hours{ 5 };
+  EXPECT_EQ(s.value(), expected);
+}
+
+TEST(MakeSysTimeFromDicomDateTimeTest, NoOffset)
+{
+  // If the DT value does not include a UTC offset suffix, and the
+  // separate UTC offset argument is empty, the time zone is used.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  auto s = spider::MakeSysTimeFromDicomDateTime("20230314123301", "", tz);
+  ASSERT_TRUE(s.has_value());
+
+  spider::tz::local_seconds lt
+      = spider::tz::local_days{ spider::tz::year{ 2023 }
+                                / spider::tz::month{ 3 }
+                                / spider::tz::day{ 14 } }
+        + std::chrono::hours{ 12 } + std::chrono::minutes{ 33 }
+        + std::chrono::seconds{ 1 };
+  auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
+  EXPECT_EQ(s.value(), zt.get_sys_time());
 }
