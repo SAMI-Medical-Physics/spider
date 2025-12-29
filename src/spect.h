@@ -94,6 +94,15 @@ ParseDicomDate(std::string_view v, DateComplete& date);
 bool
 ParseDicomTime(std::string_view v, TimeParsed& time);
 
+// Parse the date and time components of a DICOM Date Time (DT) value
+// from V into D and T, ignoring any fractional second component and
+// any UTC offset suffix.  If parsing fails, return false and leave D
+// and T unchanged.  Characters after the SS component are ignored, so
+// non-DICOM-conformant strings may be parsed successfully.
+bool
+ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& d,
+                               TimeParsed& t);
+
 enum class DatetimeParseError
 {
   kTooShort,

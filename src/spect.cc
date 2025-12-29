@@ -290,6 +290,75 @@ ParseDicomTime(std::string_view v, TimeParsed& time)
   return true;
 }
 
+bool
+ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& date,
+                               TimeParsed& time)
+{
+  // For DICOM Date Time (DT) values, only the year component is
+  // required.
+  int year = 0;
+  if (!ParseYear(v, year))
+    return false;
+  v.remove_prefix(4);
+  if (v.size() == 1)
+    return false;
+  std::optional<int> month;
+  if (v.size() >= 2)
+    {
+      int m = 0;
+      if (!ParseMonthOrDay(v, m))
+        return false;
+      month = m;
+      v.remove_prefix(2);
+    }
+  if (v.size() == 1)
+    return false;
+  std::optional<int> day;
+  if (v.size() >= 2)
+    {
+      int d = 0;
+      if (!ParseMonthOrDay(v, d))
+        return false;
+      day = d;
+      v.remove_prefix(2);
+    }
+  if (v.size() == 1)
+    return false;
+  std::optional<int> hour;
+  if (v.size() >= 2)
+    {
+      int h = 0;
+      if (!ParseHour(v, h))
+        return false;
+      hour = h;
+      v.remove_prefix(2);
+    }
+  if (v.size() == 1)
+    return false;
+  std::optional<int> minute;
+  if (v.size() >= 2)
+    {
+      int min = 0;
+      if (!ParseMinute(v, min))
+        return false;
+      minute = min;
+      v.remove_prefix(2);
+    }
+  if (v.size() == 1)
+    return false;
+  std::optional<int> second;
+  if (v.size() >= 2)
+    {
+      int s = 0;
+      if (!ParseSecond(v, s))
+        return false;
+      second = s;
+    }
+  date = DateParsed{ .year = year, .month = month, .day = day };
+  time = TimeParsed{ .hour = hour, .minute = minute, .second = second };
+  return true;
+}
+
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
 MakeZonedTime(const DateComplete& d, const TimeComplete& t,
               const tz::time_zone& tz)

@@ -279,6 +279,123 @@ TEST(ParseDicomTimeTest, HourAndMinuteAndSecondAndFraction)
   EXPECT_EQ(time.second.value(), 14);
 }
 
+TEST(ParseDicomDateTimeExcludingUtcTest, YearOnly)
+{
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(spider::ParseDicomDateTimeExcludingUtc("2023", date, time));
+  EXPECT_EQ(date.year, 2023);
+  EXPECT_FALSE(date.month.has_value());
+  EXPECT_FALSE(date.day.has_value());
+  EXPECT_FALSE(time.hour.has_value());
+  EXPECT_FALSE(time.minute.has_value());
+  EXPECT_FALSE(time.second.has_value());
+}
+
+TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthOnly)
+{
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(spider::ParseDicomDateTimeExcludingUtc("202303", date, time));
+  EXPECT_EQ(date.year, 2023);
+  ASSERT_TRUE(date.month.has_value());
+  EXPECT_EQ(date.month.value(), 3);
+  EXPECT_FALSE(date.day.has_value());
+  EXPECT_FALSE(time.hour.has_value());
+  EXPECT_FALSE(time.minute.has_value());
+  EXPECT_FALSE(time.second.has_value());
+}
+
+TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayOnly)
+{
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(spider::ParseDicomDateTimeExcludingUtc("20230314", date, time));
+  EXPECT_EQ(date.year, 2023);
+  ASSERT_TRUE(date.month.has_value());
+  EXPECT_EQ(date.month.value(), 3);
+  ASSERT_TRUE(date.day.has_value());
+  EXPECT_EQ(date.day.value(), 14);
+  EXPECT_FALSE(time.hour.has_value());
+  EXPECT_FALSE(time.minute.has_value());
+  EXPECT_FALSE(time.second.has_value());
+}
+
+TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourOnly)
+{
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(
+      spider::ParseDicomDateTimeExcludingUtc("2023031409", date, time));
+  EXPECT_EQ(date.year, 2023);
+  ASSERT_TRUE(date.month.has_value());
+  EXPECT_EQ(date.month.value(), 3);
+  ASSERT_TRUE(date.day.has_value());
+  EXPECT_EQ(date.day.value(), 14);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 9);
+  EXPECT_FALSE(time.minute.has_value());
+  EXPECT_FALSE(time.second.has_value());
+}
+
+TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteOnly)
+{
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(
+      spider::ParseDicomDateTimeExcludingUtc("202303140945", date, time));
+  EXPECT_EQ(date.year, 2023);
+  ASSERT_TRUE(date.month.has_value());
+  EXPECT_EQ(date.month.value(), 3);
+  ASSERT_TRUE(date.day.has_value());
+  EXPECT_EQ(date.day.value(), 14);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 9);
+  ASSERT_TRUE(time.minute.has_value());
+  EXPECT_EQ(time.minute.value(), 45);
+  EXPECT_FALSE(time.second.has_value());
+}
+
+TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondOnly)
+{
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(
+      spider::ParseDicomDateTimeExcludingUtc("20230314094556", date, time));
+  EXPECT_EQ(date.year, 2023);
+  ASSERT_TRUE(date.month.has_value());
+  EXPECT_EQ(date.month.value(), 3);
+  ASSERT_TRUE(date.day.has_value());
+  EXPECT_EQ(date.day.value(), 14);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 9);
+  ASSERT_TRUE(time.minute.has_value());
+  EXPECT_EQ(time.minute.value(), 45);
+  ASSERT_TRUE(time.second.has_value());
+  EXPECT_EQ(time.second.value(), 56);
+}
+
+TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondFraction)
+{
+  // If DICOM DT value contains a fractional part of a second, that
+  // component is ignored.
+  spider::DateParsed date;
+  spider::TimeParsed time;
+  EXPECT_TRUE(
+      spider::ParseDicomDateTimeExcludingUtc("20230314094556.30", date, time));
+  EXPECT_EQ(date.year, 2023);
+  ASSERT_TRUE(date.month.has_value());
+  EXPECT_EQ(date.month.value(), 3);
+  ASSERT_TRUE(date.day.has_value());
+  EXPECT_EQ(date.day.value(), 14);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 9);
+  ASSERT_TRUE(time.minute.has_value());
+  EXPECT_EQ(time.minute.value(), 45);
+  ASSERT_TRUE(time.second.has_value());
+  EXPECT_EQ(time.second.value(), 56);
+}
+
 TEST(MakeZonedTimeTest, Example)
 {
   spider::DateComplete date = { .year = 1997, .month = 7, .day = 15 };
