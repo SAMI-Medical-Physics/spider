@@ -28,6 +28,53 @@
 namespace spider
 {
 
+namespace
+{
+
+bool
+ParseYear(const std::string_view v, int& out)
+{
+  if (v.size() < 4)
+    return false;
+  auto [ptr, ec] = std::from_chars(v.data(), v.data() + 4, out);
+  return (ec == std::errc() && (ptr == v.data() + 4) && out >= 0);
+}
+
+bool
+ParseTwoDigits(const std::string_view v, int& out)
+{
+  if (v.size() < 2)
+    return false;
+  auto [ptr, ec] = std::from_chars(v.data(), v.data() + 2, out);
+  return ec == std::errc() && (ptr == v.data() + 2);
+}
+
+bool
+ParseMonthOrDay(const std::string_view v, int& out)
+{
+  return ParseTwoDigits(v, out) && out >= 0;
+}
+
+bool
+ParseHour(const std::string_view v, int& out)
+{
+  return ParseTwoDigits(v, out) && out >= 0 && out <= 23;
+}
+
+bool
+ParseMinute(const std::string_view v, int& out)
+{
+  return ParseTwoDigits(v, out) && out >= 0 && out <= 59;
+}
+
+bool
+ParseSecond(const std::string_view v, int& out)
+{
+  return ParseTwoDigits(v, out) && out >= 0 && out <= 60;
+}
+
+} // namespace
+
 std::string
 GetAcquisitionTimestamp(const gdcm::DataSet& ds)
 {
@@ -192,64 +239,60 @@ ReadSpects(std::istream& in)
 }
 
 bool
-ParseDicomDate(const std::string_view v, Date& date)
+ParseDicomDate(std::string_view v, DateComplete& date)
 {
   if (v.size() != 8)
     return false;
   int y{}, m{}, d{};
-  auto [ptr_y, ec_y] = std::from_chars(v.data(), v.data() + 4, y);
-  auto [ptr_m, ec_m] = std::from_chars(ptr_y, ptr_y + 2, m);
-  auto [ptr_d, ec_d] = std::from_chars(ptr_m, ptr_m + 2, d);
-  if (ec_y != std::errc() || ec_m != std::errc() || ec_d != std::errc()
-      || ptr_d != v.data() + 8 || y < 0 || m < 0 || d < 0)
+  if (!ParseYear(v, y))
     return false;
-  date.year = y;
-  date.month = m;
-  date.day = d;
+  v.remove_prefix(4);
+  if (!ParseMonthOrDay(v, m))
+    return false;
+  v.remove_prefix(2);
+  if (!ParseMonthOrDay(v, d))
+    return false;
+  date = DateComplete{ .year = y, .month = m, .day = d };
   return true;
 }
 
 bool
-ParseDicomTime(std::string_view v, Time& time)
+ParseDicomTime(std::string_view v, TimeParsed& time)
 {
-  if (v.size() < 2)
+  // For DICOM TM values, only the hour component is required.
+  int hour = 0;
+  if (!ParseHour(v, hour))
     return false;
-  // Hours as HH.
-  int h{};
-  auto [ptr_h, ec_h] = std::from_chars(v.data(), v.data() + 2, h);
-  if (ec_h != std::errc() || ptr_h != v.data() + 2 || h < 0 || h > 23)
-    return false;
-  // Minutes as MM.
   v.remove_prefix(2);
   if (v.size() == 1)
     return false;
-  int m = 0;
+  std::optional<int> minute;
   if (v.size() >= 2)
     {
-      auto [ptr_m, ec_m] = std::from_chars(v.data(), v.data() + 2, m);
-      if (ec_m != std::errc() || ptr_m != v.data() + 2 || m < 0 || m > 59)
+      int m = 0;
+      if (!ParseMinute(v, m))
         return false;
+      minute = m;
       v.remove_prefix(2);
     }
-  // Seconds as SS.
   if (v.size() == 1)
     return false;
-  int s = 0;
+  std::optional<int> second;
   if (v.size() >= 2)
     {
-      // Discard fractional seconds.
-      auto [ptr_s, ec_s] = std::from_chars(v.data(), v.data() + 2, s);
-      if (ec_s != std::errc() || ptr_s != v.data() + 2 || s < 0 || s > 60)
+      int s = 0;
+      // XXX: We ignore any fractional second component '.FFFFFF'.
+      if (!ParseSecond(v, s))
         return false;
+      second = s;
     }
-  time.hour = h;
-  time.minute = m;
-  time.second = s;
+  time = TimeParsed{ .hour = hour, .minute = minute, .second = second };
   return true;
 }
 
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
-MakeZonedTime(const Date& d, const Time& t, const tz::time_zone* tz)
+MakeZonedTime(const DateComplete& d, const TimeComplete& t,
+              const tz::time_zone* tz)
 {
   const tz::year_month_day ymd{ tz::year{ d.year },
                                 tz::month{ static_cast<unsigned>(d.month) },

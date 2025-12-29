@@ -51,14 +51,31 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os);
 std::vector<Spect>
 ReadSpects(std::istream& in);
 
-struct Date
+struct DateParsed
+{
+  int year;
+  // DICOM Date Time (DT) values may be missing month and day.
+  std::optional<int> month; // [1, 12]
+  std::optional<int> day;   // [1, 31]
+};
+
+struct TimeParsed
+{
+  // DICOM Time (TM) values may be missing minute and second.  DICOM
+  // Date Time (DT) values may be missing hour, minute, and second.
+  std::optional<int> hour = 0;   // [0, 23]
+  std::optional<int> minute = 0; // [0, 59]
+  std::optional<int> second = 0; // [0, 60], 60 for leap second
+};
+
+struct DateComplete
 {
   int year;
   int month; // [1, 12]
   int day;   // [1, 31]
 };
 
-struct Time
+struct TimeComplete
 {
   int hour = 0;   // [0, 23]
   int minute = 0; // [0, 59]
@@ -68,14 +85,14 @@ struct Time
 // Parse a DICOM Date (DA) value from V into DATE.  If parsing fails,
 // return false and leave DATE unchanged.
 bool
-ParseDicomDate(const std::string_view v, Date& date);
+ParseDicomDate(std::string_view v, DateComplete& date);
 
 // Parse a DICOM Time (TM) value from V into TIME.  If parsing fails,
 // return false and leave TIME unchanged.  Characters after the SS
 // component are ignored, so non-DICOM-conformant strings may be
 // parsed successfully.
 bool
-ParseDicomTime(std::string_view v, Time& time);
+ParseDicomTime(std::string_view v, TimeParsed& time);
 
 enum class DatetimeParseError
 {
@@ -94,7 +111,8 @@ enum class DatetimeParseError
 // ambiguous (e.g. during a DST fall-back), the earlier time point is
 // chosen.
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
-MakeZonedTime(const Date& d, const Time& t, const tz::time_zone* tz);
+MakeZonedTime(const DateComplete& d, const TimeComplete& t,
+              const tz::time_zone* tz);
 
 constexpr std::string_view
 ToString(DatetimeParseError e)

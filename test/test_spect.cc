@@ -217,7 +217,7 @@ TEST(ReadSpectsTest, Example)
 
 TEST(ParseDicomDateTest, Example)
 {
-  spider::Date date;
+  spider::DateComplete date;
   spider::ParseDicomDate("19930822", date);
   EXPECT_EQ(date.year, 1993);
   EXPECT_EQ(date.month, 8);
@@ -226,7 +226,7 @@ TEST(ParseDicomDateTest, Example)
 
 TEST(ParseDicomDateTest, NonFourDigitYear)
 {
-  spider::Date date;
+  spider::DateComplete date;
   spider::ParseDicomDate("00310822", date);
   EXPECT_EQ(date.year, 31);
   EXPECT_EQ(date.month, 8);
@@ -235,44 +235,54 @@ TEST(ParseDicomDateTest, NonFourDigitYear)
 
 TEST(ParseDicomTimeTest, HourOnly)
 {
-  spider::Time time;
+  spider::TimeParsed time;
   spider::ParseDicomTime("07", time);
-  EXPECT_EQ(time.hour, 7);
-  EXPECT_EQ(time.minute, 0);
-  EXPECT_EQ(time.second, 0);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 7);
+  EXPECT_FALSE(time.minute.has_value());
+  EXPECT_FALSE(time.second.has_value());
 }
 
 TEST(ParseDicomTimeTest, HourAndMinuteOnly)
 {
-  spider::Time time;
+  spider::TimeParsed time;
   spider::ParseDicomTime("1009", time);
-  EXPECT_EQ(time.hour, 10);
-  EXPECT_EQ(time.minute, 9);
-  EXPECT_EQ(time.second, 0);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 10);
+  ASSERT_TRUE(time.minute.has_value());
+  EXPECT_EQ(time.minute.value(), 9);
+  EXPECT_FALSE(time.second.has_value());
 }
 
 TEST(ParseDicomTimeTest, HourAndMinuteAndSecondOnly)
 {
-  spider::Time time;
+  spider::TimeParsed time;
   spider::ParseDicomTime("151305", time);
-  EXPECT_EQ(time.hour, 15);
-  EXPECT_EQ(time.minute, 13);
-  EXPECT_EQ(time.second, 5);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 15);
+  ASSERT_TRUE(time.minute.has_value());
+  EXPECT_EQ(time.minute.value(), 13);
+  ASSERT_TRUE(time.second.has_value());
+  EXPECT_EQ(time.second.value(), 5);
 }
 
 TEST(ParseDicomTimeTest, HourAndMinuteAndSecondAndFraction)
 {
-  spider::Time time;
+  // Any fraction of a second is ignored.
+  spider::TimeParsed time;
   spider::ParseDicomTime("030914.0103", time);
-  EXPECT_EQ(time.hour, 3);
-  EXPECT_EQ(time.minute, 9);
-  EXPECT_EQ(time.second, 14);
+  ASSERT_TRUE(time.hour.has_value());
+  EXPECT_EQ(time.hour.value(), 3);
+  ASSERT_TRUE(time.minute.has_value());
+  EXPECT_EQ(time.minute.value(), 9);
+  ASSERT_TRUE(time.second.has_value());
+  EXPECT_EQ(time.second.value(), 14);
 }
 
 TEST(MakeZonedTimeTest, Example)
 {
-  spider::Date date = { .year = 1997, .month = 7, .day = 15 };
-  spider::Time time = { .hour = 16, .minute = 43, .second = 9 };
+  spider::DateComplete date = { .year = 1997, .month = 7, .day = 15 };
+  spider::TimeComplete time = { .hour = 16, .minute = 43, .second = 9 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Tokyo");
   auto zt = spider::MakeZonedTime(date, time, tz);
   ASSERT_EQ(zt.has_value(), true);
@@ -291,8 +301,8 @@ TEST(MakeZonedTimeTest, NonexistentLocalTime)
 {
   // MakeZonedTime does not return a nonexistent local time, e.g. one
   // during a DST spring-forward.
-  spider::Date date = { .year = 2024, .month = 10, .day = 6 };
-  spider::Time time = { .hour = 2, .minute = 45, .second = 0 };
+  spider::DateComplete date = { .year = 2024, .month = 10, .day = 6 };
+  spider::TimeComplete time = { .hour = 2, .minute = 45, .second = 0 };
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_test = spider::MakeZonedTime(date, time, tz);
@@ -301,8 +311,8 @@ TEST(MakeZonedTimeTest, NonexistentLocalTime)
 
 TEST(MakeZonedTimeTest, NonexistentLocalTimeDifferentTimeZone)
 {
-  spider::Date date = { .year = 2025, .month = 3, .day = 30 };
-  spider::Time time = { .hour = 2, .minute = 20, .second = 0 };
+  spider::DateComplete date = { .year = 2025, .month = 3, .day = 30 };
+  spider::TimeComplete time = { .hour = 2, .minute = 20, .second = 0 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Berlin");
   auto zt_test = spider::MakeZonedTime(date, time, tz);
   EXPECT_EQ(zt_test.has_value(), false);
@@ -312,8 +322,8 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
 {
   // If the local time is ambiguous, e.g. due to a DST fall-back,
   // MakeZonedTime returns the earlier time point.
-  spider::Date date = { .year = 2024, .month = 4, .day = 7 };
-  spider::Time time = { .hour = 2, .minute = 45, .second = 0 };
+  spider::DateComplete date = { .year = 2024, .month = 4, .day = 7 };
+  spider::TimeComplete time = { .hour = 2, .minute = 45, .second = 0 };
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_beg = spider::MakeZonedTime(date, time, tz);
