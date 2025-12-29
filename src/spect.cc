@@ -3,6 +3,7 @@
 
 #include "spect.h"
 
+#include <charconv> // std::from_chars
 #include <chrono>
 #include <cstddef> // std::size_t
 #include <cstdlib> // std::strtod
