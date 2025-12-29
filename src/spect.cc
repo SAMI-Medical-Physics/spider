@@ -277,21 +277,6 @@ MakeZonedTime(const Date& d, const Time& t, const tz::time_zone* tz)
     }
 }
 
-std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
-ParseTimestamp(std::string_view v, const tz::time_zone* tz)
-{
-  if (v.size() < 10)
-    return std::unexpected(DatetimeParseError::kTooShort);
-  Date date;
-  if (!ParseDicomDate(v.substr(0, 8), date))
-    return std::unexpected(DatetimeParseError::kFailedDate);
-  v.remove_prefix(8);
-  Time time;
-  if (!ParseDicomTime(v, time))
-    return std::unexpected(DatetimeParseError::kFailedTime);
-  return MakeZonedTime(date, time, tz);
-}
-
 std::chrono::seconds
 DiffTime(const tz::zoned_time<std::chrono::seconds>& time_end,
          const tz::zoned_time<std::chrono::seconds>& time_beg)

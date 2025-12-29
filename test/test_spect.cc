@@ -332,22 +332,6 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
   EXPECT_EQ(secs, std::chrono::seconds{ (2 * 60 * 60) + (15 * 60) });
 }
 
-TEST(ParseTimestampTest, Example)
-{
-  const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Paris");
-  auto zt = spider::ParseTimestamp("19970715164309", tz);
-  ASSERT_EQ(zt.has_value(), true);
-
-  spider::tz::local_seconds lt_valid
-      = spider::tz::local_days{ spider::tz::year{ 1997 }
-                                / spider::tz::month{ 7 }
-                                / spider::tz::day{ 15 } }
-        + std::chrono::hours{ 16 } + std::chrono::minutes{ 43 }
-        + std::chrono::seconds{ 9 };
-  auto zt_valid = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt_valid };
-  EXPECT_EQ(zt.value(), zt_valid);
-}
-
 TEST(ToStringTest, Example)
 {
   spider::DatetimeParseError e{};

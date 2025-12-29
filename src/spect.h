@@ -96,18 +96,6 @@ enum class DatetimeParseError
 std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
 MakeZonedTime(const Date& d, const Time& t, const tz::time_zone* tz);
 
-// Return a zoned time constructed from the timestamp V in the time
-// zone TZ.  The timestamp should be of the form "YYYYMMDDHH[MMSS]",
-// where the components in brackets are optional.  Any additional
-// trailing characters are ignored.  In addition to the return values
-// of MakeZonedTime, it also returns DateTimeParseError::kTooShort if
-// the timestamp is less than 10 characters,
-// DateTimeParseError::kFailedDate if it fails to parse the date
-// component of the timestamp, and DateTimeParseError::kFailedTime if
-// it fails to parse the time component of the timestamp.
-std::expected<tz::zoned_time<std::chrono::seconds>, DatetimeParseError>
-ParseTimestamp(std::string_view v, const tz::time_zone* tz);
-
 constexpr std::string_view
 ToString(DatetimeParseError e)
 {
