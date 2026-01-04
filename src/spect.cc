@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include "spect.h"
 
@@ -76,20 +76,29 @@ ParseSecond(const std::string_view v, int& out)
 } // namespace
 
 std::string
-GetAcquisitionTimestamp(const gdcm::DataSet& ds)
+GetAcquisitionDate(const gdcm::DataSet& ds)
 {
-  if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0022))
-      || !ds.FindDataElement(gdcm::Tag(0x0008, 0x0032)))
+  if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0022)))
     {
-      Warning()
-          << "missing DICOM attribute: AcquisitionDate or AcquisitionTime\n";
+      Warning() << "missing DICOM attribute: AcquisitionDate\n";
       return {};
     }
-  gdcm::Attribute<0x0008, 0x0022> at_date;
-  at_date.SetFromDataSet(ds);
-  gdcm::Attribute<0x0008, 0x0032> at_time;
-  at_time.SetFromDataSet(ds);
-  return at_date.GetValue() + at_time.GetValue();
+  gdcm::Attribute<0x0008, 0x0022> at;
+  at.SetFromDataSet(ds);
+  return at.GetValue();
+}
+
+std::string
+GetAcquisitionTime(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0032)))
+    {
+      Warning() << "missing DICOM attribute: AcquisitionTime\n";
+      return {};
+    }
+  gdcm::Attribute<0x0008, 0x0032> at;
+  at.SetFromDataSet(ds);
+  return at.GetValue();
 }
 
 double
@@ -126,8 +135,9 @@ std::ostream&
 operator<<(std::ostream& os, const Spect& s)
 {
   return os << "Spect{"
-            << "half_life=" << s.half_life << " s, acquisition_timestamp="
-            << std::quoted(s.acquisition_timestamp)
+            << "half_life=" << s.half_life
+            << " s, acquisition_date=" << std::quoted(s.acquisition_date)
+            << ", acquisition_time=" << std::quoted(s.acquisition_time)
             << ", decay_correction_method="
             << std::quoted(s.decay_correction_method)
             << ", patient_name=" << std::quoted(s.patient_name) << "}";
@@ -147,7 +157,8 @@ ReadDicomSpect(const gdcm::DataSet& ds)
   else
     Warning() << "missing DICOM attribute: DecayCorrection\n";
 
-  spect.acquisition_timestamp = GetAcquisitionTimestamp(ds);
+  spect.acquisition_date = GetAcquisitionDate(ds);
+  spect.acquisition_time = GetAcquisitionTime(ds);
   spect.half_life = GetHalfLife(ds);
   // Read patient name.
   if (ds.FindDataElement(gdcm::Tag(0x0010, 0x0010)))
@@ -181,8 +192,11 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
     {
       if (GetFirstLine(spects[i].patient_name) != spects[i].patient_name)
         Warning() << "SPECT " << i + 1 << ": patient name: " << msg;
-      if (GetFirstLine(spects[i].acquisition_timestamp)
-          != spects[i].acquisition_timestamp)
+      if (GetFirstLine(spects[i].acquisition_date)
+          != spects[i].acquisition_date)
+        Warning() << "SPECT " << i + 1 << ": acquisition date: " << msg;
+      if (GetFirstLine(spects[i].acquisition_time)
+          != spects[i].acquisition_time)
         Warning() << "SPECT " << i + 1 << ": acquisition time: " << msg;
       if (GetFirstLine(spects[i].decay_correction_method)
           != spects[i].decay_correction_method)
@@ -195,7 +209,8 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
     {
       os << "\n"
          << GetFirstLine(spect.patient_name) << "\n"
-         << GetFirstLine(spect.acquisition_timestamp) << "\n"
+         << GetFirstLine(spect.acquisition_date) << "\n"
+         << GetFirstLine(spect.acquisition_time) << "\n"
          << GetFirstLine(spect.decay_correction_method) << "\n"
          << spect.half_life << "\n";
     }
@@ -221,7 +236,9 @@ ReadSpects(std::istream& in)
       Spect& s = spects.back();
       if (!std::getline(in, s.patient_name))
         break;
-      if (!std::getline(in, s.acquisition_timestamp))
+      if (!std::getline(in, s.acquisition_date))
+        break;
+      if (!std::getline(in, s.acquisition_time))
         break;
       if (!std::getline(in, s.decay_correction_method))
         break;

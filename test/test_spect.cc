@@ -54,30 +54,42 @@ constexpr char kTestFilename[] = SPIDER_TEST_DATA_DIR
 
 } // namespace
 
-TEST(GetAcquisitionTimestampTest, Example)
+TEST(GetAcquisitionDateTest, Example)
 {
   std::string date = "19930822";
-  gdcm::Attribute<0x0008, 0x0022> ad; // AcquisitionDate
-  ad.SetValue(date);
-
-  std::string time = "070907.0705 ";
-  gdcm::Attribute<0x0008, 0x0032> at; // AcquisitionTime
-  at.SetValue(time);
-
+  gdcm::Attribute<0x0008, 0x0022> at; // AcquisitionDate
+  at.SetValue(date);
   gdcm::DataSet ds;
-  ds.Insert(ad.GetAsDataElement());
   ds.Insert(at.GetAsDataElement());
-
-  EXPECT_EQ(spider::GetAcquisitionTimestamp(ds), date + time);
+  EXPECT_EQ(spider::GetAcquisitionDate(ds), date);
 }
 
-TEST(GetAcquisitionTimestampTest, RealDataset)
+TEST(GetAcquisitionDateTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  EXPECT_EQ(spider::GetAcquisitionTimestamp(ds), "20181105122601.000000 ");
+  EXPECT_EQ(spider::GetAcquisitionDate(ds), "20181105");
+}
+
+TEST(GetAcquisitionTimeTest, Example)
+{
+  std::string time = "070907.0705 ";
+  gdcm::Attribute<0x0008, 0x0032> at; // AcquisitionTime
+  at.SetValue(time);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetAcquisitionTime(ds), time);
+}
+
+TEST(GetAcquisitionTimeTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetAcquisitionTime(ds), "122601.000000 ");
 }
 
 TEST(GetHalfLifeTest, Example)
@@ -121,7 +133,8 @@ TEST(ReadDicomSpectTest, Example)
 
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
-  EXPECT_EQ(spect.acquisition_timestamp, date + time);
+  EXPECT_EQ(spect.acquisition_date, date);
+  EXPECT_EQ(spect.acquisition_time, time);
   EXPECT_EQ(spect.half_life, half_life);
   EXPECT_EQ(spect.decay_correction_method, correct_str);
   EXPECT_EQ(spect.patient_name, "");
@@ -135,7 +148,8 @@ TEST(ReadDicomSpectTest, RealDataset)
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
-  EXPECT_EQ(spect.acquisition_timestamp, "20181105122601.000000 ");
+  EXPECT_EQ(spect.acquisition_date, "20181105");
+  EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
   EXPECT_EQ(spect.half_life, 1223.0);
   EXPECT_EQ(spect.decay_correction_method, "START ");
   EXPECT_EQ(spect.patient_name, "C11Phantom");
@@ -154,25 +168,23 @@ TEST(GetFirstLineTest, WithoutNewline)
 
 TEST(WriteSpectsTest, Example)
 {
-  spider::Spect s1;
-  s1.patient_name = "DOE^JOHN";
-  s1.acquisition_timestamp = "20241013123250.1123 ";
-  s1.decay_correction_method = "START ";
-  s1.half_life = 23.11;
-
-  spider::Spect s2;
-  s2.patient_name = "DOE^JANE";
-  s2.acquisition_timestamp = "2022031102";
-  s2.decay_correction_method = "NONE";
-  s2.half_life = 23121;
-
+  spider::Spect s1 = { .half_life = 23.11,
+                       .acquisition_date = "20241013",
+                       .acquisition_time = "123250.1123 ",
+                       .decay_correction_method = "START ",
+                       .patient_name = "DOE^JOHN" };
+  spider::Spect s2 = { .half_life = 23121,
+                       .acquisition_date = "20220311",
+                       .acquisition_time = "02",
+                       .decay_correction_method = "NONE",
+                       .patient_name = "DOE^JANE" };
   std::ostringstream oss;
   spider::WriteSpects({ s1, s2 }, oss);
 
   std::string ans{ "This file was created by Spider.\n"
                    "If you edit it by hand, you could mess it up.\n"
-                   "\nDOE^JOHN\n20241013123250.1123 \nSTART \n23.11\n"
-                   "\nDOE^JANE\n2022031102\nNONE\n23121\n" };
+                   "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n23.11\n"
+                   "\nDOE^JANE\n20220311\n02\nNONE\n23121\n" };
 
   EXPECT_EQ(oss.str(), ans);
 }
@@ -190,27 +202,30 @@ TEST(ReadDicomAttributesTest, RealDataset)
 
   std::string ans{ "This file was created by Spider.\n"
                    "If you edit it by hand, you could mess it up.\n"
-                   "\nC11Phantom\n20181105122601.000000 \nSTART \n1223\n"
-                   "\nC11Phantom\n20181105122601.000000 \nSTART \n1223\n" };
+                   "\nC11Phantom\n20181105\n122601.000000 \nSTART \n1223\n"
+                   "\nC11Phantom\n20181105\n122601.000000 \nSTART \n1223\n" };
 
   EXPECT_EQ(oss.str(), ans);
 }
 
 TEST(ReadSpectsTest, Example)
 {
-  std::istringstream input("This file was created by Spider.\n"
-                           "If you edit it by hand, you could mess it up.\n"
-                           "\nDOE^JOHN\n20241013123250.1123 \nSTART \n23.11\n"
-                           "\nDOE^JANE\n2022031102\nNONE\n23121\n");
+  std::istringstream input(
+      "This file was created by Spider.\n"
+      "If you edit it by hand, you could mess it up.\n"
+      "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n23.11\n"
+      "\nDOE^JANE\n20220311\n02\nNONE\n23121\n");
   std::vector<spider::Spect> spects = spider::ReadSpects(input);
 
   ASSERT_EQ(spects.size(), 2);
   EXPECT_EQ(spects[0].patient_name, "DOE^JOHN");
-  EXPECT_EQ(spects[0].acquisition_timestamp, "20241013123250.1123 ");
+  EXPECT_EQ(spects[0].acquisition_date, "20241013");
+  EXPECT_EQ(spects[0].acquisition_time, "123250.1123 ");
   EXPECT_EQ(spects[0].decay_correction_method, "START ");
   EXPECT_EQ(spects[0].half_life, 23.11);
   EXPECT_EQ(spects[1].patient_name, "DOE^JANE");
-  EXPECT_EQ(spects[1].acquisition_timestamp, "2022031102");
+  EXPECT_EQ(spects[1].acquisition_date, "20220311");
+  EXPECT_EQ(spects[1].acquisition_time, "02");
   EXPECT_EQ(spects[1].decay_correction_method, "NONE");
   EXPECT_EQ(spects[1].half_life, 23121);
 }
