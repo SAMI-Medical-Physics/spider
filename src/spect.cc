@@ -102,7 +102,7 @@ GetAcquisitionTime(const gdcm::DataSet& ds)
 }
 
 double
-GetHalfLife(const gdcm::DataSet& ds)
+GetRadionuclideHalfLife(const gdcm::DataSet& ds)
 {
   const gdcm::Tag tag_sq(0x0054, 0x0016);
   if (!ds.FindDataElement(tag_sq))
@@ -138,9 +138,9 @@ operator<<(std::ostream& os, const Spect& s)
             << "patient_name=" << std::quoted(s.patient_name)
             << ", acquisition_date=" << std::quoted(s.acquisition_date)
             << ", acquisition_time=" << std::quoted(s.acquisition_time)
-            << ", decay_correction_method="
-            << std::quoted(s.decay_correction_method)
-            << ", half_life=" << s.half_life << " s" << "}";
+            << ", decay_correction=" << std::quoted(s.decay_correction)
+            << ", radionuclide_half_life=" << s.radionuclide_half_life << " s"
+            << "}";
 }
 
 Spect
@@ -164,11 +164,11 @@ ReadDicomSpect(const gdcm::DataSet& ds)
     {
       gdcm::Attribute<0x0054, 0x1102> a;
       a.SetFromDataSet(ds);
-      spect.decay_correction_method = a.GetValue();
+      spect.decay_correction = a.GetValue();
     }
   else
     Warning() << "missing DICOM attribute: DecayCorrection\n";
-  spect.half_life = GetHalfLife(ds);
+  spect.radionuclide_half_life = GetRadionuclideHalfLife(ds);
 
   return spect;
 }
@@ -198,8 +198,8 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
       if (GetFirstLine(spects[i].acquisition_time)
           != spects[i].acquisition_time)
         Warning() << "SPECT " << i + 1 << ": acquisition time: " << msg;
-      if (GetFirstLine(spects[i].decay_correction_method)
-          != spects[i].decay_correction_method)
+      if (GetFirstLine(spects[i].decay_correction)
+          != spects[i].decay_correction)
         Warning() << "SPECT " << i + 1 << ": decay correction: " << msg;
     }
 
@@ -211,8 +211,8 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
          << GetFirstLine(spect.patient_name) << "\n"
          << GetFirstLine(spect.acquisition_date) << "\n"
          << GetFirstLine(spect.acquisition_time) << "\n"
-         << GetFirstLine(spect.decay_correction_method) << "\n"
-         << spect.half_life << "\n";
+         << GetFirstLine(spect.decay_correction) << "\n"
+         << spect.radionuclide_half_life << "\n";
     }
 }
 
@@ -240,12 +240,12 @@ ReadSpects(std::istream& in)
         break;
       if (!std::getline(in, s.acquisition_time))
         break;
-      if (!std::getline(in, s.decay_correction_method))
+      if (!std::getline(in, s.decay_correction))
         break;
       if (!std::getline(in, line))
         break;
       char* end{};
-      s.half_life = std::strtod(line.c_str(), &end);
+      s.radionuclide_half_life = std::strtod(line.c_str(), &end);
       if (end == line.c_str())
         {
           Warning() << "SPECT " << spects.size()

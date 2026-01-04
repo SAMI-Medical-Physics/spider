@@ -21,11 +21,11 @@ namespace spider
 
 struct Spect
 {
-  std::string patient_name;            // (0x0010, 0x0010)
-  std::string acquisition_date;        // (0x0008, 0x0022)
-  std::string acquisition_time;        // (0x0008, 0x0032)
-  std::string decay_correction_method; // (0x0054, 0x1102)
-  double half_life = 0.0;              // (0x0018, 0x1075), seconds
+  std::string patient_name;
+  std::string acquisition_date;
+  std::string acquisition_time;
+  std::string decay_correction;
+  double radionuclide_half_life = 0.0; // seconds
 };
 
 std::string
@@ -35,7 +35,7 @@ std::string
 GetAcquisitionTime(const gdcm::DataSet& ds);
 
 double
-GetHalfLife(const gdcm::DataSet& ds);
+GetRadionuclideHalfLife(const gdcm::DataSet& ds);
 
 std::ostream&
 operator<<(std::ostream& os, const Spect& s);

@@ -24,7 +24,7 @@ namespace
 {
 
 void
-SetHalfLife(double half_life, gdcm::DataSet& ds)
+SetRadionuclideHalfLife(double half_life, gdcm::DataSet& ds)
 {
   // Create or replace the RadiopharmaceuticalInformationSequence in
   // dataset DS with a single-item sequence containing only the DICOM
@@ -92,21 +92,21 @@ TEST(GetAcquisitionTimeTest, RealDataset)
   EXPECT_EQ(spider::GetAcquisitionTime(ds), "122601.000000 ");
 }
 
-TEST(GetHalfLifeTest, Example)
+TEST(GetRadionuclideHalfLifeTest, Example)
 {
   double half_life = 574300.0;
   gdcm::DataSet ds;
-  SetHalfLife(half_life, ds);
-  EXPECT_EQ(spider::GetHalfLife(ds), half_life);
+  SetRadionuclideHalfLife(half_life, ds);
+  EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), half_life);
 }
 
-TEST(GetHalfLifeTest, RealDataset)
+TEST(GetRadionuclideHalfLifeTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  EXPECT_EQ(spider::GetHalfLife(ds), 1223.0);
+  EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), 1223.0);
 }
 
 TEST(ReadDicomSpectTest, Example)
@@ -129,15 +129,15 @@ TEST(ReadDicomSpectTest, Example)
   ds.Insert(at_date.GetAsDataElement());
   ds.Insert(at_time.GetAsDataElement());
   ds.Insert(at_correct.GetAsDataElement());
-  SetHalfLife(half_life, ds);
+  SetRadionuclideHalfLife(half_life, ds);
 
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
   EXPECT_EQ(spect.patient_name, "");
   EXPECT_EQ(spect.acquisition_date, date);
   EXPECT_EQ(spect.acquisition_time, time);
-  EXPECT_EQ(spect.decay_correction_method, correct_str);
-  EXPECT_EQ(spect.half_life, half_life);
+  EXPECT_EQ(spect.decay_correction, correct_str);
+  EXPECT_EQ(spect.radionuclide_half_life, half_life);
 }
 
 TEST(ReadDicomSpectTest, RealDataset)
@@ -151,8 +151,8 @@ TEST(ReadDicomSpectTest, RealDataset)
   EXPECT_EQ(spect.patient_name, "C11Phantom");
   EXPECT_EQ(spect.acquisition_date, "20181105");
   EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
-  EXPECT_EQ(spect.decay_correction_method, "START ");
-  EXPECT_EQ(spect.half_life, 1223.0);
+  EXPECT_EQ(spect.decay_correction, "START ");
+  EXPECT_EQ(spect.radionuclide_half_life, 1223.0);
 }
 
 TEST(GetFirstLineTest, WithNewline)
@@ -171,13 +171,13 @@ TEST(WriteSpectsTest, Example)
   spider::Spect s1 = { .patient_name = "DOE^JOHN",
                        .acquisition_date = "20241013",
                        .acquisition_time = "123250.1123 ",
-                       .decay_correction_method = "START ",
-                       .half_life = 23.11 };
+                       .decay_correction = "START ",
+                       .radionuclide_half_life = 23.11 };
   spider::Spect s2 = { .patient_name = "DOE^JANE",
                        .acquisition_date = "20220311",
                        .acquisition_time = "02",
-                       .decay_correction_method = "NONE",
-                       .half_life = 23121 };
+                       .decay_correction = "NONE",
+                       .radionuclide_half_life = 23121 };
   std::ostringstream oss;
   spider::WriteSpects({ s1, s2 }, oss);
 
@@ -221,13 +221,13 @@ TEST(ReadSpectsTest, Example)
   EXPECT_EQ(spects[0].patient_name, "DOE^JOHN");
   EXPECT_EQ(spects[0].acquisition_date, "20241013");
   EXPECT_EQ(spects[0].acquisition_time, "123250.1123 ");
-  EXPECT_EQ(spects[0].decay_correction_method, "START ");
-  EXPECT_EQ(spects[0].half_life, 23.11);
+  EXPECT_EQ(spects[0].decay_correction, "START ");
+  EXPECT_EQ(spects[0].radionuclide_half_life, 23.11);
   EXPECT_EQ(spects[1].patient_name, "DOE^JANE");
   EXPECT_EQ(spects[1].acquisition_date, "20220311");
   EXPECT_EQ(spects[1].acquisition_time, "02");
-  EXPECT_EQ(spects[1].decay_correction_method, "NONE");
-  EXPECT_EQ(spects[1].half_life, 23121);
+  EXPECT_EQ(spects[1].decay_correction, "NONE");
+  EXPECT_EQ(spects[1].radionuclide_half_life, 23121);
 }
 
 TEST(ParseDicomDateTest, Example)
