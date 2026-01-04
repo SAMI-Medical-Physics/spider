@@ -50,16 +50,16 @@ endif()
 add_subdirectory(src)
 add_subdirectory(apps)
 
-option(BUILD_TESTING "Build the testing tree." OFF)
-if(BUILD_TESTING)
-  find_package(GTest REQUIRED)
-  enable_testing()
-  add_subdirectory(test)
-endif()
-
 option(SPIDER_BUILD_BENCHMARKS
   "Build the benchmarks.  Warning: Downloads 155 MB by default."
   OFF)
 if(SPIDER_BUILD_BENCHMARKS)
   add_subdirectory(benchmark)
+endif()
+
+option(BUILD_TESTING "Build the testing tree." OFF)
+if(BUILD_TESTING)
+  find_package(GTest REQUIRED)
+  enable_testing()
+  add_subdirectory(test)
 endif()
