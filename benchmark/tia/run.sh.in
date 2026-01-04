@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2025 South Australia Medical Imaging
+# Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 # Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
 # Challenge 2021
@@ -10,7 +10,7 @@
 # '-DSPIDER_BUILD_BENCHMARKS=ON'.  Running it requires the external
 # programs dcm2niix, elastix, and gnuplot.
 
-set -euo pipefail
+set -eu
 
 # This is set by the CMake variable SPIDER_BENCHMARK_SPECTCTS_DIR.
 SPECTCTS_DIR="@SPIDER_BENCHMARK_SPECTCTS_DIR@"
