@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include "spect.h"
 
@@ -75,7 +75,7 @@ TEST(GetAcquisitionTimestampTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestFilename);
-  ASSERT_EQ(r.Read(), true);
+  ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetAcquisitionTimestamp(ds), "20181105122601.000000 ");
 }
@@ -92,7 +92,7 @@ TEST(GetHalfLifeTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestFilename);
-  ASSERT_EQ(r.Read(), true);
+  ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetHalfLife(ds), 1223.0);
 }
@@ -131,7 +131,7 @@ TEST(ReadDicomSpectTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestFilename);
-  ASSERT_EQ(r.Read(), true);
+  ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
@@ -181,7 +181,7 @@ TEST(ReadDicomAttributesTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestFilename);
-  ASSERT_EQ(r.Read(), true);
+  ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   spider::Spect s1 = spider::ReadDicomSpect(ds);
   spider::Spect s2 = spider::ReadDicomSpect(ds);
@@ -268,9 +268,10 @@ TEST(ParseDicomTimeTest, HourAndMinuteAndSecondOnly)
 
 TEST(ParseDicomTimeTest, HourAndMinuteAndSecondAndFraction)
 {
-  // Any fraction of a second is ignored.
+  // If DICOM TM value contains a fractional part of a second, that
+  // component is ignored.
   spider::TimeParsed time;
-  spider::ParseDicomTime("030914.0103", time);
+  EXPECT_TRUE(spider::ParseDicomTime("030914.0103", time));
   ASSERT_TRUE(time.hour.has_value());
   EXPECT_EQ(time.hour.value(), 3);
   ASSERT_TRUE(time.minute.has_value());
@@ -442,7 +443,7 @@ TEST(MakeZonedTimeTest, Example)
   spider::TimeComplete time = { .hour = 16, .minute = 43, .second = 9 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Tokyo");
   auto zt = spider::MakeZonedTime(date, time, *tz);
-  ASSERT_EQ(zt.has_value(), true);
+  ASSERT_TRUE(zt.has_value());
 
   spider::tz::local_seconds lt_valid
       = spider::tz::local_days{ spider::tz::year{ 1997 }
@@ -463,7 +464,7 @@ TEST(MakeZonedTimeTest, NonexistentLocalTime)
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_test = spider::MakeZonedTime(date, time, *tz);
-  EXPECT_EQ(zt_test.has_value(), false);
+  EXPECT_FALSE(zt_test.has_value());
 }
 
 TEST(MakeZonedTimeTest, NonexistentLocalTimeDifferentTimeZone)
@@ -472,7 +473,7 @@ TEST(MakeZonedTimeTest, NonexistentLocalTimeDifferentTimeZone)
   spider::TimeComplete time = { .hour = 2, .minute = 20, .second = 0 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Europe/Berlin");
   auto zt_test = spider::MakeZonedTime(date, time, *tz);
-  EXPECT_EQ(zt_test.has_value(), false);
+  EXPECT_FALSE(zt_test.has_value());
 }
 
 TEST(MakeZonedTimeTest, AmbiguousLocalTime)
@@ -484,7 +485,7 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_beg = spider::MakeZonedTime(date, time, *tz);
-  ASSERT_EQ(zt_beg.has_value(), true);
+  ASSERT_TRUE(zt_beg.has_value());
 
   spider::tz::local_seconds lt_end
       = spider::tz::local_days{ spider::tz::year{ 2024 }
