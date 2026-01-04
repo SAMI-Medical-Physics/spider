@@ -75,6 +75,31 @@ ParseSecond(const std::string_view v, int& out)
 
 } // namespace
 
+std::ostream&
+operator<<(std::ostream& os, const Spect& s)
+{
+  return os << "Spect{"
+            << "patient_name=" << std::quoted(s.patient_name)
+            << ", acquisition_date=" << std::quoted(s.acquisition_date)
+            << ", acquisition_time=" << std::quoted(s.acquisition_time)
+            << ", decay_correction=" << std::quoted(s.decay_correction)
+            << ", radionuclide_half_life=" << s.radionuclide_half_life << " s"
+            << "}";
+}
+
+std::string
+GetPatientName(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0010, 0x0010)))
+    {
+      Warning() << "missing DICOM attribute: PatientName\n";
+      return {};
+    }
+  gdcm::Attribute<0x0010, 0x0010> a;
+  a.SetFromDataSet(ds);
+  return a.GetValue();
+}
+
 std::string
 GetAcquisitionDate(const gdcm::DataSet& ds)
 {
@@ -99,6 +124,19 @@ GetAcquisitionTime(const gdcm::DataSet& ds)
   gdcm::Attribute<0x0008, 0x0032> at;
   at.SetFromDataSet(ds);
   return at.GetValue();
+}
+
+std::string
+GetDecayCorrection(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0054, 0x1102)))
+    {
+      Warning() << "missing DICOM attribute: DecayCorrection\n";
+      return {};
+    }
+  gdcm::Attribute<0x0054, 0x1102> a;
+  a.SetFromDataSet(ds);
+  return a.GetValue();
 }
 
 double
@@ -131,46 +169,14 @@ GetRadionuclideHalfLife(const gdcm::DataSet& ds)
   return a.GetValue();
 }
 
-std::ostream&
-operator<<(std::ostream& os, const Spect& s)
-{
-  return os << "Spect{"
-            << "patient_name=" << std::quoted(s.patient_name)
-            << ", acquisition_date=" << std::quoted(s.acquisition_date)
-            << ", acquisition_time=" << std::quoted(s.acquisition_time)
-            << ", decay_correction=" << std::quoted(s.decay_correction)
-            << ", radionuclide_half_life=" << s.radionuclide_half_life << " s"
-            << "}";
-}
-
 Spect
 ReadDicomSpect(const gdcm::DataSet& ds)
 {
-  Spect spect;
-  // Read patient name.
-  if (ds.FindDataElement(gdcm::Tag(0x0010, 0x0010)))
-    {
-      gdcm::Attribute<0x0010, 0x0010> a;
-      a.SetFromDataSet(ds);
-      spect.patient_name = a.GetValue();
-    }
-  else
-    Warning() << "missing DICOM attribute: PatientName\n";
-
-  spect.acquisition_date = GetAcquisitionDate(ds);
-  spect.acquisition_time = GetAcquisitionTime(ds);
-  // Read decay correction method.
-  if (ds.FindDataElement(gdcm::Tag(0x0054, 0x1102)))
-    {
-      gdcm::Attribute<0x0054, 0x1102> a;
-      a.SetFromDataSet(ds);
-      spect.decay_correction = a.GetValue();
-    }
-  else
-    Warning() << "missing DICOM attribute: DecayCorrection\n";
-  spect.radionuclide_half_life = GetRadionuclideHalfLife(ds);
-
-  return spect;
+  return Spect{ .patient_name = GetPatientName(ds),
+                .acquisition_date = GetAcquisitionDate(ds),
+                .acquisition_time = GetAcquisitionTime(ds),
+                .decay_correction = GetDecayCorrection(ds),
+                .radionuclide_half_life = GetRadionuclideHalfLife(ds) };
 }
 
 std::string_view

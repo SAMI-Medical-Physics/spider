@@ -54,6 +54,25 @@ constexpr char kTestFilename[] = SPIDER_TEST_DATA_DIR
 
 } // namespace
 
+TEST(GetPatientNameTest, Example)
+{
+  std::string patient_name = "DOE^JOHN";
+  gdcm::Attribute<0x0010, 0x0010> at; // PatientName
+  at.SetValue(patient_name);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetPatientName(ds), patient_name);
+}
+
+TEST(GetPatientNameTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetPatientName(ds), "C11Phantom");
+}
+
 TEST(GetAcquisitionDateTest, Example)
 {
   std::string date = "19930822";
@@ -90,6 +109,25 @@ TEST(GetAcquisitionTimeTest, RealDataset)
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetAcquisitionTime(ds), "122601.000000 ");
+}
+
+TEST(GetDecayCorrectionTest, Example)
+{
+  std::string decay_correction = "ADMIN ";
+  gdcm::Attribute<0x0054, 0x1102> at; // DecayCorrection
+  at.SetValue(decay_correction);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetDecayCorrection(ds), decay_correction);
+}
+
+TEST(GetDecayCorrectionTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetDecayCorrection(ds), "START ");
 }
 
 TEST(GetRadionuclideHalfLifeTest, Example)

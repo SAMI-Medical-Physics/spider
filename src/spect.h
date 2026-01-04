@@ -28,17 +28,23 @@ struct Spect
   double radionuclide_half_life = 0.0; // seconds
 };
 
+std::ostream&
+operator<<(std::ostream& os, const Spect& s);
+
+std::string
+GetPatientName(const gdcm::DataSet& ds);
+
 std::string
 GetAcquisitionDate(const gdcm::DataSet& ds);
 
 std::string
 GetAcquisitionTime(const gdcm::DataSet& ds);
 
+std::string
+GetDecayCorrection(const gdcm::DataSet& ds);
+
 double
 GetRadionuclideHalfLife(const gdcm::DataSet& ds);
-
-std::ostream&
-operator<<(std::ostream& os, const Spect& s);
 
 // Fill a Spect from the DICOM attributes in dataset DS.
 Spect
