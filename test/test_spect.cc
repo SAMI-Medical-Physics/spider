@@ -119,25 +119,25 @@ TEST(ReadDicomSpectTest, Example)
   gdcm::Attribute<0x0008, 0x0032> at_time; // AcquisitionTime
   at_time.SetValue(time);
 
-  gdcm::DataSet ds;
-  ds.Insert(at_date.GetAsDataElement());
-  ds.Insert(at_time.GetAsDataElement());
-
-  double half_life = 574300.0;
-  SetHalfLife(half_life, ds);
-
   std::string correct_str = "ADMIN ";
   gdcm::Attribute<0x0054, 0x1102> at_correct; // DecayCorrection
   at_correct.SetValue(correct_str);
+
+  double half_life = 574300.0;
+
+  gdcm::DataSet ds;
+  ds.Insert(at_date.GetAsDataElement());
+  ds.Insert(at_time.GetAsDataElement());
   ds.Insert(at_correct.GetAsDataElement());
+  SetHalfLife(half_life, ds);
 
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
+  EXPECT_EQ(spect.patient_name, "");
   EXPECT_EQ(spect.acquisition_date, date);
   EXPECT_EQ(spect.acquisition_time, time);
-  EXPECT_EQ(spect.half_life, half_life);
   EXPECT_EQ(spect.decay_correction_method, correct_str);
-  EXPECT_EQ(spect.patient_name, "");
+  EXPECT_EQ(spect.half_life, half_life);
 }
 
 TEST(ReadDicomSpectTest, RealDataset)
@@ -148,11 +148,11 @@ TEST(ReadDicomSpectTest, RealDataset)
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
+  EXPECT_EQ(spect.patient_name, "C11Phantom");
   EXPECT_EQ(spect.acquisition_date, "20181105");
   EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
-  EXPECT_EQ(spect.half_life, 1223.0);
   EXPECT_EQ(spect.decay_correction_method, "START ");
-  EXPECT_EQ(spect.patient_name, "C11Phantom");
+  EXPECT_EQ(spect.half_life, 1223.0);
 }
 
 TEST(GetFirstLineTest, WithNewline)
@@ -168,16 +168,16 @@ TEST(GetFirstLineTest, WithoutNewline)
 
 TEST(WriteSpectsTest, Example)
 {
-  spider::Spect s1 = { .half_life = 23.11,
+  spider::Spect s1 = { .patient_name = "DOE^JOHN",
                        .acquisition_date = "20241013",
                        .acquisition_time = "123250.1123 ",
                        .decay_correction_method = "START ",
-                       .patient_name = "DOE^JOHN" };
-  spider::Spect s2 = { .half_life = 23121,
+                       .half_life = 23.11 };
+  spider::Spect s2 = { .patient_name = "DOE^JANE",
                        .acquisition_date = "20220311",
                        .acquisition_time = "02",
                        .decay_correction_method = "NONE",
-                       .patient_name = "DOE^JANE" };
+                       .half_life = 23121 };
   std::ostringstream oss;
   spider::WriteSpects({ s1, s2 }, oss);
 

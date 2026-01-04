@@ -135,31 +135,18 @@ std::ostream&
 operator<<(std::ostream& os, const Spect& s)
 {
   return os << "Spect{"
-            << "half_life=" << s.half_life
-            << " s, acquisition_date=" << std::quoted(s.acquisition_date)
+            << "patient_name=" << std::quoted(s.patient_name)
+            << ", acquisition_date=" << std::quoted(s.acquisition_date)
             << ", acquisition_time=" << std::quoted(s.acquisition_time)
             << ", decay_correction_method="
             << std::quoted(s.decay_correction_method)
-            << ", patient_name=" << std::quoted(s.patient_name) << "}";
+            << ", half_life=" << s.half_life << " s" << "}";
 }
 
 Spect
 ReadDicomSpect(const gdcm::DataSet& ds)
 {
   Spect spect;
-  // Read decay correction method.
-  if (ds.FindDataElement(gdcm::Tag(0x0054, 0x1102)))
-    {
-      gdcm::Attribute<0x0054, 0x1102> a;
-      a.SetFromDataSet(ds);
-      spect.decay_correction_method = a.GetValue();
-    }
-  else
-    Warning() << "missing DICOM attribute: DecayCorrection\n";
-
-  spect.acquisition_date = GetAcquisitionDate(ds);
-  spect.acquisition_time = GetAcquisitionTime(ds);
-  spect.half_life = GetHalfLife(ds);
   // Read patient name.
   if (ds.FindDataElement(gdcm::Tag(0x0010, 0x0010)))
     {
@@ -169,6 +156,19 @@ ReadDicomSpect(const gdcm::DataSet& ds)
     }
   else
     Warning() << "missing DICOM attribute: PatientName\n";
+
+  spect.acquisition_date = GetAcquisitionDate(ds);
+  spect.acquisition_time = GetAcquisitionTime(ds);
+  // Read decay correction method.
+  if (ds.FindDataElement(gdcm::Tag(0x0054, 0x1102)))
+    {
+      gdcm::Attribute<0x0054, 0x1102> a;
+      a.SetFromDataSet(ds);
+      spect.decay_correction_method = a.GetValue();
+    }
+  else
+    Warning() << "missing DICOM attribute: DecayCorrection\n";
+  spect.half_life = GetHalfLife(ds);
 
   return spect;
 }

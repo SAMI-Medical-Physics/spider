@@ -21,11 +21,11 @@ namespace spider
 
 struct Spect
 {
-  double half_life = 0.0;              // (0x0018, 0x1075), seconds
+  std::string patient_name;            // (0x0010, 0x0010)
   std::string acquisition_date;        // (0x0008, 0x0022)
   std::string acquisition_time;        // (0x0008, 0x0032)
   std::string decay_correction_method; // (0x0054, 0x1102)
-  std::string patient_name;            // (0x0010, 0x0010)
+  double half_life = 0.0;              // (0x0018, 0x1075), seconds
 };
 
 std::string
