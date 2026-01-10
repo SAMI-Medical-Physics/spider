@@ -7,6 +7,7 @@
 #include <chrono>
 #include <expected>
 #include <istream>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -25,7 +26,9 @@ struct Spect
   std::string acquisition_date;
   std::string acquisition_time;
   std::string decay_correction;
-  double radionuclide_half_life = 0.0; // seconds
+  // Use std::optional for doubles to discern when the value is
+  // absent.
+  std::optional<double> radionuclide_half_life; // seconds
 };
 
 std::ostream&
@@ -43,7 +46,7 @@ GetAcquisitionTime(const gdcm::DataSet& ds);
 std::string
 GetDecayCorrection(const gdcm::DataSet& ds);
 
-double
+std::optional<double>
 GetRadionuclideHalfLife(const gdcm::DataSet& ds);
 
 // Fill a Spect from the DICOM attributes in dataset DS.

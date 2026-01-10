@@ -10,6 +10,7 @@
 #include <expected>
 #include <iomanip> // std::quoted
 #include <istream>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -78,13 +79,16 @@ ParseSecond(const std::string_view v, int& out)
 std::ostream&
 operator<<(std::ostream& os, const Spect& s)
 {
-  return os << "Spect{"
-            << "patient_name=" << std::quoted(s.patient_name)
-            << ", acquisition_date=" << std::quoted(s.acquisition_date)
-            << ", acquisition_time=" << std::quoted(s.acquisition_time)
-            << ", decay_correction=" << std::quoted(s.decay_correction)
-            << ", radionuclide_half_life=" << s.radionuclide_half_life << " s"
-            << "}";
+  os << "Spect{"
+     << "patient_name=" << std::quoted(s.patient_name)
+     << ", acquisition_date=" << std::quoted(s.acquisition_date)
+     << ", acquisition_time=" << std::quoted(s.acquisition_time)
+     << ", decay_correction=" << std::quoted(s.decay_correction)
+     << ", radionuclide_half_life=";
+  if (s.radionuclide_half_life.has_value())
+    os << s.radionuclide_half_life.value();
+  os << " s}";
+  return os;
 }
 
 std::string
@@ -139,7 +143,7 @@ GetDecayCorrection(const gdcm::DataSet& ds)
   return a.GetValue();
 }
 
-double
+std::optional<double>
 GetRadionuclideHalfLife(const gdcm::DataSet& ds)
 {
   const gdcm::Tag tag_sq(0x0054, 0x0016);
@@ -217,8 +221,10 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
          << GetFirstLine(spect.patient_name) << "\n"
          << GetFirstLine(spect.acquisition_date) << "\n"
          << GetFirstLine(spect.acquisition_time) << "\n"
-         << GetFirstLine(spect.decay_correction) << "\n"
-         << spect.radionuclide_half_life << "\n";
+         << GetFirstLine(spect.decay_correction) << "\n";
+      if (spect.radionuclide_half_life.has_value())
+        os << spect.radionuclide_half_life.value();
+      os << "\n";
     }
 }
 
@@ -251,12 +257,9 @@ ReadSpects(std::istream& in)
       if (!std::getline(in, line))
         break;
       char* end{};
-      s.radionuclide_half_life = std::strtod(line.c_str(), &end);
-      if (end == line.c_str())
-        {
-          Warning() << "SPECT " << spects.size()
-                    << ": failed to set radionuclide half-life\n";
-        }
+      double d = std::strtod(line.c_str(), &end);
+      if (end != line.c_str())
+        s.radionuclide_half_life = d;
     }
   return spects;
 }

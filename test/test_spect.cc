@@ -4,6 +4,7 @@
 #include "spect.h"
 
 #include <chrono>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -130,12 +131,18 @@ TEST(GetDecayCorrectionTest, RealDataset)
   EXPECT_EQ(spider::GetDecayCorrection(ds), "START ");
 }
 
-TEST(GetRadionuclideHalfLifeTest, Example)
+TEST(GetRadionuclideHalfLifeTest, AttributePresent)
 {
   double half_life = 574300.0;
   gdcm::DataSet ds;
   SetRadionuclideHalfLife(half_life, ds);
   EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), half_life);
+}
+
+TEST(GetRadionuclideHalfLifeTest, AttributeAbsent)
+{
+  gdcm::DataSet ds;
+  EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), std::nullopt);
 }
 
 TEST(GetRadionuclideHalfLifeTest, RealDataset)
@@ -215,14 +222,18 @@ TEST(WriteSpectsTest, Example)
                        .acquisition_date = "20220311",
                        .acquisition_time = "02",
                        .decay_correction = "NONE",
-                       .radionuclide_half_life = 23121 };
+                       .radionuclide_half_life = std::nullopt };
   std::ostringstream oss;
   spider::WriteSpects({ s1, s2 }, oss);
 
   std::string ans{ "This file was created by Spider.\n"
                    "If you edit it by hand, you could mess it up.\n"
                    "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n23.11\n"
-                   "\nDOE^JANE\n20220311\n02\nNONE\n23121\n" };
+                   "\nDOE^JANE\n20220311\n02\nNONE\n"
+                   // If a std::optional<double> does not contain a
+                   // value (is disengaged), WriteSpects writes an
+                   // empty string for it.
+                   "\n" };
 
   EXPECT_EQ(oss.str(), ans);
 }
@@ -252,7 +263,7 @@ TEST(ReadSpectsTest, Example)
       "This file was created by Spider.\n"
       "If you edit it by hand, you could mess it up.\n"
       "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n23.11\n"
-      "\nDOE^JANE\n20220311\n02\nNONE\n23121\n");
+      "\nDOE^JANE\n20220311\n02\nNONE\n\n");
   std::vector<spider::Spect> spects = spider::ReadSpects(input);
 
   ASSERT_EQ(spects.size(), 2);
@@ -265,7 +276,9 @@ TEST(ReadSpectsTest, Example)
   EXPECT_EQ(spects[1].acquisition_date, "20220311");
   EXPECT_EQ(spects[1].acquisition_time, "02");
   EXPECT_EQ(spects[1].decay_correction, "NONE");
-  EXPECT_EQ(spects[1].radionuclide_half_life, 23121);
+  // If there is an empty string in the position of a
+  // std::optional<double>, the optional is disengaged.
+  EXPECT_EQ(spects[1].radionuclide_half_life, std::nullopt);
 }
 
 TEST(ParseDicomDateTest, Example)
