@@ -205,7 +205,7 @@ std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
                                 const TimeComplete& time,
                                 std::string_view voffset,
-                                const tz::time_zone* tz);
+                                const tz::time_zone* tz = nullptr);
 
 // Return the Unix Time of the local calendar date VDATE and clock
 // time VTIME at UTC offset VOFFSET, or if VOFFSET is empty, in time
