@@ -509,7 +509,7 @@ TEST(MakeZonedTimeTest, Example)
   spider::TimeComplete time = { .hour = 16, .minute = 43, .second = 9 };
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Tokyo");
   auto zt = spider::MakeZonedTime(date, time, *tz);
-  ASSERT_TRUE(zt.has_value());
+  ASSERT_TRUE(zt.has_value()) << spider::ToString(zt.error());
 
   spider::tz::local_seconds lt_valid
       = spider::tz::local_days{ spider::tz::year{ 1997 }
@@ -551,7 +551,7 @@ TEST(MakeZonedTimeTest, AmbiguousLocalTime)
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("Australia/Adelaide");
   auto zt_beg = spider::MakeZonedTime(date, time, *tz);
-  ASSERT_TRUE(zt_beg.has_value());
+  ASSERT_TRUE(zt_beg.has_value()) << spider::ToString(zt_beg.error());
 
   spider::tz::local_seconds lt_end
       = spider::tz::local_days{ spider::tz::year{ 2024 }
@@ -573,7 +573,7 @@ TEST(MakeSysTimeFromOffsetTest, PositiveOffset)
   spider::TimeComplete t{ 0, 0, 0 };
   std::chrono::minutes offset{ 9 * 60 + 30 };
   auto s = spider::MakeSysTimeFromOffset(d, t, offset);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   std::chrono::sys_seconds expected
       = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 1 }
@@ -587,7 +587,7 @@ TEST(MakeSysTimeFromOffsetTest, NegativeOffset)
   spider::TimeComplete t{ 0, 0, 0 };
   std::chrono::minutes offset{ -(9 * 60 + 30) };
   auto s = spider::MakeSysTimeFromOffset(d, t, offset);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   std::chrono::sys_seconds expected
       = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 2 }
@@ -604,7 +604,7 @@ TEST(MakeSysTimeFromOffsetOrTimeZoneTest, WithOffset)
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver"); // not used
   auto s = spider::MakeSysTimeFromOffsetOrTimeZone(d, t, "-0930", tz);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   std::chrono::sys_seconds expected
       = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 2 }
@@ -620,7 +620,7 @@ TEST(MakeSysTimeFromOffsetOrTimeZoneTest, NoOffset)
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
   auto s = spider::MakeSysTimeFromOffsetOrTimeZone(d, t, "", tz);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   spider::tz::local_seconds lt
       = spider::tz::local_days{ spider::tz::year{ 2025 }
@@ -640,7 +640,7 @@ TEST(MakeSysTimeFromDicomDateAndTimeTest, WithOffset)
       = spider::tz::locate_zone("America/Vancouver"); // not used
   auto s = spider::MakeSysTimeFromDicomDateAndTime("20250102", "000000",
                                                    "+1030", tz);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   std::chrono::sys_seconds expected
       = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 1 }
@@ -655,7 +655,7 @@ TEST(MakeSysTimeFromDicomDateAndTimeTest, NoOffset)
       = spider::tz::locate_zone("America/Vancouver");
   auto s
       = spider::MakeSysTimeFromDicomDateAndTime("20230314", "123301", "", tz);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   spider::tz::local_seconds lt
       = spider::tz::local_days{ spider::tz::year{ 2023 }
@@ -676,7 +676,7 @@ TEST(MakeSysTimeFromDicomDateTimeTest, OffsetInDateTime)
   auto s = spider::MakeSysTimeFromDicomDateTime("20250102000000+0330",
                                                 "-0500", // not used
                                                 tz);     // not used
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   std::chrono::sys_seconds expected
       = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 1 }
@@ -694,7 +694,7 @@ TEST(MakeSysTimeFromDicomDateTimeTest, SeparateOffset)
   auto s = spider::MakeSysTimeFromDicomDateTime("20250102000000",
                                                 "-0500", // used
                                                 tz);     // not used
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   std::chrono::sys_seconds expected
       = std::chrono::sys_days{ spider::tz::year{ 2025 } / 1 / 2 }
@@ -709,7 +709,7 @@ TEST(MakeSysTimeFromDicomDateTimeTest, NoOffset)
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
   auto s = spider::MakeSysTimeFromDicomDateTime("20230314123301", "", tz);
-  ASSERT_TRUE(s.has_value());
+  ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   spider::tz::local_seconds lt
       = spider::tz::local_days{ spider::tz::year{ 2023 }
