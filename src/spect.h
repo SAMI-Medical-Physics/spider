@@ -54,7 +54,7 @@ Spect
 ReadDicomSpect(const gdcm::DataSet& ds);
 
 std::string_view
-GetFirstLine(const std::string_view v);
+GetFirstLine(std::string_view v);
 
 void
 WriteSpects(const std::vector<Spect>& spects, std::ostream& os);
