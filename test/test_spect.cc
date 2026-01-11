@@ -27,9 +27,10 @@ namespace
 void
 SetRadionuclideHalfLife(double half_life, gdcm::DataSet& ds)
 {
-  // Create or replace the RadiopharmaceuticalInformationSequence in
-  // dataset DS with a single-item sequence containing only the DICOM
-  // attribute RadionuclideHalfLife set to HALF_LIFE.
+  // Create or replace the DICOM attribute
+  // RadiopharmaceuticalInformationSequence in dataset DS with a
+  // single-item sequence containing only the attribute
+  // RadionuclideHalfLife set to HALF_LIFE.
   gdcm::Attribute<0x0018, 0x1075> a; // RadionuclideHalfLife
   a.SetValue(half_life);
 
