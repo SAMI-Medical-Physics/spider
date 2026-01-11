@@ -1052,3 +1052,139 @@ TEST(ComputeDecayFactorTest, DefersToAdmin)
   ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
   EXPECT_DOUBLE_EQ(df.value(), df_admin.value());
 }
+
+TEST(UsesTimeZoneTest, DateAndTimeUsesTimeZone)
+{
+  // This test demonstrates that, for the given test DICOM file,
+  // UsesTimeZone returns true and a caller-supplied time zone is used
+  // when forming time points from DICOM DA and TM values in spect.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  // This DICOM file does not have the attribute
+  // TimezoneOffsetFromUtc, so a caller-supplied time zone is used to
+  // form time points from DICOM DA and TM values in spect.
+  EXPECT_TRUE(spider::UsesTimeZone(spect));
+  // MakeAcquisitionSysTime forms a time point from the DICOM DA
+  // AcquisitionDate and TM AcquisitionTime.  Since UsesTimeZone
+  // returned true, MakeAcquisitionSysTime should return an error when
+  // the caller does not supply a time zone.
+  EXPECT_FALSE(spider::MakeAcquisitionSysTime(spect).has_value());
+
+  // When the caller provides a time zone, a value is returned.
+  auto st = spider::MakeAcquisitionSysTime(
+      spect, spider::tz::locate_zone("Asia/Singapore"));
+  ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
+  // We know it uses the supplied time zone because a different time
+  // zone gives a different result.
+  auto st_other = spider::MakeAcquisitionSysTime(
+      spect, spider::tz::locate_zone("America/Halifax"));
+  ASSERT_TRUE(st_other.has_value()) << spider::ToString(st_other.error());
+  EXPECT_NE(st.value(), st_other.value());
+}
+
+TEST(UsesTimeZoneTest, DateAndTimeDoesNotUseTimeZone)
+{
+  // This test demonstrates that, after modifying Spect to include a
+  // TimezoneOffsetFromUtc, UsesTimeZone returns false and
+  // caller-supplied time zones are not used when forming time points
+  // from DICOM DA and TM values in spect.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  // This DICOM file does not have the attribute
+  // TimezoneOffsetFromUtc, so modify the parsed Spect.
+  spect.timezone_offset_from_utc = "+0300";
+  EXPECT_FALSE(spider::UsesTimeZone(spect));
+  // MakeAcquisitionSysTime forms a time point from the DICOM DA
+  // AcquisitionDate and TM AcquisitionTime.  Since UsesTimeZone
+  // returned false, MakeAcquisitionSysTime should return a value even
+  // when the caller does not supply a time zone.
+  auto st = spider::MakeAcquisitionSysTime(spect);
+  ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
+
+  // When a time zone is provided, it has no effect on the returned
+  // value. To demonstrate this, supply a time zone with a different
+  // UTC offset (+08:00).
+  auto st_tz = spider::MakeAcquisitionSysTime(
+      spect, spider::tz::locate_zone("Asia/Singapore"));
+  ASSERT_TRUE(st_tz.has_value()) << spider::ToString(st_tz.error());
+  EXPECT_EQ(st.value(), st_tz.value());
+}
+
+TEST(UsesTimeZoneTest, DateTimeWithoutUtcSuffixUsesTimeZone)
+{
+  // This test demonstrates that, for the given test DICOM file,
+  // UsesTimeZone returns true and a caller-supplied time zone is used
+  // when forming a time point from a DICOM DT value without a UTC
+  // offset suffix in Spect.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  // This DICOM file does not have the attribute
+  // TimezoneOffsetFromUtc, so a caller-supplied time zone is used to
+  // form time points from DICOM DT values that lack a UTC offset
+  // suffix.
+  EXPECT_TRUE(spider::UsesTimeZone(spect));
+  // MakeRadiopharmaceuticalStartSysTime forms a time point from the
+  // DICOM DT RadiopharmaceuticalStartDateTime.  The
+  // RadiopharmaceuticalStartDateTime in this DICOM file does not have
+  // a UTC offset suffix.  Since UsesTimeZone returned true,
+  // MakeRadiopharmaceuticalStartSysTime should return an error when
+  // the caller does not supply a time zone.
+  EXPECT_FALSE(spider::MakeRadiopharmaceuticalStartSysTime(spect).has_value());
+
+  // When the caller provides a time zone, a value is returned.
+  auto st = spider::MakeRadiopharmaceuticalStartSysTime(
+      spect, spider::tz::locate_zone("Asia/Singapore"));
+  ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
+  // We know it uses the supplied time zone because a different time
+  // zone gives a different result.
+  auto st_other = spider::MakeRadiopharmaceuticalStartSysTime(
+      spect, spider::tz::locate_zone("America/Halifax"));
+  ASSERT_TRUE(st_other.has_value()) << spider::ToString(st_other.error());
+  EXPECT_NE(st.value(), st_other.value());
+}
+
+TEST(UsesTimeZoneTest, DateTimeWithoutUtcSuffixDoesNotUseTimeZone)
+{
+  // This test demonstrates that, after modifying Spect to include a
+  // TimezoneOffsetFromUtc, UsesTimeZone returns false and
+  // caller-supplied time zones are not used when forming time points
+  // from DICOM DT values without a UTC offset suffix in Spect.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  // This DICOM file does not have the attribute
+  // TimezoneOffsetFromUtc, so modify the parsed Spect.
+  spect.timezone_offset_from_utc = "+0300";
+  EXPECT_FALSE(spider::UsesTimeZone(spect));
+  // MakeRadiopharmaceuticalStartSysTime forms a time point from the
+  // DICOM DT RadiopharmaceuticalStartDateTime.  The
+  // RadiopharmaceuticalStartDateTime in this DICOM file does not have
+  // a UTC offset suffix.  Since UsesTimeZone returned false,
+  // MakeRadiopharmaceuticalStartSysTime should return a value even
+  // when the caller does not supply a time zone.
+  auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect);
+  ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
+
+  // When a time zone is provided, it has no effect on the returned
+  // value.  To demonstrate this, supply a time zone with a different
+  // UTC offset (+08:00).
+  auto st_tz = spider::MakeRadiopharmaceuticalStartSysTime(
+      spect, spider::tz::locate_zone("Asia/Singapore"));
+  ASSERT_TRUE(st_tz.has_value()) << spider::ToString(st_tz.error());
+  EXPECT_EQ(st.value(), st_tz.value());
+}

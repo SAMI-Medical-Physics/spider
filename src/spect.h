@@ -421,6 +421,12 @@ ToString(const std::variant<TimePointErrorWithId, DecayCorrectionError>& e)
   return std::visit([](const auto& x) { return std::string(ToString(x)); }, e);
 }
 
+// Returns true if forming time points from DICOM DA and TM values in
+// Spect, or from a DICOM DT value in Spect that lacks a UTC offset
+// suffix, uses the caller-supplied time zone.
+bool
+UsesTimeZone(const Spect& s);
+
 } // namespace spider
 
 #endif // SPIDER_SPECT_H

@@ -766,4 +766,10 @@ ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
   return std::unexpected(DecayCorrectionError::kUnreachable);
 }
 
+bool
+UsesTimeZone(const Spect& s)
+{
+  return s.timezone_offset_from_utc.empty();
+}
+
 } // namespace spider
