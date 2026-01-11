@@ -217,7 +217,7 @@ TEST(WriteSpectsTest, Example)
                        .acquisition_date = "20241013",
                        .acquisition_time = "123250.1123 ",
                        .decay_correction = "START ",
-                       .radionuclide_half_life = 23.11 };
+                       .radionuclide_half_life = 1234567.89 };
   spider::Spect s2 = { .patient_name = "DOE^JANE",
                        .acquisition_date = "20220311",
                        .acquisition_time = "02",
@@ -226,9 +226,14 @@ TEST(WriteSpectsTest, Example)
   std::ostringstream oss;
   spider::WriteSpects({ s1, s2 }, oss);
 
+  // WriteSpects writes doubles with a precision of 6 significant
+  // figures.
   std::string ans{ "This file was created by Spider.\n"
                    "If you edit it by hand, you could mess it up.\n"
-                   "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n23.11\n"
+                   "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n"
+                   // A double of 1234567.89 is written as 1.23457e+06
+                   // due to the precision of 6 significant figures.
+                   "1.23457e+06\n"
                    "\nDOE^JANE\n20220311\n02\nNONE\n"
                    // If a std::optional<double> does not contain a
                    // value (is disengaged), WriteSpects writes an

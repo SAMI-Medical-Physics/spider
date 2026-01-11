@@ -223,6 +223,7 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
          << GetFirstLine(spect.acquisition_time) << "\n"
          << GetFirstLine(spect.decay_correction) << "\n";
       if (spect.radionuclide_half_life.has_value())
+        // XXX: The default precision is 6 significant figures.
         os << spect.radionuclide_half_life.value();
       os << "\n";
     }
