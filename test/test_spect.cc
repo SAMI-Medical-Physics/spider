@@ -855,3 +855,59 @@ TEST(MakeSysTimeFromDicomDateTimeTest, NoOffset)
   auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
   EXPECT_EQ(s.value(), zt.get_sys_time());
 }
+
+TEST(MakeAcquisitionSysTimeTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+  // This test DICOM file does not have a TimezoneOffsetFromUtc, so a
+  // caller-supplied time zone is used.
+  EXPECT_EQ(spect.acquisition_date, "20181105");
+  EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
+  EXPECT_TRUE(spect.timezone_offset_from_utc.empty());
+  // Hand-craft a sys time consistent with spect.acquisition_date and
+  // spect.acquisition_time.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  spider::tz::local_seconds lt
+      = spider::tz::local_days{ spider::tz::year{ 2018 }
+                                / spider::tz::month{ 11 }
+                                / spider::tz::day{ 5 } }
+        + std::chrono::hours{ 12 } + std::chrono::minutes{ 26 }
+        + std::chrono::seconds{ 1 };
+  auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
+
+  auto st = spider::MakeAcquisitionSysTime(spect, tz);
+  ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
+  EXPECT_EQ(st.value(), zt.get_sys_time());
+}
+
+TEST(MakeRadiopharmaceuticalStartSysTimeTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+  // This test DICOM file has a RadiopharmaceuticalStartDateTime
+  // without a UTC offset suffix and TimezoneOffsetFromUtc is absent,
+  // so a caller-supplied time zone is used.
+  EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
+            "20181105120000.000000 ");
+  EXPECT_TRUE(spect.timezone_offset_from_utc.empty());
+  // Hand-craft a sys time consistent with
+  // spect.radiopharmaceutical_start_date_time.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Vancouver");
+  spider::tz::local_seconds lt = spider::tz::local_days{
+    spider::tz::year{ 2018 } / spider::tz::month{ 11 } / spider::tz::day{ 5 }
+  } + std::chrono::hours{ 12 };
+  auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
+
+  auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect, tz);
+  ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
+  EXPECT_EQ(st.value(), zt.get_sys_time());
+}

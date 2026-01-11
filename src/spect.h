@@ -151,6 +151,10 @@ enum class TimePointError
   kFailedDate,
   kFailedTime,
   kFailedUtcOffset,
+  // The next one is like kFailedUtcOffset but with additional context
+  // provided by Spect: the offset is the DICOM attribute
+  // TimezoneOffsetFromUtc.
+  kFailedTimezoneOffsetFromUtc,
   kFailedDateTimeExcludingUtcOffset,
   kFailedUtcOffsetInDateTime,
   // Missing a required component.
@@ -160,6 +164,19 @@ enum class TimePointError
   // Validation failures.
   kInvalidDate,
   kNonexistentLocalTime,
+};
+
+enum class TimePointId
+{
+  kRadiopharmaceuticalStartDateTime,
+  kAcquisitionDateAndTime,
+  kSeriesDateAndTime,
+};
+
+struct TimePointErrorWithId
+{
+  TimePointId id;
+  TimePointError error;
 };
 
 constexpr std::string_view
@@ -173,6 +190,8 @@ ToString(TimePointError e)
       return "failed to parse DICOM Time";
     case TimePointError::kFailedUtcOffset:
       return "failed to parse UTC offset (expected \"{+,-}HHMM\")";
+    case TimePointError::kFailedTimezoneOffsetFromUtc:
+      return "failed to parse DICOM attribute: TimezoneOffsetFromUtc";
     case TimePointError::kFailedDateTimeExcludingUtcOffset:
       return "failed to parse DICOM Date Time components (not including UTC "
              "offset)";
@@ -192,6 +211,28 @@ ToString(TimePointError e)
       return "nonexistent local time";
     }
   return "unknown error";
+}
+
+constexpr std::string_view
+ToString(TimePointId id)
+{
+  switch (id)
+    {
+    case TimePointId::kRadiopharmaceuticalStartDateTime:
+      return "radiopharmaceutical start date time";
+    case TimePointId::kAcquisitionDateAndTime:
+      return "acquisition date and time";
+    case TimePointId::kSeriesDateAndTime:
+      return "series date and time";
+    }
+  return "unknown";
+}
+
+inline std::string
+ToString(const TimePointErrorWithId& e)
+{
+  return "failed to make time point for " + std::string(ToString(e.id)) + ": "
+         + std::string(ToString(e.error));
 }
 
 std::expected<DateComplete, TimePointError>
@@ -247,6 +288,58 @@ std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateTime(std::string_view datetime,
                              std::string_view voffset,
                              const tz::time_zone* tz = nullptr);
+
+// Convenience wrapper around MakeSysTimeFromDicomDateAndTime for
+// Spect::acquisition_date, Spect::acquisition_time, and
+// Spect::timezone_offset_from_utc.  On
+// TimePointError::kFailedUtcOffset, remaps to
+// TimePointError::kFailedTimezoneOffsetFromUtc so the error refers to
+// Spect::timezone_offset_from_utc.
+inline std::expected<std::chrono::sys_seconds, TimePointErrorWithId>
+MakeAcquisitionSysTime(const Spect& s, const tz::time_zone* tz = nullptr)
+{
+  return MakeSysTimeFromDicomDateAndTime(s.acquisition_date,
+                                         s.acquisition_time,
+                                         s.timezone_offset_from_utc, tz)
+      .transform_error(
+          [](TimePointError e)
+            {
+              return TimePointErrorWithId{
+                .id = TimePointId::kAcquisitionDateAndTime,
+                // Provide more context for the UTC offset parsing
+                // failure.
+                .error = (e == TimePointError::kFailedUtcOffset)
+                             ? TimePointError::kFailedTimezoneOffsetFromUtc
+                             : e
+              };
+            });
+}
+
+// Convenience wrapper around MakeSysTimeFromDicomDateTime for
+// Spect::radiopharmaceutical_start_date_time and
+// Spect::timezone_offset_from_utc.  On
+// TimePointError::kFailedUtcOffset, remaps to
+// TimePointError::kFailedTimezoneOffsetFromUtc so the error refers to
+// Spect::timezone_offset_from_utc.
+inline std::expected<std::chrono::sys_seconds, TimePointErrorWithId>
+MakeRadiopharmaceuticalStartSysTime(const Spect& s,
+                                    const tz::time_zone* tz = nullptr)
+{
+  return MakeSysTimeFromDicomDateTime(s.radiopharmaceutical_start_date_time,
+                                      s.timezone_offset_from_utc, tz)
+      .transform_error(
+          [&](TimePointError e)
+            {
+              return TimePointErrorWithId{
+                .id = TimePointId::kRadiopharmaceuticalStartDateTime,
+                // Provide more context for UTC offset parsing
+                // failure.
+                .error = (e == TimePointError::kFailedUtcOffset)
+                             ? TimePointError::kFailedTimezoneOffsetFromUtc
+                             : e
+              };
+            });
+}
 
 } // namespace spider
 
