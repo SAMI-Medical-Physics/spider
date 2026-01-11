@@ -27,11 +27,16 @@ struct Spect
   // abstraction does not distinguish between an empty string value
   // and an absent attribute.
   std::string patient_name;
+  std::string radiopharmaceutical_start_date_time;
   std::string acquisition_date;
   std::string acquisition_time;
-  std::string decay_correction;
+  std::string series_date;
+  std::string series_time;
   // std::optional is used for numeric types because there is no
   // initialised value semantically equivalent to an absent attribute.
+  std::optional<double> frame_reference_time; // milliseconds
+  std::string timezone_offset_from_utc;
+  std::string decay_correction;
   std::optional<double> radionuclide_half_life; // seconds
 };
 
@@ -42,10 +47,25 @@ std::string
 GetPatientName(const gdcm::DataSet& ds);
 
 std::string
+GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds);
+
+std::string
 GetAcquisitionDate(const gdcm::DataSet& ds);
 
 std::string
 GetAcquisitionTime(const gdcm::DataSet& ds);
+
+std::string
+GetSeriesDate(const gdcm::DataSet& ds);
+
+std::string
+GetSeriesTime(const gdcm::DataSet& ds);
+
+std::optional<double>
+GetFrameReferenceTime(const gdcm::DataSet& ds);
+
+std::string
+GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds);
 
 std::string
 GetDecayCorrection(const gdcm::DataSet& ds);

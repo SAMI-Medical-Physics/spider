@@ -25,6 +25,30 @@ namespace
 {
 
 void
+SetRadiopharmaceuticalStartDateTime(std::string date_time, gdcm::DataSet& ds)
+{
+  // Create or replace the DICOM attribute
+  // RadiopharmaceuticalInformationSequence in dataset DS with a
+  // single-item sequence containing only the attribute
+  // RadiopharmaceuticalStartDateTime set to DATE_TIME.
+  gdcm::Attribute<0x0018, 0x1078> a; // RadiopharmaceuticalStartDateTime
+  a.SetValue(date_time);
+
+  gdcm::Item item;
+  gdcm::DataSet& nds = item.GetNestedDataSet();
+  nds.Insert(a.GetAsDataElement());
+
+  gdcm::SmartPointer<gdcm::SequenceOfItems> seq = new gdcm::SequenceOfItems;
+  seq->AddItem(item);
+
+  gdcm::Tag seq_tag(0x0054, 0x0016); // RadiopharmaceuticalInformationSequence
+  gdcm::DataElement seq_de(seq_tag);
+  seq_de.SetVR(gdcm::VR::SQ);
+  seq_de.SetValue(*seq);
+  ds.Insert(seq_de);
+}
+
+void
 SetRadionuclideHalfLife(double half_life, gdcm::DataSet& ds)
 {
   // Create or replace the DICOM attribute
@@ -75,6 +99,24 @@ TEST(GetPatientNameTest, RealDataset)
   EXPECT_EQ(spider::GetPatientName(ds), "C11Phantom");
 }
 
+TEST(GetRadiopharmaceuticalStartDateTimeTest, Example)
+{
+  std::string date_time = "19930822134652";
+  gdcm::DataSet ds;
+  SetRadiopharmaceuticalStartDateTime(date_time, ds);
+  EXPECT_EQ(spider::GetRadiopharmaceuticalStartDateTime(ds), date_time);
+}
+
+TEST(GetRadiopharmaceuticalStartDateTimeTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetRadiopharmaceuticalStartDateTime(ds),
+            "20181105120000.000000 ");
+}
+
 TEST(GetAcquisitionDateTest, Example)
 {
   std::string date = "19930822";
@@ -111,6 +153,82 @@ TEST(GetAcquisitionTimeTest, RealDataset)
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetAcquisitionTime(ds), "122601.000000 ");
+}
+
+TEST(GetSeriesDateTest, Example)
+{
+  std::string date = "19930822";
+  gdcm::Attribute<0x0008, 0x0021> at; // SeriesDate
+  at.SetValue(date);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetSeriesDate(ds), date);
+}
+
+TEST(GetSeriesDateTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetSeriesDate(ds), "20181105");
+}
+
+TEST(GetSeriesTimeTest, Example)
+{
+  std::string time = "070907.0705 ";
+  gdcm::Attribute<0x0008, 0x0031> at; // SeriesTime
+  at.SetValue(time);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetSeriesTime(ds), time);
+}
+
+TEST(GetSeriesTimeTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetSeriesTime(ds), "122601.000000 ");
+}
+
+TEST(GetFrameReferenceTimeTest, Example)
+{
+  double frt = 12310.0;
+  gdcm::Attribute<0x0054, 0x1300> at; // FrameReferenceTime
+  at.SetValue(frt);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetFrameReferenceTime(ds), frt);
+}
+
+TEST(GetFrameReferenceTimeTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetFrameReferenceTime(ds), 566124.53848358);
+}
+
+TEST(GetTimezoneOffsetFromUtcTest, Example)
+{
+  std::string offset = "+0200 ";
+  gdcm::Attribute<0x0008, 0x0201> at; // TimezoneOffsetFromUtc
+  at.SetValue(offset);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetTimezoneOffsetFromUtc(ds), offset);
+}
+
+TEST(GetTimezoneOffsetFromUtcTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_TRUE(spider::GetTimezoneOffsetFromUtc(ds).empty());
 }
 
 TEST(GetDecayCorrectionTest, Example)
@@ -155,37 +273,6 @@ TEST(GetRadionuclideHalfLifeTest, RealDataset)
   EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), 1223.0);
 }
 
-TEST(ReadDicomSpectTest, Example)
-{
-  std::string date = "19930822";
-  gdcm::Attribute<0x0008, 0x0022> at_date; // AcquisitionDate
-  at_date.SetValue(date);
-
-  std::string time = "070907.0705 ";
-  gdcm::Attribute<0x0008, 0x0032> at_time; // AcquisitionTime
-  at_time.SetValue(time);
-
-  std::string correct_str = "ADMIN ";
-  gdcm::Attribute<0x0054, 0x1102> at_correct; // DecayCorrection
-  at_correct.SetValue(correct_str);
-
-  double half_life = 574300.0;
-
-  gdcm::DataSet ds;
-  ds.Insert(at_date.GetAsDataElement());
-  ds.Insert(at_time.GetAsDataElement());
-  ds.Insert(at_correct.GetAsDataElement());
-  SetRadionuclideHalfLife(half_life, ds);
-
-  spider::Spect spect = spider::ReadDicomSpect(ds);
-
-  EXPECT_EQ(spect.patient_name, "");
-  EXPECT_EQ(spect.acquisition_date, date);
-  EXPECT_EQ(spect.acquisition_time, time);
-  EXPECT_EQ(spect.decay_correction, correct_str);
-  EXPECT_EQ(spect.radionuclide_half_life, half_life);
-}
-
 TEST(ReadDicomSpectTest, RealDataset)
 {
   gdcm::Reader r;
@@ -195,8 +282,14 @@ TEST(ReadDicomSpectTest, RealDataset)
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
   EXPECT_EQ(spect.patient_name, "C11Phantom");
+  EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
+            "20181105120000.000000 ");
   EXPECT_EQ(spect.acquisition_date, "20181105");
   EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
+  EXPECT_EQ(spect.series_date, "20181105");
+  EXPECT_EQ(spect.series_time, "122601.000000 ");
+  EXPECT_EQ(spect.frame_reference_time, 566124.53848358);
+  EXPECT_TRUE(spect.timezone_offset_from_utc.empty());
   EXPECT_EQ(spect.decay_correction, "START ");
   EXPECT_EQ(spect.radionuclide_half_life, 1223.0);
 }
@@ -215,13 +308,23 @@ TEST(GetFirstLineTest, WithoutNewline)
 TEST(WriteSpectsTest, Example)
 {
   spider::Spect s1 = { .patient_name = "DOE^JOHN",
+                       .radiopharmaceutical_start_date_time = "20241008123004",
                        .acquisition_date = "20241013",
                        .acquisition_time = "123250.1123 ",
+                       .series_date = "20241013",
+                       .series_time = "123250.1123 ",
+                       .frame_reference_time = 1234.0,
+                       .timezone_offset_from_utc = "",
                        .decay_correction = "START ",
                        .radionuclide_half_life = 1234567.89 };
   spider::Spect s2 = { .patient_name = "DOE^JANE",
+                       .radiopharmaceutical_start_date_time = "20241008123004",
                        .acquisition_date = "20220311",
                        .acquisition_time = "02",
+                       .series_date = "20220311",
+                       .series_time = "02",
+                       .frame_reference_time = 123.0,
+                       .timezone_offset_from_utc = "",
                        .decay_correction = "NONE",
                        .radionuclide_half_life = std::nullopt };
   std::ostringstream oss;
@@ -231,11 +334,17 @@ TEST(WriteSpectsTest, Example)
   // figures.
   std::string ans{ "This file was created by Spider.\n"
                    "If you edit it by hand, you could mess it up.\n"
-                   "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n"
+                   "\nDOE^JOHN\n20241008123004\n20241013\n123250.1123 \n"
+                   "20241013\n123250.1123 \n"
+                   // A double of 1234.0 is written as 1234.
+                   "1234\n"
+                   "\nSTART \n"
                    // A double of 1234567.89 is written as 1.23457e+06
                    // due to the precision of 6 significant figures.
                    "1.23457e+06\n"
-                   "\nDOE^JANE\n20220311\n02\nNONE\n"
+                   // Second Spect entry.
+                   "\nDOE^JANE\n20241008123004\n20220311\n02\n20220311\n02\n"
+                   "123\n\nNONE\n"
                    // If a std::optional<double> does not contain a
                    // value (is disengaged), WriteSpects writes an
                    // empty string for it.
@@ -255,10 +364,21 @@ TEST(ReadDicomAttributesTest, RealDataset)
   std::ostringstream oss;
   spider::WriteSpects({ s1, s2 }, oss);
 
-  std::string ans{ "This file was created by Spider.\n"
-                   "If you edit it by hand, you could mess it up.\n"
-                   "\nC11Phantom\n20181105\n122601.000000 \nSTART \n1223\n"
-                   "\nC11Phantom\n20181105\n122601.000000 \nSTART \n1223\n" };
+  std::string ans{
+    "This file was created by Spider.\n"
+    "If you edit it by hand, you could mess it up.\n"
+    "\nC11Phantom\n20181105120000.000000 \n20181105\n122601.000000 \n"
+    "20181105\n122601.000000 \n"
+    // WriteSpects writes doubles with a precision of 6 significant
+    // figures, so the frame reference time of 566124.53848358 is
+    // written as 566125.
+    "566125\n"
+    // TimezoneOffsetFromUtc is absent from the dataset.
+    "\nSTART \n1223\n"
+    // Second Spect entry.
+    "\nC11Phantom\n20181105120000.000000 \n20181105\n122601.000000 \n"
+    "20181105\n122601.000000 \n566125\n\nSTART \n1223\n"
+  };
 
   EXPECT_EQ(oss.str(), ans);
 }
@@ -268,19 +388,34 @@ TEST(ReadSpectsTest, Example)
   std::istringstream input(
       "This file was created by Spider.\n"
       "If you edit it by hand, you could mess it up.\n"
-      "\nDOE^JOHN\n20241013\n123250.1123 \nSTART \n23.11\n"
-      "\nDOE^JANE\n20220311\n02\nNONE\n\n");
+      "\nDOE^JOHN\n20241007131208-0300\n20241013\n123250.1123 \n"
+      "20241012\n123250.1\n86219\n\nSTART \n23.11\n"
+      // Second Spect entry.
+      "\nDOE^JANE\n2022\n20220311\n02\n20220311\n02\n345\n"
+      "+0830\nNONE\n\n");
   std::vector<spider::Spect> spects = spider::ReadSpects(input);
 
   ASSERT_EQ(spects.size(), 2);
   EXPECT_EQ(spects[0].patient_name, "DOE^JOHN");
+  EXPECT_EQ(spects[0].radiopharmaceutical_start_date_time,
+            "20241007131208-0300");
   EXPECT_EQ(spects[0].acquisition_date, "20241013");
   EXPECT_EQ(spects[0].acquisition_time, "123250.1123 ");
+  EXPECT_EQ(spects[0].series_date, "20241012");
+  EXPECT_EQ(spects[0].series_time, "123250.1");
+  EXPECT_EQ(spects[0].frame_reference_time, 86219.0);
+  EXPECT_TRUE(spects[0].timezone_offset_from_utc.empty());
   EXPECT_EQ(spects[0].decay_correction, "START ");
   EXPECT_EQ(spects[0].radionuclide_half_life, 23.11);
+
   EXPECT_EQ(spects[1].patient_name, "DOE^JANE");
+  EXPECT_EQ(spects[1].radiopharmaceutical_start_date_time, "2022");
   EXPECT_EQ(spects[1].acquisition_date, "20220311");
   EXPECT_EQ(spects[1].acquisition_time, "02");
+  EXPECT_EQ(spects[1].series_date, "20220311");
+  EXPECT_EQ(spects[1].series_time, "02");
+  EXPECT_EQ(spects[1].frame_reference_time, 345.0);
+  EXPECT_EQ(spects[1].timezone_offset_from_utc, "+0830");
   EXPECT_EQ(spects[1].decay_correction, "NONE");
   // If there is an empty string in the position of a
   // std::optional<double>, the optional is disengaged.

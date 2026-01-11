@@ -81,8 +81,18 @@ operator<<(std::ostream& os, const Spect& s)
 {
   os << "Spect{"
      << "patient_name=" << std::quoted(s.patient_name)
+     << ", radiopharmaceutical_start_date_time="
+     << std::quoted(s.radiopharmaceutical_start_date_time)
      << ", acquisition_date=" << std::quoted(s.acquisition_date)
      << ", acquisition_time=" << std::quoted(s.acquisition_time)
+     << ", series_date=" << std::quoted(s.acquisition_date)
+     << ", series_time=" << std::quoted(s.acquisition_time);
+  os << ", frame_reference_time=";
+  if (s.frame_reference_time.has_value())
+    os << s.frame_reference_time.value();
+  os << " ms"
+     << ", timezone_offset_from_utc="
+     << std::quoted(s.timezone_offset_from_utc)
      << ", decay_correction=" << std::quoted(s.decay_correction)
      << ", radionuclide_half_life=";
   if (s.radionuclide_half_life.has_value())
@@ -101,6 +111,37 @@ GetPatientName(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0010, 0x0010> a;
   a.SetFromDataSet(ds);
+  return a.GetValue();
+}
+
+std::string
+GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
+{
+  const gdcm::Tag tag_sq(0x0054, 0x0016);
+  if (!ds.FindDataElement(tag_sq))
+    {
+      Warning() << "missing DICOM attribute: "
+                   "RadiopharmaceuticalInformationSequence\n";
+      return {};
+    }
+  gdcm::SmartPointer<gdcm::SequenceOfItems> sq
+      = ds.GetDataElement(tag_sq).GetValueAsSQ();
+  if (!sq || !sq->GetNumberOfItems())
+    {
+      Warning() << "DICOM attribute RadiopharmaceuticalInformationSequence is "
+                   "present but either empty or not encoded as SQ\n";
+      return {};
+    }
+  const gdcm::DataSet& nds = sq->GetItem(1).GetNestedDataSet();
+  const gdcm::Tag tag(0x0018, 0x1078);
+  if (!nds.FindDataElement(tag))
+    {
+      Warning()
+          << "missing DICOM attribute: RadiopharmaceuticalStartDateTime\n";
+      return {};
+    }
+  gdcm::Attribute<0x0018, 0x1078> a;
+  a.SetFromDataElement(nds.GetDataElement(tag));
   return a.GetValue();
 }
 
@@ -126,6 +167,58 @@ GetAcquisitionTime(const gdcm::DataSet& ds)
       return {};
     }
   gdcm::Attribute<0x0008, 0x0032> at;
+  at.SetFromDataSet(ds);
+  return at.GetValue();
+}
+
+std::string
+GetSeriesDate(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0021)))
+    {
+      Warning() << "missing DICOM attribute: SeriesDate\n";
+      return {};
+    }
+  gdcm::Attribute<0x0008, 0x0021> at;
+  at.SetFromDataSet(ds);
+  return at.GetValue();
+}
+
+std::string
+GetSeriesTime(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0031)))
+    {
+      Warning() << "missing DICOM attribute: SeriesTime\n";
+      return {};
+    }
+  gdcm::Attribute<0x0008, 0x0031> at;
+  at.SetFromDataSet(ds);
+  return at.GetValue();
+}
+
+std::optional<double>
+GetFrameReferenceTime(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0054, 0x1300)))
+    {
+      Warning() << "missing DICOM attribute: FrameReferenceTime\n";
+      return {};
+    }
+  gdcm::Attribute<0x0054, 0x1300> at;
+  at.SetFromDataSet(ds);
+  return at.GetValue();
+}
+
+std::string
+GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0201)))
+    {
+      Warning() << "missing DICOM attribute: TimezoneOffsetFromUTC\n";
+      return {};
+    }
+  gdcm::Attribute<0x0008, 0x0201> at;
   at.SetFromDataSet(ds);
   return at.GetValue();
 }
@@ -177,8 +270,14 @@ Spect
 ReadDicomSpect(const gdcm::DataSet& ds)
 {
   return Spect{ .patient_name = GetPatientName(ds),
+                .radiopharmaceutical_start_date_time
+                = GetRadiopharmaceuticalStartDateTime(ds),
                 .acquisition_date = GetAcquisitionDate(ds),
                 .acquisition_time = GetAcquisitionTime(ds),
+                .series_date = GetSeriesDate(ds),
+                .series_time = GetSeriesTime(ds),
+                .frame_reference_time = GetFrameReferenceTime(ds),
+                .timezone_offset_from_utc = GetTimezoneOffsetFromUtc(ds),
                 .decay_correction = GetDecayCorrection(ds),
                 .radionuclide_half_life = GetRadionuclideHalfLife(ds) };
 }
@@ -202,12 +301,23 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
     {
       if (GetFirstLine(spects[i].patient_name) != spects[i].patient_name)
         Warning() << "SPECT " << i + 1 << ": patient name: " << msg;
+      if (GetFirstLine(spects[i].radiopharmaceutical_start_date_time)
+          != spects[i].radiopharmaceutical_start_date_time)
+        Warning() << "SPECT " << i + 1
+                  << ": radiopharmaceutical start date time: " << msg;
       if (GetFirstLine(spects[i].acquisition_date)
           != spects[i].acquisition_date)
         Warning() << "SPECT " << i + 1 << ": acquisition date: " << msg;
       if (GetFirstLine(spects[i].acquisition_time)
           != spects[i].acquisition_time)
         Warning() << "SPECT " << i + 1 << ": acquisition time: " << msg;
+      if (GetFirstLine(spects[i].series_date) != spects[i].series_date)
+        Warning() << "SPECT " << i + 1 << ": series date: " << msg;
+      if (GetFirstLine(spects[i].series_time) != spects[i].series_time)
+        Warning() << "SPECT " << i + 1 << ": series time: " << msg;
+      if (GetFirstLine(spects[i].timezone_offset_from_utc)
+          != spects[i].timezone_offset_from_utc)
+        Warning() << "SPECT " << i + 1 << ": utc offset: " << msg;
       if (GetFirstLine(spects[i].decay_correction)
           != spects[i].decay_correction)
         Warning() << "SPECT " << i + 1 << ": decay correction: " << msg;
@@ -219,11 +329,18 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os)
     {
       os << "\n"
          << GetFirstLine(spect.patient_name) << "\n"
+         << GetFirstLine(spect.radiopharmaceutical_start_date_time) << "\n"
          << GetFirstLine(spect.acquisition_date) << "\n"
          << GetFirstLine(spect.acquisition_time) << "\n"
+         << GetFirstLine(spect.series_date) << "\n"
+         << GetFirstLine(spect.series_time) << "\n";
+      if (spect.frame_reference_time.has_value())
+        // XXX: The default precision is 6 significant figures.
+        os << spect.frame_reference_time.value();
+      os << "\n"
+         << GetFirstLine(spect.timezone_offset_from_utc) << "\n"
          << GetFirstLine(spect.decay_correction) << "\n";
       if (spect.radionuclide_half_life.has_value())
-        // XXX: The default precision is 6 significant figures.
         os << spect.radionuclide_half_life.value();
       os << "\n";
     }
@@ -249,16 +366,29 @@ ReadSpects(std::istream& in)
       Spect& s = spects.back();
       if (!std::getline(in, s.patient_name))
         break;
+      if (!std::getline(in, s.radiopharmaceutical_start_date_time))
+        break;
       if (!std::getline(in, s.acquisition_date))
         break;
       if (!std::getline(in, s.acquisition_time))
         break;
-      if (!std::getline(in, s.decay_correction))
+      if (!std::getline(in, s.series_date))
+        break;
+      if (!std::getline(in, s.series_time))
         break;
       if (!std::getline(in, line))
         break;
       char* end{};
       double d = std::strtod(line.c_str(), &end);
+      if (end != line.c_str())
+        s.frame_reference_time = d;
+      if (!std::getline(in, s.timezone_offset_from_utc))
+        break;
+      if (!std::getline(in, s.decay_correction))
+        break;
+      if (!std::getline(in, line))
+        break;
+      d = std::strtod(line.c_str(), &end);
       if (end != line.c_str())
         s.radionuclide_half_life = d;
     }
