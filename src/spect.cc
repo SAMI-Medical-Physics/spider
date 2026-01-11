@@ -5,6 +5,7 @@
 
 #include <charconv> // std::from_chars
 #include <chrono>
+#include <cmath>   // std::exp, std::log
 #include <cstddef> // std::size_t
 #include <cstdlib> // std::strtod
 #include <expected>
@@ -15,6 +16,7 @@
 #include <string>
 #include <string_view>
 #include <system_error> // std::errc
+#include <variant>
 #include <vector>
 
 #include <gdcmAttribute.h>
@@ -683,6 +685,85 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
     }
   // DT does not include an offset.
   return MakeSysTimeFromOffsetOrTimeZone(date, time, voffset, tz);
+}
+
+std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
+{
+  // Compute the decay factor from DICOM FrameReferenceTime to
+  // AcquisitionDate and AcquisitionTime.  FrameReferenceTime is an
+  // offset from SeriesDate and SeriesTime.  See DICOM Positron
+  // Emission Tomography Supplement, C.8.X.4.1.5.  If
+  // FrameReferenceTime is after AcquisitionDate and AcquisitionTime,
+  // the decay factor is greater than 1.
+  const auto st_series = MakeSysTimeFromDicomDateAndTime(
+      s.series_date, s.series_time, s.timezone_offset_from_utc, tz);
+  if (!st_series.has_value())
+    return std::unexpected(TimePointErrorWithId{
+        .id = TimePointId::kSeriesDateAndTime, .error = st_series.error() });
+
+  const auto st_acquisition = MakeAcquisitionSysTime(s, tz);
+  if (!st_acquisition.has_value())
+    return std::unexpected(st_acquisition.error());
+
+  if (!s.frame_reference_time.has_value())
+    return std::unexpected(DecayCorrectionError::kMissingFrameReferenceTime);
+  // Time difference in seconds.
+  const double delta_t = std::chrono::duration<double>(st_acquisition.value()
+                                                       - st_series.value())
+                             .count()
+                         - s.frame_reference_time.value() / 1000.0;
+
+  if (!s.radionuclide_half_life.has_value())
+    return std::unexpected(DecayCorrectionError::kMissingHalfLife);
+  if (s.radionuclide_half_life.value() <= 0.0)
+    return std::unexpected(
+        DecayCorrectionError::kHalfLifeLessThanOrEqualToZero);
+  return std::exp(-std::log(2) * delta_t / s.radionuclide_half_life.value());
+}
+
+std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+ComputeDecayFactorAdmin(const Spect& s, const tz::time_zone* tz)
+{
+  // Compute the decay factor from DICOM
+  // RadiopharmaceuticalStartDateTime to AcquisitionDate and
+  // AcquisitionTime.
+  const auto st_admin = MakeRadiopharmaceuticalStartSysTime(s, tz);
+  if (!st_admin.has_value())
+    return std::unexpected(st_admin.error());
+
+  const auto st_acquisition = MakeAcquisitionSysTime(s, tz);
+  if (!st_acquisition.has_value())
+    return std::unexpected(st_acquisition.error());
+  // Time difference in seconds.
+  const double delta_t = std::chrono::duration<double>(st_acquisition.value()
+                                                       - st_admin.value())
+                             .count();
+
+  if (!s.radionuclide_half_life.has_value())
+    return std::unexpected(DecayCorrectionError::kMissingHalfLife);
+  if (s.radionuclide_half_life.value() <= 0.0)
+    return std::unexpected(
+        DecayCorrectionError::kHalfLifeLessThanOrEqualToZero);
+  return std::exp(-std::log(2) * delta_t / s.radionuclide_half_life.value());
+}
+
+std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
+{
+  const auto dc = ParseDicomDecayCorrection(s.decay_correction);
+  if (!dc.has_value())
+    return std::unexpected(DecayCorrectionError::kInvalidDecayCorrection);
+  switch (dc.value())
+    {
+    case DecayCorrection::kNone:
+      return ComputeDecayFactorNone(s, tz);
+    case DecayCorrection::kStart:
+      return 1.0;
+    case DecayCorrection::kAdmin:
+      return ComputeDecayFactorAdmin(s, tz);
+    }
+  return std::unexpected(DecayCorrectionError::kUnreachable);
 }
 
 } // namespace spider

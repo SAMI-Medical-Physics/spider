@@ -11,6 +11,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include <gdcmDataSet.h>
@@ -339,6 +340,85 @@ MakeRadiopharmaceuticalStartSysTime(const Spect& s,
                              : e
               };
             });
+}
+
+// Values of the DICOM attribute DecayCorrection.
+enum class DecayCorrection
+{
+  kNone,
+  kStart,
+  kAdmin
+};
+
+constexpr std::optional<DecayCorrection>
+ParseDicomDecayCorrection(const std::string_view v)
+{
+  if (v == "NONE")
+    return DecayCorrection::kNone;
+  if (v == "START ")
+    return DecayCorrection::kStart;
+  if (v == "ADMIN ")
+    return DecayCorrection::kAdmin;
+  return {};
+}
+
+enum class DecayCorrectionError
+{
+  // Missing a required component.
+  kMissingFrameReferenceTime,
+  kMissingHalfLife,
+  // Validation failures.
+  kInvalidDecayCorrection,
+  kHalfLifeLessThanOrEqualToZero,
+  // Other.
+  kUnreachable
+};
+
+constexpr std::string_view
+ToString(DecayCorrectionError e)
+{
+  switch (e)
+    {
+    case DecayCorrectionError::kMissingFrameReferenceTime:
+      return "missing DICOM attribute: FrameReferenceTime";
+    case DecayCorrectionError::kMissingHalfLife:
+      return "missing DICOM attribute: RadionuclideHalfLife";
+
+    case DecayCorrectionError::kInvalidDecayCorrection:
+      return "invalid value for DICOM attribute: DecayCorrection";
+    case DecayCorrectionError::kHalfLifeLessThanOrEqualToZero:
+      return "value <= 0 for DICOM attribute: RadionuclideHalfLife";
+
+    case DecayCorrectionError::kUnreachable:
+      return "you found a bug";
+    }
+  return "unknown error";
+}
+
+// Compute the decay factor for the SPECT series as if the DICOM
+// attribute DecayCorrection were NONE.  See ComputeDecayFactor for
+// the meaning of decay factor.  Note that Spect::decay_correction
+// does not need to be "NONE"; its value is ignored.
+std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz = nullptr);
+
+// Compute the decay factor for the SPECT series as if the DICOM
+// attribute DecayCorrection were ADMIN.  See ComputeDecayFactor for
+// the meaning of decay factor.  Note that Spect::decay_correction
+// does not need to be "ADMIN "; its value is ignored.
+std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+ComputeDecayFactorAdmin(const Spect& s, const tz::time_zone* tz = nullptr);
+
+// Compute the decay factor for the SPECT series.  The decay factor is
+// defined as the factor to decay-correct images of the SPECT series
+// to acquisition start.
+std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+ComputeDecayFactor(const Spect& s, const tz::time_zone* tz = nullptr);
+
+inline std::string
+ToString(const std::variant<TimePointErrorWithId, DecayCorrectionError>& e)
+{
+  return std::visit([](const auto& x) { return std::string(ToString(x)); }, e);
 }
 
 } // namespace spider

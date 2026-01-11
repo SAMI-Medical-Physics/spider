@@ -4,6 +4,7 @@
 #include "spect.h"
 
 #include <chrono>
+#include <cmath>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -910,4 +911,144 @@ TEST(MakeRadiopharmaceuticalStartSysTimeTest, RealDataset)
   auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect, tz);
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
   EXPECT_EQ(st.value(), zt.get_sys_time());
+}
+
+TEST(ParseDicomDecayCorrectionTest, Parse)
+{
+  EXPECT_EQ(spider::ParseDicomDecayCorrection("NONE").value(),
+            spider::DecayCorrection::kNone);
+  EXPECT_EQ(spider::ParseDicomDecayCorrection("START ").value(),
+            spider::DecayCorrection::kStart);
+  EXPECT_EQ(spider::ParseDicomDecayCorrection("ADMIN ").value(),
+            spider::DecayCorrection::kAdmin);
+  EXPECT_FALSE(spider::ParseDicomDecayCorrection("").has_value());
+}
+
+TEST(ComputeDecayFactorNoneTest, ExtraHalfLife)
+{
+  // The decay factor returned by ComputeDecayFactorNone
+  // decay-corrects from frame reference time to acquisition start.
+  // If the frame reference time is extended by one half-life, the
+  // decay factor should double.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  // This test DICOM file does not have the attribute
+  // TimezoneOffsetFromUtc, so ComputeDecayFactorNone must be supplied
+  // with a time zone.
+  const spider::tz::time_zone* tz
+      = spider::tz::locate_zone("America/Barbados");
+  auto df = spider::ComputeDecayFactorNone(spect, tz);
+  ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
+
+  ASSERT_TRUE(spect.frame_reference_time.has_value());
+  ASSERT_TRUE(spect.radionuclide_half_life.has_value());
+  // Spect::frame_reference_time is in milliseconds and
+  // Spect::radionuclide_half_life is in seconds.
+  spect.frame_reference_time.value()
+      += spect.radionuclide_half_life.value() * 1000.0;
+  auto df_twice = spider::ComputeDecayFactorNone(spect, tz);
+  ASSERT_TRUE(df_twice.has_value()) << spider::ToString(df_twice.error());
+  EXPECT_DOUBLE_EQ(df_twice.value(), 2.0 * df.value());
+}
+
+TEST(ComputeDecayFactorAdminTest, UtcOffsetSuffix)
+{
+  // The decay factor returned by ComputeDecayFactorAdmin
+  // decay-corrects from administration (radiopharmaceutical start
+  // date time) to acquisition start.  If this time difference is
+  // extended by dt, the decay factor should decrease by a factor
+  // corresponding to physcial decay for dt.  This test modifies the
+  // time difference by adding a UTC offset suffix to
+  // Spect::radiopharmaceutical_start_date_time so it is interpreted
+  // in a different time zone to Spect::acquisiton_date and
+  // Spect::acquisition_time.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  // This test DICOM file does not have the attribute
+  // TimezoneOffsetFromUtc, so ComputeDecayFactorAdmin must be
+  // supplied with a time zone.
+  const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Singapore");
+  auto df = spider::ComputeDecayFactorAdmin(spect, tz);
+  ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
+
+  // Now modify Spect::radiopharmaceutical_start_date_time.
+  EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
+            "20181105120000.000000 ");
+  // Asia/Singapore is +08:00 (and does not observe DST), so
+  // specifying a UTC offset of +14:00 makes the administration 6
+  // hours earlier.
+  spect.radiopharmaceutical_start_date_time = "20181105120000.000000+1400";
+  auto df_new = spider::ComputeDecayFactorAdmin(spect, tz);
+  ASSERT_TRUE(df_new.has_value()) << spider::ToString(df_new.error());
+
+  // Calculate the decay factor over 6 hours, noting that
+  // Spect::radionuclide_half_life is in seconds.
+  ASSERT_TRUE(spect.radionuclide_half_life.has_value());
+  double df_extra = std::exp(-std::log(2) * (60.0 * 60.0 * 6.0)
+                             / spect.radionuclide_half_life.value());
+
+  EXPECT_DOUBLE_EQ(df_new.value(), df.value() * df_extra);
+}
+
+TEST(ComputeDecayFactorTest, DefersToNone)
+{
+  // Check that ComputeDecayFactor defers to ComputeDecayFactorNone
+  // when Spect::decay_correction is "NONE".
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+  spect.decay_correction = "NONE";
+  const spider::tz::time_zone* tz = spider::tz::locate_zone("Australia/Perth");
+  auto df_none = spider::ComputeDecayFactorNone(spect, tz);
+  ASSERT_TRUE(df_none.has_value()) << spider::ToString(df_none.error());
+  auto df = spider::ComputeDecayFactor(spect, tz);
+  ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
+  EXPECT_DOUBLE_EQ(df.value(), df_none.value());
+}
+
+TEST(ComputeDecayFactorTest, DecayCorrectionStart)
+{
+  // This test DICOM file has DecayCorrection START, so the decay
+  // factor is unity by definition.
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+
+  auto dc = spider::ParseDicomDecayCorrection(spect.decay_correction);
+  ASSERT_TRUE(dc.has_value());
+  EXPECT_EQ(dc.value(), spider::DecayCorrection::kStart);
+
+  auto df = spider::ComputeDecayFactor(spect);
+  ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
+  EXPECT_DOUBLE_EQ(df.value(), 1.0);
+}
+
+TEST(ComputeDecayFactorTest, DefersToAdmin)
+{
+  // Check that ComputeDecayFactor defers to ComputeDecayFactorAdmin
+  // when Spect::decay_correction is "ADMIN ".
+  gdcm::Reader r;
+  r.SetFileName(kTestFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  spider::Spect spect = spider::ReadDicomSpect(ds);
+  spect.decay_correction = "ADMIN ";
+  const spider::tz::time_zone* tz = spider::tz::locate_zone("Africa/Cairo");
+  auto df_admin = spider::ComputeDecayFactorAdmin(spect, tz);
+  ASSERT_TRUE(df_admin.has_value()) << spider::ToString(df_admin.error());
+  auto df = spider::ComputeDecayFactor(spect, tz);
+  ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
+  EXPECT_DOUBLE_EQ(df.value(), df_admin.value());
 }
