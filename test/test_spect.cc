@@ -477,12 +477,6 @@ TEST(ParseDicomUtcOffsetTest, NegativeOffset)
   EXPECT_EQ(offset, std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ToStringTest, Example)
-{
-  spider::MakeTimePointError e{};
-  spider::ToString(e);
-}
-
 TEST(MakeDateCompleteTest, Example)
 {
   spider::DateParsed date_parsed{ .year = 2023, .month = 2, .day = 14 };

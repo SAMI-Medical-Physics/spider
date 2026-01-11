@@ -417,28 +417,28 @@ ParseDicomUtcOffset(std::string_view v, std::chrono::minutes& offset)
   return true;
 }
 
-std::expected<DateComplete, MakeTimePointError>
+std::expected<DateComplete, TimePointError>
 MakeDateComplete(const DateParsed& date_parsed)
 {
   if (!date_parsed.month.has_value() || !date_parsed.day.has_value())
-    return std::unexpected(MakeTimePointError::kIncompleteDate);
+    return std::unexpected(TimePointError::kIncompleteDate);
   return DateComplete{ .year = date_parsed.year,
                        .month = date_parsed.month.value(),
                        .day = date_parsed.day.value() };
 }
 
-std::expected<TimeComplete, MakeTimePointError>
+std::expected<TimeComplete, TimePointError>
 MakeTimeComplete(const TimeParsed& time_parsed)
 {
   if (!time_parsed.hour.has_value() || !time_parsed.minute.has_value()
       || !time_parsed.second.has_value())
-    return std::unexpected(MakeTimePointError::kIncompleteTime);
+    return std::unexpected(TimePointError::kIncompleteTime);
   return TimeComplete{ .hour = time_parsed.hour.value(),
                        .minute = time_parsed.minute.value(),
                        .second = time_parsed.second.value() };
 }
 
-std::expected<tz::zoned_time<std::chrono::seconds>, MakeTimePointError>
+std::expected<tz::zoned_time<std::chrono::seconds>, TimePointError>
 MakeZonedTime(const DateComplete& d, const TimeComplete& t,
               const tz::time_zone& tz)
 {
@@ -446,7 +446,7 @@ MakeZonedTime(const DateComplete& d, const TimeComplete& t,
                                 tz::month{ static_cast<unsigned>(d.month) },
                                 tz::day{ static_cast<unsigned>(d.day) } };
   if (!ymd.ok())
-    return std::unexpected(MakeTimePointError::kInvalidDate);
+    return std::unexpected(TimePointError::kInvalidDate);
   const tz::local_seconds lt
       = tz::local_days{ ymd } + std::chrono::hours{ t.hour }
         + std::chrono::minutes{ t.minute } + std::chrono::seconds{ t.second };
@@ -464,11 +464,11 @@ MakeZonedTime(const DateComplete& d, const TimeComplete& t,
   catch (const tz::nonexistent_local_time&)
     {
       // DST spring-forward.
-      return std::unexpected(MakeTimePointError::kNonexistentLocalTime);
+      return std::unexpected(TimePointError::kNonexistentLocalTime);
     }
 }
 
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromOffset(const DateComplete& d, const TimeComplete& t,
                       std::chrono::minutes offset)
 {
@@ -476,14 +476,14 @@ MakeSysTimeFromOffset(const DateComplete& d, const TimeComplete& t,
                                 tz::month{ static_cast<unsigned>(d.month) },
                                 tz::day{ static_cast<unsigned>(d.day) } };
   if (!ymd.ok())
-    return std::unexpected(MakeTimePointError::kInvalidDate);
+    return std::unexpected(TimePointError::kInvalidDate);
   const tz::local_seconds lt
       = tz::local_days{ ymd } + std::chrono::hours{ t.hour }
         + std::chrono::minutes{ t.minute } + std::chrono::seconds{ t.second };
   return std::chrono::sys_seconds{ lt.time_since_epoch() - offset };
 }
 
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
                                 const TimeComplete& time,
                                 std::string_view voffset,
@@ -494,29 +494,29 @@ MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
       // Use offset in VOFFSET.
       std::chrono::minutes offset{};
       if (!ParseDicomUtcOffset(voffset, offset))
-        return std::unexpected(MakeTimePointError::kFailedUtc);
+        return std::unexpected(TimePointError::kFailedUtcOffset);
       return MakeSysTimeFromOffset(date, time, offset);
     }
   // Interpret DATE and TIME in the time zone TZ.
   if (!tz)
-    return std::unexpected(MakeTimePointError::kMissingTimeZone);
+    return std::unexpected(TimePointError::kMissingTimeZone);
   const auto zt = MakeZonedTime(date, time, *tz);
   if (!zt.has_value())
     return std::unexpected(zt.error());
   return zt.value().get_sys_time();
 }
 
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
                                 std::string_view voffset,
                                 const tz::time_zone* tz)
 {
   DateComplete date;
   if (!ParseDicomDate(vdate, date))
-    return std::unexpected(MakeTimePointError::kFailedDate);
+    return std::unexpected(TimePointError::kFailedDate);
   TimeParsed time_parsed;
   if (!ParseDicomTime(vtime, time_parsed))
-    return std::unexpected(MakeTimePointError::kFailedTime);
+    return std::unexpected(TimePointError::kFailedTime);
   const auto time_complete = MakeTimeComplete(time_parsed);
   if (!time_complete.has_value())
     return std::unexpected(time_complete.error());
@@ -524,14 +524,14 @@ MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
   return MakeSysTimeFromOffsetOrTimeZone(date, time, voffset, tz);
 }
 
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateTime(std::string_view datetime,
                              std::string_view voffset, const tz::time_zone* tz)
 {
   DateParsed date_parsed;
   TimeParsed time_parsed;
   if (!ParseDicomDateTimeExcludingUtc(datetime, date_parsed, time_parsed))
-    return std::unexpected(MakeTimePointError::kFailedDateTimeExcludingUtc);
+    return std::unexpected(TimePointError::kFailedDateTimeExcludingUtcOffset);
   const auto date_complete = MakeDateComplete(date_parsed);
   if (!date_complete.has_value())
     return std::unexpected(date_complete.error());
@@ -547,7 +547,7 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
       // DT includes an offset; use it.
       std::chrono::minutes offset{};
       if (!ParseDicomUtcOffset(datetime.substr(pos), offset))
-        return std::unexpected(MakeTimePointError::kFailedUtcInDateTime);
+        return std::unexpected(TimePointError::kFailedUtcOffsetInDateTime);
       return MakeSysTimeFromOffset(date, time, offset);
     }
   // DT does not include an offset.

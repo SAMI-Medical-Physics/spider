@@ -120,75 +120,75 @@ ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& d,
 bool
 ParseDicomUtcOffset(std::string_view v, std::chrono::minutes& offset);
 
-enum class MakeTimePointError
+enum class TimePointError
 {
-  // Missing required components.
-  kMissingTimeZone,
-  kIncompleteDate,
-  kIncompleteTime,
   // Parsing failures.
   kFailedDate,
   kFailedTime,
-  kFailedUtc,
-  kFailedDateTimeExcludingUtc,
-  kFailedUtcInDateTime,
+  kFailedUtcOffset,
+  kFailedDateTimeExcludingUtcOffset,
+  kFailedUtcOffsetInDateTime,
+  // Missing a required component.
+  kIncompleteDate,
+  kIncompleteTime,
+  kMissingTimeZone,
   // Validation failures.
   kInvalidDate,
-  kNonexistentLocalTime
+  kNonexistentLocalTime,
 };
 
 constexpr std::string_view
-ToString(MakeTimePointError e)
+ToString(TimePointError e)
 {
   switch (e)
     {
-    case MakeTimePointError::kMissingTimeZone:
-      return "missing required time zone";
-    case MakeTimePointError::kIncompleteDate:
-      return "incomplete date; missing month or day";
-    case MakeTimePointError::kIncompleteTime:
-      return "incomplete time; missing hour, minute or second";
-
-    case MakeTimePointError::kFailedDate:
+    case TimePointError::kFailedDate:
       return "failed to parse DICOM Date";
-    case MakeTimePointError::kFailedTime:
+    case TimePointError::kFailedTime:
       return "failed to parse DICOM Time";
-    case MakeTimePointError::kFailedDateTimeExcludingUtc:
+    case TimePointError::kFailedUtcOffset:
+      return "failed to parse UTC offset (expected \"{+,-}HHMM\")";
+    case TimePointError::kFailedDateTimeExcludingUtcOffset:
       return "failed to parse DICOM Date Time components (not including UTC "
              "offset)";
-    case MakeTimePointError::kFailedUtc:
-      return "failed to parse DICOM UTC offset";
-    case MakeTimePointError::kFailedUtcInDateTime:
+    case TimePointError::kFailedUtcOffsetInDateTime:
       return "failed to parse UTC offset suffix of DICOM Date Time";
 
-    case MakeTimePointError::kInvalidDate:
+    case TimePointError::kIncompleteDate:
+      return "incomplete date; missing month or day";
+    case TimePointError::kIncompleteTime:
+      return "incomplete time; missing hour, minute or second";
+    case TimePointError::kMissingTimeZone:
+      return "missing required time zone";
+
+    case TimePointError::kInvalidDate:
       return "invalid date";
-    case MakeTimePointError::kNonexistentLocalTime:
+    case TimePointError::kNonexistentLocalTime:
       return "nonexistent local time";
     }
   return "unknown error";
 }
 
-std::expected<DateComplete, MakeTimePointError>
+std::expected<DateComplete, TimePointError>
 MakeDateComplete(const DateParsed& date_parsed);
 
-std::expected<TimeComplete, MakeTimePointError>
+std::expected<TimeComplete, TimePointError>
 MakeTimeComplete(const TimeParsed& time_parsed);
 
 // Return a zoned time constructed from the local calendar date D and
 // clock time T in time zone TZ.  If D is not a valid calendar date,
-// return MakeTimePointError::kInvalidDate.  If the local time is
+// return TimePointError::kInvalidDate.  If the local time is
 // nonexistent (e.g. during a DST spring-forward), return
-// MakeTimePointError::kNonexistentLocalTime.  If the local time is
+// TimePointError::kNonexistentLocalTime.  If the local time is
 // ambiguous (e.g. during a DST fall-back), the earlier time point is
 // chosen.
-std::expected<tz::zoned_time<std::chrono::seconds>, MakeTimePointError>
+std::expected<tz::zoned_time<std::chrono::seconds>, TimePointError>
 MakeZonedTime(const DateComplete& d, const TimeComplete& t,
               const tz::time_zone& tz);
 
 // Return the Unix Time of the local calendar date D and clock time T
 // at UTC OFFSET.  The offset is defined as (local time - UTC).
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromOffset(const DateComplete& d, const TimeComplete& t,
                       std::chrono::minutes offset);
 
@@ -196,7 +196,7 @@ MakeSysTimeFromOffset(const DateComplete& d, const TimeComplete& t,
 // TIME at UTC offset VOFFSET, or if VOFFSET is empty, in time zone
 // TZ.  If VOFFSET is not empty, it is formatted like the DICOM
 // attribute TimezoneOffsetFromUTC.
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
                                 const TimeComplete& time,
                                 std::string_view voffset,
@@ -207,7 +207,7 @@ MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
 // zone TZ.  VDATE is a DICOM DA value, VTIME is a DICOM TM value that
 // includes at least the SS component, and if VOFFSET is not empty, it
 // is formatted like the DICOM attribute TimezoneOffsetFromUTC.
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
                                 std::string_view voffset,
                                 const tz::time_zone* tz = nullptr);
@@ -219,7 +219,7 @@ MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
 // value and VTIME is a DICOM TM value that includes at least the SS
 // component.  If VOFFSET is not empty, it is formatted like the DICOM
 // attribute TimezoneOffsetFromUTC.
-std::expected<std::chrono::sys_seconds, MakeTimePointError>
+std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateTime(std::string_view datetime,
                              std::string_view voffset,
                              const tz::time_zone* tz = nullptr);
