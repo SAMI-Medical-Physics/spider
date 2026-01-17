@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS, std::exit
 #include <filesystem>
@@ -7,8 +7,8 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <vector>
 #include <system_error>
+#include <vector>
 
 #include <gdcmDataSet.h>
 #include <gdcmReader.h>
@@ -56,11 +56,9 @@ ReadDicomFileInDir(const std::string_view dir,
 int
 main(int argc, char* argv[])
 {
-  if (argc < 3)
+  if (argc < 2)
     {
-      // Need at least 2 SPECT time points to fit an exponential.
-      std::cerr << "Usage: " << argv[0]
-                << " DIRECTORY1 DIRECTORY2 [DIRECTORY...]\n";
+      std::cerr << "usage: " << argv[0] << " directory ...\n";
       return EXIT_FAILURE;
     }
 
@@ -83,21 +81,6 @@ main(int argc, char* argv[])
       spider::Log() << "SPECT " << i << ": " << spects.back() << "\n";
     }
 
-  constexpr const char out_filename[] = "spider_read_dicom.txt";
-  std::ofstream out(out_filename);
-  if (!out)
-    {
-      std::cerr << "Error: Failed to open output file '" << out_filename
-                << "' for writing\n";
-      return EXIT_FAILURE;
-    }
-  spider::WriteSpects(spects, out);
-  out.close();
-  if (!out)
-    {
-      std::cerr << "Error: Failed while writing '" << out_filename << "'\n";
-      return EXIT_FAILURE;
-    }
-  spider::Log() << "Wrote: " << out_filename << "\n";
+  spider::WriteSpects(spects, std::cout);
   return EXIT_SUCCESS;
 }
