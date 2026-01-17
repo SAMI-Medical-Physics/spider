@@ -159,29 +159,38 @@
 (define tia-comparison
   (computed-file
    "benchmark-patient-4-tia-comparison"
-   #~(begin
-       (use-modules (ice-9 popen)
-                    (ice-9 receive))
-       (mkdir #$output)
-       ;; hist.gp uses 'cat'.
-       (setenv "PATH" (string-append #$coreutils "/bin"))
-       (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig
-       (map
-        (lambda (threshold)
-          (receive (from to pids)
-              (pipeline
-               (list (append (list (string-append #$spider-benchmark
-                                                  "/log10_ratio")
-                                   (string-append #$spider-tia "/tia.nii")
-                                   (string-append #$benchmark-tia "/tia.nii"))
-                             (if (string=? threshold "") '() (list threshold)))
-                     (list (string-append #$gnuplot "/bin/gnuplot")
-                           "-p" #$(local-file "hist.gp"))))
-            (close to)
-            (close from)
-            (for-each waitpid pids))
-          (copy-file "hist.pdf"
-                     (string-append #$output "/hist-" threshold ".pdf")))
-        '("" "1e9")))))
+   (with-imported-modules '((guix build utils)) ;for substitute*
+     #~(begin
+         (use-modules (guix build utils)
+                      (ice-9 popen)
+                      (ice-9 receive))
+         (mkdir #$output)
+         ;; hist.gp uses 'cat'.
+         (setenv "PATH" (string-append #$coreutils "/bin"))
+         (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig
+         (map
+          (lambda (threshold)
+            (receive (from to pids)
+                (pipeline
+                 (list (append (list (string-append #$spider-benchmark
+                                                    "/log10_ratio")
+                                     (string-append #$spider-tia "/tia.nii")
+                                     (string-append #$benchmark-tia "/tia.nii"))
+                               (if (string=? threshold "") '() (list threshold)))
+                       (list (string-append #$gnuplot "/bin/gnuplot")
+                             "-p" #$(local-file "hist.gp"))))
+              (close to)
+              (close from)
+              (for-each waitpid pids))
+
+            ;; Remove timestamps for reproducibility.
+            (with-fluids ((%default-port-encoding "ISO-8859-1"))
+              (substitute* "hist.eps"
+                (("^%%CreationDate: .*") "%%CreationDate: reproducible")
+                (("/CreationDate \\(.*\\)") "/CreationDate (reproducible)")))
+
+            (copy-file "hist.eps"
+                       (string-append #$output "/hist-" threshold ".eps")))
+          '("" "1e9"))))))
 
 tia-comparison
