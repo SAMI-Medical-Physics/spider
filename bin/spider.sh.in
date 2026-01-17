@@ -1,0 +1,124 @@
+#!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 South Australia Medical Imaging
+
+# Requires the external programs 'dcm2niix' and 'elastix'.  There is
+# no work re-use.
+
+set -eu
+
+# Make patching commands robust.
+awk_cmd=awk
+dcm2niix_cmd=dcm2niix
+elastix_cmd=elastix
+mkdir_cmd=mkdir
+mktemp_cmd=mktemp
+rm_cmd=rm
+sed_cmd=sed
+tail_cmd=tail
+
+PROGRAM_NAME=${0##*/}
+
+usage() {
+    printf 'usage: %s [-fV] [-e elastix_params] [-z time_zone]
+              directory1 directory2 ...\n' "$PROGRAM_NAME" >&2
+    exit 2
+}
+
+overwrite=0
+elastix_params="@CMAKE_INSTALL_FULL_DATADIR@/spider/Parameters_Rigid.txt"
+tz_list=""
+
+ensure_filename_available() {
+    # A filename is available if it does not exist or $overwrite is 1.
+    filename=$1
+    [ -e "$filename" ] || return 0
+    if [ "$overwrite" -eq 0 ]; then
+        printf '%s: file already exists: "%s"\n' "$PROGRAM_NAME" "$filename" >&2
+        exit 1
+    fi
+}
+
+while getopts "fVe:z:" opt; do
+    case "$opt" in
+        f) overwrite=1 ;;
+        V)
+            spider_version="@PROJECT_VERSION@"
+            dcm2niix_version=$("$dcm2niix_cmd" -v 2>/dev/null | "$sed_cmd" -n '2p')
+            elastix_version=$("$elastix_cmd" --version | "$awk_cmd" '{print $NF}')
+            printf 'Spider %s, dcm2niix %s, elastix %s\n' \
+                   "$spider_version" "$dcm2niix_version" "$elastix_version"
+            exit 0
+            ;;
+        e) elastix_params=$OPTARG ;;
+        z) tz_list=${tz_list}${tz_list:+'
+'}$OPTARG ;;
+        \?) usage ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+# Require at least two SPECT DICOM series.
+[ $# -ge 2 ] || usage
+
+# Convert each SPECT DICOM series to a 3D NIfTI image.
+i=1
+for d in "$@"; do
+    ensure_filename_available "spect$i.nii"
+    "$dcm2niix_cmd" -o . -f "spect$i" -w 1 "$d"
+    i=$((i + 1))
+done
+
+# Create SPECTs registered to first SPECT.
+n_spects=$#
+i=2
+while [ "$i" -le "$n_spects" ]; do
+    outdir="registered_spect$i"
+    ensure_filename_available "$outdir/result.0.nii"
+    "$mkdir_cmd" -p "$outdir"
+    "$elastix_cmd" -f spect1.nii -m "spect$i.nii" \
+                   -p "$elastix_params" \
+                   -out "$outdir"
+    i=$((i + 1))
+done
+
+# Make TIA image.
+# FIXME: Remove this when 'set -o pipefail' is added.
+tmp=$("$mktemp_cmd") || exit 1
+if ! "@CMAKE_INSTALL_FULL_BINDIR@/spider_dicom_dump" "$@" >/dev/null 2>"$tmp"; then
+    "$tail_cmd" -n 1 "$tmp" >&2
+    "$rm_cmd" -f "$tmp"
+    exit 1
+fi
+"$rm_cmd" -f "$tmp"
+
+"@CMAKE_INSTALL_FULL_BINDIR@/spider_dicom_dump" "$@" | (
+    # Rebuild arguments for spider_tia.
+    set --
+    # Propagate -f option.
+    if [ "$overwrite" -eq 1 ]; then
+        set -- "$@" -f
+    fi
+    # Add time zone arguments if any.
+    if [ -n "$tz_list" ]; then
+        # Preserve time zone names containing spaces (even though such
+        # names are invalid).
+        old_ifs=$IFS
+        IFS='
+'
+        for tz in $tz_list; do
+            set -- "$@" -z "$tz"
+        done
+        IFS=$old_ifs
+    fi
+
+    # Add image arguments.
+    set -- "$@" "spect1.nii"
+    i=2
+    while [ "$i" -le "$n_spects" ]; do
+        set -- "$@" "registered_spect$i/result.0.nii"
+        i=$((i + 1))
+    done
+
+    exec "@CMAKE_INSTALL_FULL_BINDIR@/spider_tia" "$@"
+)
