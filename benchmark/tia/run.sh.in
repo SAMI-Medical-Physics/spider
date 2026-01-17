@@ -57,6 +57,6 @@ elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" tia.nii snmmi-tia.nii | \
-    gnuplot -p "$BENCHMARK_DIR/hist.gp"
+    gnuplot "$BENCHMARK_DIR/hist.gp"
 
 echo "Wrote hist.pdf"
