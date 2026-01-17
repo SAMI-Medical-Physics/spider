@@ -36,6 +36,10 @@ StdoutIsTty()
 #endif //_WIN32
 }
 
+// The name of this program.  Print this instead of argv[0], which
+// might be a symlink to a long path.
+constexpr char kProgramName[] = "spider_dicom_dump";
+
 bool
 ReadDicomFileInDir(const std::string_view dir,
                    std::filesystem::path& path_found, gdcm::Reader& r)
@@ -44,7 +48,7 @@ ReadDicomFileInDir(const std::string_view dir,
   std::filesystem::directory_iterator it(dir, ec);
   if (ec)
     {
-      std::cerr << "Error: Cannot open directory '" << dir
+      std::cerr << kProgramName << ": Cannot open directory '" << dir
                 << "': " << ec.message() << '\n';
       std::exit(EXIT_FAILURE);
     }
@@ -75,7 +79,7 @@ main(int argc, char* argv[])
 {
   if (argc < 2)
     {
-      std::cerr << "usage: " << argv[0] << " directory ...\n";
+      std::cerr << "usage: " << kProgramName << " directory ...\n";
       return EXIT_FAILURE;
     }
   if (StdoutIsTty())
@@ -92,7 +96,8 @@ main(int argc, char* argv[])
       gdcm::Reader r;
       if (!ReadDicomFileInDir(argv[i], p, r))
         {
-          std::cerr << "Error: Failed to read a DICOM file in directory '"
+          std::cerr << kProgramName
+                    << ": Failed to read a DICOM file in directory '"
                     << argv[i] << "'\n";
           return EXIT_FAILURE;
         }
