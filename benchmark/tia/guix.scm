@@ -178,7 +178,7 @@
                                      (string-append #$benchmark-tia "/tia.nii"))
                                (if (string=? threshold "") '() (list threshold)))
                        (list (string-append #$gnuplot "/bin/gnuplot")
-                             "-p" #$(local-file "hist.gp"))))
+                             #$(local-file "hist.gp"))))
               (close to)
               (close from)
               (for-each waitpid pids))

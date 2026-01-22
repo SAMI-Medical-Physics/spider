@@ -3,7 +3,7 @@
 
 # Plot a histogram by reading lines from stdin in the format:
 # bin_edge_left bin_edge_right counts.
-# Usage: 'PROGRAM | gnuplot -p hist.gp'.
+# Usage: 'PROGRAM | gnuplot hist.gp'.
 # Warning: The horizontal axis tick interval is hard-coded to 1.
 
 # Write to a file.
