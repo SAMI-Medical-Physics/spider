@@ -1,5 +1,5 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
-;;; Copyright (C) 2025 South Australia Medical Imaging
+;;; Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 (use-modules ((guix licenses) #:prefix license:)
              (guix)
@@ -35,11 +35,23 @@
             (when tests?
               (invoke (search-input-file (or native-inputs inputs) "bin/unzip")
                       #$(this-package-native-input
-                         "zenodo-4751233-pet-images-01.zip"))))))))
-   (inputs (list insight-toolkit
-                 ;; Development inputs.
-                 dcm2niix
+                         "zenodo-4751233-pet-images-01.zip")))))
+        (add-after 'unpack 'patch-commands
+          (lambda* (#:key inputs #:allow-other-keys)
+            (for-each
+             (lambda (command)
+               (substitute* "bin/spider.sh.in"
+                 (((string-append command "_cmd=" command))
+                  (string-append command "_cmd="
+                                 (search-input-file inputs
+                                                    (string-append "bin/"
+                                                                   command))))))
+             '("awk" "dcm2niix" "elastix" "mkdir" "mktemp" "rm" "sed"
+               "tail")))))))
+   (inputs (list dcm2niix
                  elastix
+                 insight-toolkit
+                 ;; Development inputs.
                  gnuplot
                  itk-snap))
    (native-inputs
