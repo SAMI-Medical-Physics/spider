@@ -39,6 +39,10 @@
                        (invoke (string-append #$unzip "/bin/unzip")
                                #$spect/cts.zip "-d" #$output)))))
 
+(define (spect-dicom-dir n)
+  #~(string-append #$spect/cts "/patient_4/SPECT_Cts/scan"
+                   #$(number->string n) "/spect"))
+
 (define dcm2niix
   (specification->package "dcm2niix"))
 
@@ -52,10 +56,7 @@
                        (invoke (string-append #$dcm2niix "/bin/dcm2niix")
                                "-o" #$output
                                "-f" "spect"
-                               (string-append #$spect/cts
-                                              "/patient_4/SPECT_Cts/scan"
-                                              #$(number->string n)
-                                              "/spect"))))))
+                               #$(spect-dicom-dir n))))))
 
 (define elastix
   (specification->package "elastix"))
