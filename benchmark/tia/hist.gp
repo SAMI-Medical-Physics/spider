@@ -7,8 +7,8 @@
 # Warning: The horizontal axis tick interval is hard-coded to 1.
 
 # Write to a file.
-set terminal pdfcairo
-set output 'hist.pdf'
+set terminal postscript eps
+set output 'hist.eps'
 
 set style fill solid
 # Remove legend.
