@@ -1,5 +1,5 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
-;;; Copyright (C) 2025 South Australia Medical Imaging
+;;; Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 (use-modules (guix gexp)
              (guix packages)
@@ -100,16 +100,26 @@
                  ;; For invoke and install-file.
                  (with-imported-modules '((guix build utils))
                    #~(begin (use-modules (guix build utils)
-                                         (ice-9 time))
-                            (apply invoke (string-append
-                                           #$spider
-                                           "/bin/spider_make_tia_benchmark")
-                                   (string-append #$(spect 1) "/spect.nii")
-                                   (map (lambda (x)
-                                          (string-append x "/result.0.nii"))
-                                        (list #$(registered-spect 2)
-                                              #$(registered-spect 3)
-                                              #$(registered-spect 4))))
+                                         (ice-9 popen)
+                                         (ice-9 receive))
+                            (receive (from to pids)
+                                (pipeline
+                                 (list (list (string-append #$spider "/bin/spider_dicom_dump")
+                                             #$(spect-dicom-dir 1)
+                                             #$(spect-dicom-dir 2)
+                                             #$(spect-dicom-dir 3)
+                                             #$(spect-dicom-dir 4))
+                                       (append (list (string-append #$spider "/bin/spider_tia")
+                                                     "-z" "America/Detroit"
+                                                     (string-append #$(spect 1) "/spect.nii"))
+                                               (map (lambda (x)
+                                                      (string-append x "/result.0.nii"))
+                                                    (list #$(registered-spect 2)
+                                                          #$(registered-spect 3)
+                                                          #$(registered-spect 4))))))
+                              (close to)
+                              (close from)
+                              (for-each waitpid pids))
                             (install-file "tia.nii" #$output)))))
 
 
