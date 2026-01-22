@@ -1,9 +1,9 @@
 add_executable(
-  spider_read_dicom
-  spider_read_dicom.cc
+  spider_dicom_dump
+  spider_dicom_dump.cc
 )
-target_link_libraries(spider_read_dicom spider_spect)
-target_compile_definitions(spider_read_dicom
+target_link_libraries(spider_dicom_dump spider_spect)
+target_compile_definitions(spider_dicom_dump
   PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
 
 add_executable(
@@ -15,6 +15,6 @@ target_compile_definitions(spider_make_tia_benchmark
   PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
 
 install(TARGETS
-  spider_read_dicom
+  spider_dicom_dump
   spider_make_tia_benchmark
 )
