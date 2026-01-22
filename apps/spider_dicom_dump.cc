@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025, 2026 South Australia Medical Imaging
 
+#include <cstdio>  // stdout
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS, std::exit
 #include <filesystem>
 #include <fstream>
@@ -16,8 +17,24 @@
 #include "logging.h"
 #include "spect.h"
 
+#ifdef _WIN32
+#include <io.h> // _isatty, _fileno
+#else
+#include <unistd.h> // isatty, STDOUT_FILENO
+#endif              // _WIN32
+
 namespace
 {
+
+bool
+StdoutIsTty()
+{
+#ifdef _WIN32
+  return _isatty(_fileno(stdout)) != 0;
+#else
+  return isatty(STDOUT_FILENO) == 1;
+#endif //_WIN32
+}
 
 bool
 ReadDicomFileInDir(const std::string_view dir,
@@ -60,6 +77,11 @@ main(int argc, char* argv[])
     {
       std::cerr << "usage: " << argv[0] << " directory ...\n";
       return EXIT_FAILURE;
+    }
+  if (StdoutIsTty())
+    {
+      spider::Log()
+          << "try piping this program's stdout to another Spider program\n";
     }
 
   spider::Log() << "Version " << SPIDER_VERSION << "\n";
