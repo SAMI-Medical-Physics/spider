@@ -20,7 +20,7 @@ target_include_directories(test_tia_pipeline
 )
 target_link_libraries(
   test_tia_pipeline
-  spider_tia
+  spider_tia_pipeline
   GTest::gtest_main
 )
 
