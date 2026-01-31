@@ -19,11 +19,11 @@
 namespace spider
 {
 TiaFilters
-PrepareTiaPipeline(const std::vector<std::chrono::seconds>& time_points,
-                   const std::vector<std::string>& input_filenames,
+PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
+                   const std::vector<std::chrono::seconds>& time_points,
                    const std::vector<double>& decay_factors)
 {
-  const int num_images = time_points.size();
+  const int num_images = input_filenames.size();
   TiaFilters filters;
 
   // Insert file reader filters.

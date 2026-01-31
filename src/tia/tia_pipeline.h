@@ -42,13 +42,14 @@ struct TiaFilters
 };
 
 // Return an ITK data processing pipeline that computes a
-// three-dimensional time-integrated activity image.  TIME_POINTS are
-// the elapsed times from radiopharmaceutical administration to the
-// start of each SPECT acquisition.  INPUT_FILENAMES are the file
-// names of the three-dimensional SPECT images; see below for details.
-// DECAY_FACTORS are the factors required to decay-correct each SPECT
-// image to its acquisition start time.  All arguments must have the
-// same size, and that size must be at least 2.
+// three-dimensional time-integrated activity image.  INPUT_FILENAMES
+// are the file names of the three-dimensional SPECT images; see below
+// for details.  TIME_POINTS are the elapsed times from
+// radiopharmaceutical administration to the start of each SPECT
+// acquisition.  DECAY_FACTORS are the factors required to
+// decay-correct each SPECT image to its acquisition start time.  All
+// arguments must have the same size, and that size must be at least
+// 2.
 //
 // Image data is read from INPUT_FILENAMES using itk::ImageFileReader,
 // which supports a variety of file formats, provided the
@@ -63,8 +64,8 @@ struct TiaFilters
 // There are separate TIME_POINTS and DECAY_FACTORS arguments because
 // the image files may not be in DICOM format.
 TiaFilters
-PrepareTiaPipeline(const std::vector<std::chrono::seconds>& time_points,
-                   const std::vector<std::string>& input_filenames,
+PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
+                   const std::vector<std::chrono::seconds>& time_points,
                    const std::vector<double>& decay_factors);
 } // namespace spider
 

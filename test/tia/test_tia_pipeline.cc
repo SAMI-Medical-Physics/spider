@@ -58,7 +58,7 @@ TEST(TiaPipelineTest, NoDecay)
     }
 
   const auto tia_filters = spider::PrepareTiaPipeline(
-      time_points, image_filenames, decay_factors);
+      image_filenames, time_points, decay_factors);
 
   // The data is a perfect fit to: 20 * exp(-log(2) * t / (6 h)).  TIA
   // is in units of pixel units * seconds.
@@ -139,7 +139,7 @@ TEST(TiaPipelineTest, Decay)
     }
 
   const auto tia_filters = spider::PrepareTiaPipeline(
-      time_points, image_filenames, decay_factors);
+      image_filenames, time_points, decay_factors);
 
   // The data is a perfect fit to: 20 * exp(-log(2) * t / (6 h)).  TIA
   // is in units of pixel units * seconds.

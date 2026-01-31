@@ -316,7 +316,7 @@ main(int argc, char* argv[])
 
   // Compute TIA image.
   spider::TiaFilters tia_filters = spider::PrepareTiaPipeline(
-      elapsed_since_administration, args.input_filenames, decay_factors);
+      args.input_filenames, elapsed_since_administration, decay_factors);
   using PixelType = float;
   constexpr unsigned int ImageDimension = 3;
   using ImageType = itk::Image<PixelType, ImageDimension>;
