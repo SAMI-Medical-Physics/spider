@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #ifndef SPIDER_TIA_EXP_FIT_FUNCTOR_H
 #define SPIDER_TIA_EXP_FIT_FUNCTOR_H
@@ -33,15 +33,19 @@ public:
   void
   SetTimePoints(const std::vector<double>& time_points /* hours */)
   {
-    time_points_ = time_points;
     // These are the same for all pixels in the vector image.
+    num_time_points_ = time_points.size();
     time_points_mean_
         = std::accumulate(time_points.begin(), time_points.end(), 0.0)
-          / time_points.size();
-    for (std::size_t i = 0; i < time_points.size(); ++i)
+          / num_time_points_;
+
+    time_point_deviation_.resize(num_time_points_);
+    slope_denominator_ = 0.0;
+    for (std::size_t i = 0; i < num_time_points_; ++i)
       {
-        slope_denominator_ += (time_points[i] - time_points_mean_)
-                              * (time_points[i] - time_points_mean_);
+        time_point_deviation_[i] = time_points[i] - time_points_mean_;
+        slope_denominator_
+            += time_point_deviation_[i] * time_point_deviation_[i];
       }
   }
 
@@ -51,14 +55,14 @@ public:
   {
     // The log-linear method requires all y_i > 0.  Registation with
     // elastix introduces large negative values.
-    for (unsigned int i = 0; i < y.GetSize(); ++i)
+    for (std::size_t i = 0; i < num_time_points_; ++i)
       {
         if (y[i] <= 0.0)
           return 0.0f;
       }
 
-    std::vector<double> logy(y.GetSize());
-    for (unsigned int i = 0; i < y.GetSize(); ++i)
+    std::vector<double> logy(num_time_points_);
+    for (std::size_t i = 0; i < num_time_points_; ++i)
       {
         // Calculate the log with double precision instead of floating
         // point.
@@ -66,17 +70,14 @@ public:
       }
 
     const double logy_mean
-        = std::accumulate(logy.begin(), logy.end(), 0.0) / logy.size();
+        = std::accumulate(logy.begin(), logy.end(), 0.0) / num_time_points_;
 
     // Compute the slope and intercept of logy = intercept + slope *
     // t.
     double slope_numerator = 0.0;
-    for (std::size_t i = 0; i < time_points_.size(); ++i)
+    for (std::size_t i = 0; i < num_time_points_; ++i)
       {
-        // FIXME: We could compute std::vector<double> of
-        // (time_points_[i] - time_points_mean_) in SetTimePoints.
-        slope_numerator
-            += (time_points_[i] - time_points_mean_) * (logy[i] - logy_mean);
+        slope_numerator += time_point_deviation_[i] * (logy[i] - logy_mean);
       }
     const double slope = slope_numerator / slope_denominator_; // -b
     // Avoid returning a negative TIA for the pixel.
@@ -94,8 +95,9 @@ public:
   }
 
 private:
-  std::vector<double> time_points_;
-  double time_points_mean_;
+  std::size_t num_time_points_ = 0;
+  double time_points_mean_ = 0.0;
+  std::vector<double> time_point_deviation_;
   double slope_denominator_ = 0.0;
 };
 } // namespace spider
