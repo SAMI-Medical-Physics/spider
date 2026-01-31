@@ -28,26 +28,26 @@
                             "/source/pet-images-01")
              ;; Development flags.
              "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror")
-    #:phases
-    #~(modify-phases %standard-phases
-        (add-after 'unpack 'prepare-test-data
-          (lambda* (#:key inputs native-inputs tests? #:allow-other-keys)
-            (when tests?
-              (invoke (search-input-file (or native-inputs inputs) "bin/unzip")
-                      #$(this-package-native-input
-                         "zenodo-4751233-pet-images-01.zip")))))
-        (add-after 'unpack 'patch-commands
-          (lambda* (#:key inputs #:allow-other-keys)
-            (for-each
-             (lambda (command)
-               (substitute* "bin/spider.sh.in"
-                 (((string-append command "_cmd=" command))
-                  (string-append command "_cmd="
-                                 (search-input-file inputs
-                                                    (string-append "bin/"
-                                                                   command))))))
-             '("awk" "dcm2niix" "elastix" "mkdir" "mktemp" "rm" "sed"
-               "tail")))))))
+     #:build-type "Debug"               ;for assertions in development
+     #:phases
+     #~(modify-phases %standard-phases
+         (add-after 'unpack 'prepare-test-data
+           (lambda* (#:key inputs native-inputs tests? #:allow-other-keys)
+             (when tests?
+               (invoke (search-input-file (or native-inputs inputs) "bin/unzip")
+                       #$(this-package-native-input
+                          "zenodo-4751233-pet-images-01.zip")))))
+         (add-after 'unpack 'patch-commands
+           (lambda* (#:key inputs #:allow-other-keys)
+             (for-each
+              (lambda (command)
+                (substitute* "bin/spider.sh.in"
+                  (((string-append command "_cmd=" command))
+                   (string-append command "_cmd="
+                                  (search-input-file
+                                   inputs (string-append "bin/" command))))))
+              '("awk" "dcm2niix" "elastix" "mkdir" "mktemp" "rm" "sed"
+                "tail")))))))
    (inputs (list dcm2niix
                  elastix
                  insight-toolkit

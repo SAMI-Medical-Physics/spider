@@ -4,6 +4,7 @@
 #ifndef SPIDER_TIA_EXP_FIT_FUNCTOR_H
 #define SPIDER_TIA_EXP_FIT_FUNCTOR_H
 
+#include <cassert>
 #include <chrono>
 #include <cmath>   // std::log, std::exp
 #include <cstddef> // std::size_t
@@ -61,6 +62,8 @@ public:
   inline OutPixelType
   operator()(const InPixelType& y) const
   {
+    assert(y.GetSize() == num_time_points_);
+    assert(num_time_points_ > 1);
     // The log-linear method requires all y_i > 0.  Registation with
     // elastix introduces large negative values.
     for (std::size_t i = 0; i < num_time_points_; ++i)

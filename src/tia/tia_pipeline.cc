@@ -3,7 +3,9 @@
 
 #include "tia/tia_pipeline.h"
 
+#include <cassert>
 #include <chrono>
+#include <cstddef> // std::size_t
 #include <string>
 #include <vector>
 
@@ -23,7 +25,7 @@ PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
                    const std::vector<std::chrono::seconds>& time_points,
                    const std::vector<double>& decay_factors)
 {
-  const int num_images = input_filenames.size();
+  const std::size_t num_images = input_filenames.size();
   TiaFilters filters;
 
   // Insert file reader filters.
@@ -37,10 +39,11 @@ PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
     }
 
   // Insert scale filters.
+  assert(decay_factors.size() == num_images);
   filters.scale_filters.reserve(num_images);
   using ShiftScaleImageFilterType
       = itk::ShiftScaleImageFilter<itk::Image<float, 3>, itk::Image<float, 3>>;
-  for (int i = 0; i < num_images; ++i)
+  for (std::size_t i = 0; i < num_images; ++i)
     {
       auto scale_filter = ShiftScaleImageFilterType::New();
       scale_filter->SetInput(filters.file_readers[i]->GetOutput());
@@ -51,7 +54,7 @@ PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
   // Set compose filter.
   using ComposeImageFilterType = itk::ComposeImageFilter<itk::Image<float, 3>>;
   filters.compose_filter = ComposeImageFilterType::New();
-  for (int i = 0; i < num_images; ++i)
+  for (std::size_t i = 0; i < num_images; ++i)
     {
       filters.compose_filter->SetInput(
           i, (decay_factors[i] == 1.0)
