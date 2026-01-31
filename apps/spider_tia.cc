@@ -284,20 +284,16 @@ main(int argc, char* argv[])
         << "administration date time differs for two or more SPECTs\n";
   const auto administration_time = administration_times.front();
 
-  // Calculate the time delay (in hours) from administration to the
-  // start of each SPECT acquisition.
-  std::vector<double> hours_since_administration(acquisition_times.size());
+  // Calculate the time delay from administration to the start of each
+  // SPECT acquisition.
+  std::vector<std::chrono::seconds> elapsed_since_administration(
+      acquisition_times.size());
   std::transform(acquisition_times.begin(), acquisition_times.end(),
-                 hours_since_administration.begin(),
+                 elapsed_since_administration.begin(),
                  [&](const std::chrono::sys_seconds& acquisition_time)
-                   {
-                     const std::chrono::seconds duration
-                         = acquisition_time - administration_time;
-                     return std::chrono::duration<double>(duration).count()
-                            / (60.0 * 60.0);
-                   });
+                   { return acquisition_time - administration_time; });
 
-  for (std::size_t i = 0; i < hours_since_administration.size(); ++i)
+  for (std::size_t i = 0; i < elapsed_since_administration.size(); ++i)
     {
       spider::Log() << "SPECT " << i + 1 << ": administration: "
                     << spider::tz::zoned_time<
@@ -309,13 +305,18 @@ main(int argc, char* argv[])
                     << spider::tz::zoned_time<
                            std::chrono::seconds>{ time_zones[i],
                                                   acquisition_times[i] }
-                    << ", delay: " << hours_since_administration[i] << " h"
+                    << ", delay: "
+                    << std::chrono::duration<double>(
+                           elapsed_since_administration[i])
+                               .count()
+                           / 3600.0
+                    << " h"
                     << ", decay factor: " << decay_factors[i] << "\n";
     }
 
   // Compute TIA image.
   spider::TiaFilters tia_filters = spider::PrepareTiaPipeline(
-      hours_since_administration, args.input_filenames, decay_factors);
+      elapsed_since_administration, args.input_filenames, decay_factors);
   using PixelType = float;
   constexpr unsigned int ImageDimension = 3;
   using ImageType = itk::Image<PixelType, ImageDimension>;

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include "tia/tia_pipeline.h"
 
+#include <chrono>
 #include <cmath>   // std::log
 #include <cstddef> // std::size_t
 #include <filesystem>
@@ -20,7 +21,10 @@
 
 TEST(TiaPipelineTest, NoDecay)
 {
-  const std::vector<double> time_points{ 6.0, 12.0, 18.0, 24.0 }; // hours
+  const std::vector<std::chrono::seconds> time_points{
+    std::chrono::hours{ 6 }, std::chrono::hours{ 12 },
+    std::chrono::hours{ 18 }, std::chrono::hours{ 24 }
+  };
   const std::vector<double> decay_factors(time_points.size(), 1.0);
 
   // Write to a location owned by this test so this test does not
@@ -86,15 +90,19 @@ TEST(TiaPipelineTest, NoDecay)
 
 TEST(TiaPipelineTest, Decay)
 {
-  const std::vector<double> time_points{ 6.0, 12.0, 18.0, 24.0 }; // hours
-  // Lu-177 (hours).
-  constexpr double half_life = 574300.0 / (60.0 * 60.0);
+  const std::vector<std::chrono::seconds> time_points{
+    std::chrono::hours{ 6 }, std::chrono::hours{ 12 },
+    std::chrono::hours{ 18 }, std::chrono::hours{ 24 }
+  };
+  // Lu-177 (seconds).
+  constexpr double half_life = 574300.0;
   std::vector<double> decay_factors;
   decay_factors.reserve(time_points.size());
-  for (std::size_t i = 0; i < time_points.size(); ++i)
+  for (const auto& tp : time_points)
     {
+      const double tp_s = std::chrono::duration<double>(tp).count();
       decay_factors.push_back(
-          std::exp(-std::log(2) * time_points[i] / half_life));
+          std::exp(-std::log(2) * tp_s / half_life));
     }
 
   // Write to a location owned by this test so this test does not

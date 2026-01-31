@@ -4,6 +4,7 @@
 #ifndef SPIDER_TIA_EXP_FIT_FUNCTOR_H
 #define SPIDER_TIA_EXP_FIT_FUNCTOR_H
 
+#include <chrono>
 #include <cmath>   // std::log, std::exp
 #include <cstddef> // std::size_t
 #include <numeric> // std::accumulate
@@ -31,21 +32,25 @@ public:
   // XXX: It is the caller's responsibility to ensure that the number
   // of time points is equal to the number of scalar images.
   void
-  SetTimePoints(const std::vector<double>& time_points /* hours */)
+  SetTimePoints(const std::vector<std::chrono::seconds>& time_points)
   {
     // These are the same for all pixels in the vector image.
     num_time_points_ = time_points.size();
-    time_points_mean_
-        = std::accumulate(time_points.begin(), time_points.end(), 0.0)
-          / num_time_points_;
 
-    time_point_deviation_.resize(num_time_points_);
-    slope_denominator_ = 0.0;
+    double sum_s = 0.0;
+    for (const auto& tp : time_points)
+      sum_s += std::chrono::duration<double>(tp).count();
+    time_points_mean_s_ = sum_s / num_time_points_;
+
+    time_point_deviation_s_.resize(num_time_points_);
+    slope_denominator_s2_ = 0.0;
     for (std::size_t i = 0; i < num_time_points_; ++i)
       {
-        time_point_deviation_[i] = time_points[i] - time_points_mean_;
-        slope_denominator_
-            += time_point_deviation_[i] * time_point_deviation_[i];
+        time_point_deviation_s_[i]
+            = std::chrono::duration<double>(time_points[i]).count()
+              - time_points_mean_s_;
+        slope_denominator_s2_
+            += time_point_deviation_s_[i] * time_point_deviation_s_[i];
       }
   }
 
@@ -77,28 +82,28 @@ public:
     double slope_numerator = 0.0;
     for (std::size_t i = 0; i < num_time_points_; ++i)
       {
-        slope_numerator += time_point_deviation_[i] * (logy[i] - logy_mean);
+        slope_numerator += time_point_deviation_s_[i] * (logy[i] - logy_mean);
       }
-    const double slope = slope_numerator / slope_denominator_; // -b
+    const double slope = slope_numerator / slope_denominator_s2_; // -b
     // Avoid returning a negative TIA for the pixel.
     if (slope >= 0.0)
       // return static_cast<OutPixelType>(0.0);
       return 0.0f;
-    const double intercept = logy_mean - slope * time_points_mean_; // log(A)
+    const double intercept = logy_mean - slope * time_points_mean_s_; // log(A)
     const double b_est = -slope;
     // FIXME: Would it help to have a lower limit on b_est
     // corresponding to the physical half-life?
     const double A_est = std::exp(intercept);
     // Return the TIA in units of pixel units * seconds.
-    const double time_integrated_activity = A_est * 60.0 * 60.0 / b_est;
+    const double time_integrated_activity = A_est / b_est;
     return static_cast<OutPixelType>(time_integrated_activity);
   }
 
 private:
   std::size_t num_time_points_ = 0;
-  double time_points_mean_ = 0.0;
-  std::vector<double> time_point_deviation_;
-  double slope_denominator_ = 0.0;
+  double time_points_mean_s_ = 0.0;
+  std::vector<double> time_point_deviation_s_;
+  double slope_denominator_s2_ = 0.0;
 };
 } // namespace spider
 

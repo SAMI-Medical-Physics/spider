@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include "tia/tia_pipeline.h"
 
 #include <algorithm> // std::all_of
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -19,7 +20,7 @@
 namespace spider
 {
 TiaFilters
-PrepareTiaPipeline(const std::vector<double>& time_points,
+PrepareTiaPipeline(const std::vector<std::chrono::seconds>& time_points,
                    const std::vector<std::string>& input_filenames,
                    const std::vector<double>& decay_factors)
 {

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include "tia/exp_fit_functor.h"
 
+#include <chrono>
 #include <cmath>  // std::log
 #include <limits> // for std::numeric_limits<float>::epsilon()
 #include <vector>
@@ -18,7 +19,10 @@
 
 TEST(ExpFitFunctorTest, Pixel)
 {
-  const std::vector<double> time_points{ 6.0, 12.0, 18.0, 24.0 }; // hours
+  const std::vector<std::chrono::seconds> time_points{
+    std::chrono::hours{ 6 }, std::chrono::hours{ 12 },
+    std::chrono::hours{ 18 }, std::chrono::hours{ 24 }
+  };
   spider::ExpFitFunctor func;
   func.SetTimePoints(time_points);
 
@@ -67,7 +71,10 @@ TEST(ExpFitFunctorTest, Image)
       = itk::UnaryFunctorImageFilter<VectorImageType, ScalarImageType,
                                      spider::ExpFitFunctor>;
   auto unary_functor_image_filter = UnaryFunctorImageFilterType::New();
-  const std::vector<double> time_points{ 6.0, 12.0, 18.0, 24.0 }; // hours
+  const std::vector<std::chrono::seconds> time_points{
+    std::chrono::hours{ 6 }, std::chrono::hours{ 12 },
+    std::chrono::hours{ 18 }, std::chrono::hours{ 24 }
+  };
   unary_functor_image_filter->GetFunctor().SetTimePoints(time_points);
   unary_functor_image_filter->SetInput(compose_image_filter->GetOutput());
 
