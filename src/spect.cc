@@ -619,14 +619,14 @@ MakeSysTimeFromOffset(const DateComplete& d, const TimeComplete& t,
 std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
                                 const TimeComplete& time,
-                                std::string_view voffset,
+                                std::optional<std::string_view> voffset,
                                 const tz::time_zone* tz)
 {
-  if (voffset.size() != 0)
+  if (voffset.has_value())
     {
       // Use offset in VOFFSET.
       std::chrono::minutes offset{};
-      if (!ParseDicomUtcOffset(voffset, offset))
+      if (!ParseDicomUtcOffset(voffset.value(), offset))
         return std::unexpected(TimePointError::kFailedUtcOffset);
       return MakeSysTimeFromOffset(date, time, offset);
     }
@@ -641,7 +641,7 @@ MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
 
 std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
-                                std::string_view voffset,
+                                std::optional<std::string_view> voffset,
                                 const tz::time_zone* tz)
 {
   DateComplete date;
@@ -659,7 +659,8 @@ MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
 
 std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateTime(std::string_view datetime,
-                             std::string_view voffset, const tz::time_zone* tz)
+                             std::optional<std::string_view> voffset,
+                             const tz::time_zone* tz)
 {
   DateParsed date_parsed;
   TimeParsed time_parsed;
@@ -697,7 +698,11 @@ ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
   // FrameReferenceTime is after AcquisitionDate and AcquisitionTime,
   // the decay factor is greater than 1.
   const auto st_series = MakeSysTimeFromDicomDateAndTime(
-      s.series_date, s.series_time, s.timezone_offset_from_utc, tz);
+      s.series_date, s.series_time,
+      (s.timezone_offset_from_utc.empty())
+          ? std::nullopt
+          : std::optional<std::string_view>{ s.timezone_offset_from_utc },
+      tz);
   if (!st_series.has_value())
     return std::unexpected(TimePointErrorWithId{
         .id = TimePointId::kSeriesDateAndTime, .error = st_series.error() });

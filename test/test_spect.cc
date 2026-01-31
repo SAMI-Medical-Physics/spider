@@ -755,7 +755,7 @@ TEST(MakeSysTimeFromOffsetOrTimeZoneTest, NoOffset)
   spider::TimeComplete t{ 15, 23, 12 };
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
-  auto s = spider::MakeSysTimeFromOffsetOrTimeZone(d, t, "", tz);
+  auto s = spider::MakeSysTimeFromOffsetOrTimeZone(d, t, std::nullopt, tz);
   ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   spider::tz::local_seconds lt
@@ -789,8 +789,8 @@ TEST(MakeSysTimeFromDicomDateAndTimeTest, NoOffset)
   // If the UTC offset is empty, the time zone is used.
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
-  auto s
-      = spider::MakeSysTimeFromDicomDateAndTime("20230314", "123301", "", tz);
+  auto s = spider::MakeSysTimeFromDicomDateAndTime("20230314", "123301",
+                                                   std::nullopt, tz);
   ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   spider::tz::local_seconds lt
@@ -844,7 +844,8 @@ TEST(MakeSysTimeFromDicomDateTimeTest, NoOffset)
   // separate UTC offset argument is empty, the time zone is used.
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
-  auto s = spider::MakeSysTimeFromDicomDateTime("20230314123301", "", tz);
+  auto s = spider::MakeSysTimeFromDicomDateTime("20230314123301", std::nullopt,
+                                                tz);
   ASSERT_TRUE(s.has_value()) << spider::ToString(s.error());
 
   spider::tz::local_seconds lt
