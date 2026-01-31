@@ -23,14 +23,17 @@ namespace spider
 // <https://en.wikipedia.org/wiki/Simple_linear_regression>.  The
 // functor returns the time-integrated activity (TIA) in units of the
 // pixel units * seconds.
+//
+// XXX: SetTimePoints must be called before operator().  The size of
+// the operator() argument (itk::VariableLengthVector<float>) must
+// match the number of time points last passed to SetTimePoints, and
+// must be at least 2.
 class ExpFitFunctor
 {
 public:
   using InPixelType = itk::VariableLengthVector<float>;
   using OutPixelType = float;
 
-  // XXX: It is the caller's responsibility to ensure that the number
-  // of time points is equal to the number of scalar images.
   void
   SetTimePoints(const std::vector<std::chrono::seconds>& time_points)
   {

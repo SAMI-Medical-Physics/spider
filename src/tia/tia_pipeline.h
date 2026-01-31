@@ -41,9 +41,27 @@ struct TiaFilters
   }
 };
 
-// We expect INPUT_FILENAMES to be the names of 3D NIfTI files, so
-// decay correction must be determined beforehand.  Hence the
-// DECAY_FACTORS argument.
+// Return an ITK data processing pipeline that computes a
+// three-dimensional time-integrated activity image.  TIME_POINTS are
+// the elapsed times from radiopharmaceutical administration to the
+// start of each SPECT acquisition.  INPUT_FILENAMES are the file
+// names of the three-dimensional SPECT images; see below for details.
+// DECAY_FACTORS are the factors required to decay-correct each SPECT
+// image to its acquisition start time.  All arguments must have the
+// same size, and that size must be at least 2.
+//
+// Image data is read from INPUT_FILENAMES using itk::ImageFileReader,
+// which supports a variety of file formats, provided the
+// corresponding ImageIO module is listed in the COMPONENTS argument
+// in the CMake find_package(ITK ...) call.  The ImageIO type may be
+// inferred from the file name suffix.
+//
+// We considered separating out the file reading, but
+// itk::ImageFileReader cannot read an image from memory, so tests
+// would still need to write to the file system.
+//
+// There are separate TIME_POINTS and DECAY_FACTORS arguments because
+// the image files may not be in DICOM format.
 TiaFilters
 PrepareTiaPipeline(const std::vector<std::chrono::seconds>& time_points,
                    const std::vector<std::string>& input_filenames,
