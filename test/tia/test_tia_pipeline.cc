@@ -16,7 +16,6 @@
 #include <itkImageFileWriter.h>
 #include <itkTestingComparisonImageFilter.h>
 
-#include "tia/exp_fit_functor.h"
 #include "test_utils.h"
 
 TEST(TiaPipelineTest, NoDecay)

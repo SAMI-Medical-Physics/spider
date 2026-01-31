@@ -3,7 +3,6 @@
 
 #include "tia/tia_pipeline.h"
 
-#include <algorithm> // std::all_of
 #include <chrono>
 #include <string>
 #include <vector>
