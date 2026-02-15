@@ -25,12 +25,14 @@ rm -f hist.eps
 
 # The SPECTs and TIA image in the benchmark dataset are in the form of
 # DICOM series.  Convert them into 3D NIfTI files.  The "-w 1" option
-# overwrites output files.
-dcm2niix -o . -f spect1 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan1/spect"
-dcm2niix -o . -f spect2 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan2/spect"
-dcm2niix -o . -f spect3 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan3/spect"
-dcm2niix -o . -f spect4 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
-dcm2niix -o . -f snmmi-tia -w 1 "$TIA_DIR/TIA"
+# overwrites output files.  "-g i" (ignore user defaults file) is used
+# to ensure the output file has a ".nii" extension, since the file
+# name is referenced subsequently.
+dcm2niix -o . -f spect1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/spect"
+dcm2niix -o . -f spect2 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan2/spect"
+dcm2niix -o . -f spect3 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan3/spect"
+dcm2niix -o . -f spect4 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
+dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
 
 # Register SPECTs to first SPECT.
 mkdir output_dir2 output_dir3 output_dir4

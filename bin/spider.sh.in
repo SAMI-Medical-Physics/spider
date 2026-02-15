@@ -62,7 +62,10 @@ shift $((OPTIND - 1))
 i=1
 for d in "$@"; do
     ensure_filename_available "spect$i.nii"
-    "$dcm2niix_cmd" -o . -f "spect$i" -w 1 "$d"
+    # "-w 1" overwrites output files.  Use "-g i" (ignore user
+    # defaults file) to ensure the output file is called
+    # "spect$i.nii".
+    "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d"
     i=$((i + 1))
 done
 
