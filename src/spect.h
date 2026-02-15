@@ -78,15 +78,6 @@ GetRadionuclideHalfLife(const gdcm::DataSet& ds);
 Spect
 ReadDicomSpect(const gdcm::DataSet& ds);
 
-std::string_view
-GetFirstLine(std::string_view v);
-
-void
-WriteSpects(const std::vector<Spect>& spects, std::ostream& os);
-
-std::vector<Spect>
-ReadSpects(std::istream& in);
-
 struct DateComplete
 {
   // A date with all components present.  DICOM Date (DA) values map

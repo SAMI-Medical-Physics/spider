@@ -42,5 +42,3 @@ include(GoogleTest)
 gtest_discover_tests(test_spect)
 
 add_subdirectory(tia)
-
-add_subdirectory(apps)
