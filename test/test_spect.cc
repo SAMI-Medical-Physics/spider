@@ -425,214 +425,228 @@ TEST(ReadSpectsTest, Example)
 
 TEST(ParseDicomDateTest, Example)
 {
-  spider::DateComplete date;
-  spider::ParseDicomDate("19930822", date);
-  EXPECT_EQ(date.year, 1993);
-  EXPECT_EQ(date.month, 8);
-  EXPECT_EQ(date.day, 22);
+  std::optional<spider::DateComplete> date
+      = spider::ParseDicomDate("19930822");
+  ASSERT_TRUE(date.has_value());
+  EXPECT_EQ(date.value().year, 1993);
+  EXPECT_EQ(date.value().month, 8);
+  EXPECT_EQ(date.value().day, 22);
 }
 
 TEST(ParseDicomDateTest, NonFourDigitYear)
 {
-  spider::DateComplete date;
-  spider::ParseDicomDate("00310822", date);
-  EXPECT_EQ(date.year, 31);
-  EXPECT_EQ(date.month, 8);
-  EXPECT_EQ(date.day, 22);
+  std::optional<spider::DateComplete> date
+      = spider::ParseDicomDate("00310822");
+  ASSERT_TRUE(date.has_value());
+  EXPECT_EQ(date.value().year, 31);
+  EXPECT_EQ(date.value().month, 8);
+  EXPECT_EQ(date.value().day, 22);
 }
 
 TEST(ParseDicomTimeTest, HourOnly)
 {
-  spider::TimeParsed time;
-  spider::ParseDicomTime("07", time);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 7);
-  EXPECT_FALSE(time.minute.has_value());
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomTime> time = spider::ParseDicomTime("07");
+  ASSERT_TRUE(time.has_value());
+  EXPECT_EQ(time.value().hour, 7);
+  EXPECT_FALSE(time.value().minute.has_value());
+  EXPECT_FALSE(time.value().second.has_value());
 }
 
 TEST(ParseDicomTimeTest, HourAndMinuteOnly)
 {
-  spider::TimeParsed time;
-  spider::ParseDicomTime("1009", time);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 10);
-  ASSERT_TRUE(time.minute.has_value());
-  EXPECT_EQ(time.minute.value(), 9);
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomTime> time = spider::ParseDicomTime("1009");
+  ASSERT_TRUE(time.has_value());
+  EXPECT_EQ(time.value().hour, 10);
+  ASSERT_TRUE(time.value().minute.has_value());
+  EXPECT_EQ(time.value().minute.value(), 9);
+  EXPECT_FALSE(time.value().second.has_value());
 }
 
 TEST(ParseDicomTimeTest, HourAndMinuteAndSecondOnly)
 {
-  spider::TimeParsed time;
-  spider::ParseDicomTime("151305", time);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 15);
-  ASSERT_TRUE(time.minute.has_value());
-  EXPECT_EQ(time.minute.value(), 13);
-  ASSERT_TRUE(time.second.has_value());
-  EXPECT_EQ(time.second.value(), 5);
+  std::optional<spider::DicomTime> time = spider::ParseDicomTime("151305");
+  ASSERT_TRUE(time.has_value());
+  EXPECT_EQ(time.value().hour, 15);
+  ASSERT_TRUE(time.value().minute.has_value());
+  EXPECT_EQ(time.value().minute.value(), 13);
+  ASSERT_TRUE(time.value().second.has_value());
+  EXPECT_EQ(time.value().second.value(), 5);
 }
 
 TEST(ParseDicomTimeTest, HourAndMinuteAndSecondAndFraction)
 {
   // If DICOM TM value contains a fractional part of a second, that
   // component is ignored.
-  spider::TimeParsed time;
-  EXPECT_TRUE(spider::ParseDicomTime("030914.0103", time));
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 3);
-  ASSERT_TRUE(time.minute.has_value());
-  EXPECT_EQ(time.minute.value(), 9);
-  ASSERT_TRUE(time.second.has_value());
-  EXPECT_EQ(time.second.value(), 14);
+  std::optional<spider::DicomTime> time
+      = spider::ParseDicomTime("030914.0103");
+  ASSERT_TRUE(time.has_value());
+  EXPECT_EQ(time.value().hour, 3);
+  ASSERT_TRUE(time.value().minute.has_value());
+  EXPECT_EQ(time.value().minute.value(), 9);
+  ASSERT_TRUE(time.value().second.has_value());
+  EXPECT_EQ(time.value().second.value(), 14);
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearOnly)
 {
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(spider::ParseDicomDateTimeExcludingUtc("2023", date, time));
-  EXPECT_EQ(date.year, 2023);
-  EXPECT_FALSE(date.month.has_value());
-  EXPECT_FALSE(date.day.has_value());
-  EXPECT_FALSE(time.hour.has_value());
-  EXPECT_FALSE(time.minute.has_value());
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("2023");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  EXPECT_FALSE(date_time.value().month.has_value());
+  EXPECT_FALSE(date_time.value().day.has_value());
+  EXPECT_FALSE(date_time.value().hour.has_value());
+  EXPECT_FALSE(date_time.value().minute.has_value());
+  EXPECT_FALSE(date_time.value().second.has_value());
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthOnly)
 {
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(spider::ParseDicomDateTimeExcludingUtc("202303", date, time));
-  EXPECT_EQ(date.year, 2023);
-  ASSERT_TRUE(date.month.has_value());
-  EXPECT_EQ(date.month.value(), 3);
-  EXPECT_FALSE(date.day.has_value());
-  EXPECT_FALSE(time.hour.has_value());
-  EXPECT_FALSE(time.minute.has_value());
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("202303");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  ASSERT_TRUE(date_time.value().month.has_value());
+  EXPECT_EQ(date_time.value().month.value(), 3);
+  EXPECT_FALSE(date_time.value().day.has_value());
+  EXPECT_FALSE(date_time.value().hour.has_value());
+  EXPECT_FALSE(date_time.value().minute.has_value());
+  EXPECT_FALSE(date_time.value().second.has_value());
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayOnly)
 {
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(spider::ParseDicomDateTimeExcludingUtc("20230314", date, time));
-  EXPECT_EQ(date.year, 2023);
-  ASSERT_TRUE(date.month.has_value());
-  EXPECT_EQ(date.month.value(), 3);
-  ASSERT_TRUE(date.day.has_value());
-  EXPECT_EQ(date.day.value(), 14);
-  EXPECT_FALSE(time.hour.has_value());
-  EXPECT_FALSE(time.minute.has_value());
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("20230314");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  ASSERT_TRUE(date_time.value().month.has_value());
+  EXPECT_EQ(date_time.value().month.value(), 3);
+  ASSERT_TRUE(date_time.value().day.has_value());
+  EXPECT_EQ(date_time.value().day.value(), 14);
+  EXPECT_FALSE(date_time.value().hour.has_value());
+  EXPECT_FALSE(date_time.value().minute.has_value());
+  EXPECT_FALSE(date_time.value().second.has_value());
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourOnly)
 {
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(
-      spider::ParseDicomDateTimeExcludingUtc("2023031409", date, time));
-  EXPECT_EQ(date.year, 2023);
-  ASSERT_TRUE(date.month.has_value());
-  EXPECT_EQ(date.month.value(), 3);
-  ASSERT_TRUE(date.day.has_value());
-  EXPECT_EQ(date.day.value(), 14);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 9);
-  EXPECT_FALSE(time.minute.has_value());
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("2023031409");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  ASSERT_TRUE(date_time.value().month.has_value());
+  EXPECT_EQ(date_time.value().month.value(), 3);
+  ASSERT_TRUE(date_time.value().day.has_value());
+  EXPECT_EQ(date_time.value().day.value(), 14);
+  ASSERT_TRUE(date_time.value().hour.has_value());
+  EXPECT_EQ(date_time.value().hour.value(), 9);
+  EXPECT_FALSE(date_time.value().minute.has_value());
+  EXPECT_FALSE(date_time.value().second.has_value());
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteOnly)
 {
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(
-      spider::ParseDicomDateTimeExcludingUtc("202303140945", date, time));
-  EXPECT_EQ(date.year, 2023);
-  ASSERT_TRUE(date.month.has_value());
-  EXPECT_EQ(date.month.value(), 3);
-  ASSERT_TRUE(date.day.has_value());
-  EXPECT_EQ(date.day.value(), 14);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 9);
-  ASSERT_TRUE(time.minute.has_value());
-  EXPECT_EQ(time.minute.value(), 45);
-  EXPECT_FALSE(time.second.has_value());
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("202303140945");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  ASSERT_TRUE(date_time.value().month.has_value());
+  EXPECT_EQ(date_time.value().month.value(), 3);
+  ASSERT_TRUE(date_time.value().day.has_value());
+  EXPECT_EQ(date_time.value().day.value(), 14);
+  ASSERT_TRUE(date_time.value().hour.has_value());
+  EXPECT_EQ(date_time.value().hour.value(), 9);
+  ASSERT_TRUE(date_time.value().minute.has_value());
+  EXPECT_EQ(date_time.value().minute.value(), 45);
+  EXPECT_FALSE(date_time.value().second.has_value());
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondOnly)
 {
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(
-      spider::ParseDicomDateTimeExcludingUtc("20230314094556", date, time));
-  EXPECT_EQ(date.year, 2023);
-  ASSERT_TRUE(date.month.has_value());
-  EXPECT_EQ(date.month.value(), 3);
-  ASSERT_TRUE(date.day.has_value());
-  EXPECT_EQ(date.day.value(), 14);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 9);
-  ASSERT_TRUE(time.minute.has_value());
-  EXPECT_EQ(time.minute.value(), 45);
-  ASSERT_TRUE(time.second.has_value());
-  EXPECT_EQ(time.second.value(), 56);
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("20230314094556");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  ASSERT_TRUE(date_time.value().month.has_value());
+  EXPECT_EQ(date_time.value().month.value(), 3);
+  ASSERT_TRUE(date_time.value().day.has_value());
+  EXPECT_EQ(date_time.value().day.value(), 14);
+  ASSERT_TRUE(date_time.value().hour.has_value());
+  EXPECT_EQ(date_time.value().hour.value(), 9);
+  ASSERT_TRUE(date_time.value().minute.has_value());
+  EXPECT_EQ(date_time.value().minute.value(), 45);
+  ASSERT_TRUE(date_time.value().second.has_value());
+  EXPECT_EQ(date_time.value().second.value(), 56);
 }
 
 TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondFraction)
 {
   // If DICOM DT value contains a fractional part of a second, that
   // component is ignored.
-  spider::DateParsed date;
-  spider::TimeParsed time;
-  EXPECT_TRUE(
-      spider::ParseDicomDateTimeExcludingUtc("20230314094556.30", date, time));
-  EXPECT_EQ(date.year, 2023);
-  ASSERT_TRUE(date.month.has_value());
-  EXPECT_EQ(date.month.value(), 3);
-  ASSERT_TRUE(date.day.has_value());
-  EXPECT_EQ(date.day.value(), 14);
-  ASSERT_TRUE(time.hour.has_value());
-  EXPECT_EQ(time.hour.value(), 9);
-  ASSERT_TRUE(time.minute.has_value());
-  EXPECT_EQ(time.minute.value(), 45);
-  ASSERT_TRUE(time.second.has_value());
-  EXPECT_EQ(time.second.value(), 56);
+  std::optional<spider::DicomDateTime> date_time
+      = spider::ParseDicomDateTimeExcludingUtc("20230314094556.30");
+  ASSERT_TRUE(date_time.has_value());
+  EXPECT_EQ(date_time.value().year, 2023);
+  ASSERT_TRUE(date_time.value().month.has_value());
+  EXPECT_EQ(date_time.value().month.value(), 3);
+  ASSERT_TRUE(date_time.value().day.has_value());
+  EXPECT_EQ(date_time.value().day.value(), 14);
+  ASSERT_TRUE(date_time.value().hour.has_value());
+  EXPECT_EQ(date_time.value().hour.value(), 9);
+  ASSERT_TRUE(date_time.value().minute.has_value());
+  EXPECT_EQ(date_time.value().minute.value(), 45);
+  ASSERT_TRUE(date_time.value().second.has_value());
+  EXPECT_EQ(date_time.value().second.value(), 56);
 }
 
 TEST(ParseDicomUtcOffsetTest, PositiveOffset)
 {
-  std::chrono::minutes offset;
-  EXPECT_TRUE(spider::ParseDicomUtcOffset("+0930", offset));
-  EXPECT_EQ(offset, std::chrono::minutes{ 9 * 60 + 30 });
+  std::optional<std::chrono::minutes> offset
+      = spider::ParseDicomUtcOffset("+0930");
+  ASSERT_TRUE(offset.has_value());
+  EXPECT_EQ(offset.value(), std::chrono::minutes{ 9 * 60 + 30 });
 }
 
 TEST(ParseDicomUtcOffsetTest, NegativeOffset)
 {
-  std::chrono::minutes offset;
-  EXPECT_TRUE(spider::ParseDicomUtcOffset("-0500", offset));
-  EXPECT_EQ(offset, std::chrono::minutes{ -5 * 60 });
+  std::optional<std::chrono::minutes> offset
+      = spider::ParseDicomUtcOffset("-0500");
+  ASSERT_TRUE(offset.has_value());
+  EXPECT_EQ(offset.value(), std::chrono::minutes{ -5 * 60 });
 }
 
 TEST(MakeDateCompleteTest, Example)
 {
-  spider::DateParsed date_parsed{ .year = 2023, .month = 2, .day = 14 };
-  auto date_complete = spider::MakeDateComplete(date_parsed);
+  spider::DicomDateTime date_time{ .year = 2023,
+                                   .month = 2,
+                                   .day = 14,
+                                   .hour = std::nullopt,
+                                   .minute = std::nullopt,
+                                   .second = std::nullopt };
+  auto date_complete = spider::MakeDateComplete(date_time);
   ASSERT_TRUE(date_complete.has_value());
   EXPECT_EQ(date_complete.value().year, 2023);
   EXPECT_EQ(date_complete.value().month, 2);
   EXPECT_EQ(date_complete.value().day, 14);
 }
 
-TEST(MakeTimeCompleteTest, Example)
+TEST(MakeTimeCompleteTest, DicomTime)
 {
-  spider::TimeParsed time_parsed{ .hour = 14, .minute = 34, .second = 1 };
-  auto time_complete = spider::MakeTimeComplete(time_parsed);
+  spider::DicomTime dicom_time{ .hour = 14, .minute = 34, .second = 1 };
+  auto time_complete = spider::MakeTimeComplete(dicom_time);
+  ASSERT_TRUE(time_complete.has_value());
+  EXPECT_EQ(time_complete.value().hour, 14);
+  EXPECT_EQ(time_complete.value().minute, 34);
+  EXPECT_EQ(time_complete.value().second, 1);
+}
+
+TEST(MakeTimeCompleteTest, DicomDateTime)
+{
+  spider::DicomDateTime date_time{
+    .year = 2020, .month = 2, .day = 4, .hour = 14, .minute = 34, .second = 1
+  };
+  auto time_complete = spider::MakeTimeComplete(date_time);
   ASSERT_TRUE(time_complete.has_value());
   EXPECT_EQ(time_complete.value().hour, 14);
   EXPECT_EQ(time_complete.value().minute, 34);

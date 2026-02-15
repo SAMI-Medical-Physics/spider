@@ -87,64 +87,68 @@ WriteSpects(const std::vector<Spect>& spects, std::ostream& os);
 std::vector<Spect>
 ReadSpects(std::istream& in);
 
-struct DateParsed
-{
-  int year;
-  // DICOM Date Time (DT) values may be missing month and day.
-  std::optional<int> month; // [1, 12]
-  std::optional<int> day;   // [1, 31]
-};
-
-struct TimeParsed
-{
-  // DICOM Time (TM) values may be missing minute and second.  DICOM
-  // Date Time (DT) values may be missing hour, minute, and second.
-  std::optional<int> hour = 0;   // [0, 23]
-  std::optional<int> minute = 0; // [0, 59]
-  std::optional<int> second = 0; // [0, 60], 60 for leap second
-};
-
 struct DateComplete
 {
+  // A date with all components present.  DICOM Date (DA) values map
+  // directly to this type.
   int year;
   int month; // [1, 12]
   int day;   // [1, 31]
 };
 
-struct TimeComplete
+struct DicomTime
 {
-  int hour = 0;   // [0, 23]
-  int minute = 0; // [0, 59]
-  int second = 0; // [0, 60], 60 for leap second
+  // DICOM Time (TM) value; only the hour component is required.
+  int hour;                  // [0, 23]
+  std::optional<int> minute; // [0, 59]
+  std::optional<int> second; // [0, 60], 60 for leap second
 };
 
-// Parse a DICOM Date (DA) value from V into DATE.  If parsing fails,
-// return false and leave DATE unchanged.
-bool
-ParseDicomDate(std::string_view v, DateComplete& date);
+struct DicomDateTime
+{
+  // DICOM Date Time (DT) value; only the year component is required.
+  int year;
+  std::optional<int> month;  // [1, 12]
+  std::optional<int> day;    // [1, 31]
+  std::optional<int> hour;   // [0, 23]
+  std::optional<int> minute; // [0, 59]
+  std::optional<int> second; // [0, 60], 60 for leap second
+};
 
-// Parse a DICOM Time (TM) value from V into TIME.  If parsing fails,
-// return false and leave TIME unchanged.  Characters after the SS
-// component are ignored, so non-DICOM-conformant strings may be
+struct TimeComplete
+{
+  int hour;   // [0, 23]
+  int minute; // [0, 59]
+  int second; // [0, 60], 60 for leap second
+};
+
+// Extract the date from the provided string containing a DICOM Date
+// (DA) value.  Returns std::nullopt if the input is invalid.
+std::optional<DateComplete>
+ParseDicomDate(std::string_view v);
+
+// Extract the DICOM Time (TM) value from the provided string,
+// ignoring any fractional second component.  Returns std::nullopt if
+// the input is invalid.  Characters after the SS component are
+// ignored, so non-DICOM-conformant strings may be parsed
+// successfully.
+std::optional<DicomTime>
+ParseDicomTime(std::string_view v);
+
+// Extract the DICOM Date Time (DT) value from the provided string,
+// ignoring any fractional second component and any UTC offset suffix.
+// Returns std::nullopt if the input is invalid.  Characters after the
+// SS component are ignored, so non-DICOM-conformant strings may be
 // parsed successfully.
-bool
-ParseDicomTime(std::string_view v, TimeParsed& time);
+std::optional<DicomDateTime>
+ParseDicomDateTimeExcludingUtc(std::string_view v);
 
-// Parse the date and time components of a DICOM Date Time (DT) value
-// from V into D and T, ignoring any fractional second component and
-// any UTC offset suffix.  If parsing fails, return false and leave D
-// and T unchanged.  Characters after the SS component are ignored, so
-// non-DICOM-conformant strings may be parsed successfully.
-bool
-ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& d,
-                               TimeParsed& t);
-
-// Parse a UTC offset string formatted like "{+,-}HHMM" from V into
-// OFFSET.  For example, "-0200" is parsed as -120 minutes.  V must be
-// a valid value of the DICOM attribute TimezoneOffsetFromUtc.  If
-// parsing fails, return false and leave OFFSET unchanged.
-bool
-ParseDicomUtcOffset(std::string_view v, std::chrono::minutes& offset);
+// Extract the UTC offset from the provided string formatted like
+// "{+,-}HHMM".  Returns std::nullopt if the input is invalid.  For
+// example, "-0200" is parsed as -120 minutes.  The string must be a
+// valid value of the DICOM attribute TimezoneOffsetFromUtc.
+std::optional<std::chrono::minutes>
+ParseDicomUtcOffset(std::string_view v);
 
 enum class TimePointError
 {
@@ -160,7 +164,8 @@ enum class TimePointError
   kFailedUtcOffsetInDateTime,
   // Missing a required component.
   kIncompleteDate,
-  kIncompleteTime,
+  kIncompleteTimeInDicomTime,
+  kIncompleteTimeInDicomDateTime,
   kMissingTimeZone,
   // Validation failures.
   kInvalidDate,
@@ -200,9 +205,11 @@ ToString(TimePointError e)
       return "failed to parse UTC offset suffix of DICOM Date Time";
 
     case TimePointError::kIncompleteDate:
-      return "incomplete date; missing month or day";
-    case TimePointError::kIncompleteTime:
-      return "incomplete time; missing hour, minute or second";
+      return "incomplete date in DICOM Date Time; missing month or day";
+    case TimePointError::kIncompleteTimeInDicomTime:
+      return "incomplete time in DICOM Time; missing minute or second";
+    case TimePointError::kIncompleteTimeInDicomDateTime:
+      return "incomplete time in DICOM Date Time; missing hour, minute or second";
     case TimePointError::kMissingTimeZone:
       return "missing required time zone";
 
@@ -237,10 +244,13 @@ ToString(const TimePointErrorWithId& e)
 }
 
 std::expected<DateComplete, TimePointError>
-MakeDateComplete(const DateParsed& date_parsed);
+MakeDateComplete(const DicomDateTime& date_time);
 
 std::expected<TimeComplete, TimePointError>
-MakeTimeComplete(const TimeParsed& time_parsed);
+MakeTimeComplete(const DicomTime& time);
+
+std::expected<TimeComplete, TimePointError>
+MakeTimeComplete(const DicomDateTime& date_time);
 
 // Return a zoned time constructed from the local calendar date D and
 // clock time T in time zone TZ.  If D is not a valid calendar date,

@@ -397,178 +397,191 @@ ReadSpects(std::istream& in)
   return spects;
 }
 
-bool
-ParseDicomDate(std::string_view v, DateComplete& date)
+std::optional<DateComplete>
+ParseDicomDate(std::string_view v)
 {
+  // For DICOM DA values, all components are required.
   if (v.size() != 8)
-    return false;
-  int y{}, m{}, d{};
+    return {};
+  int y = 0;
   if (!ParseYear(v, y))
-    return false;
+    return {};
   v.remove_prefix(4);
+  int m = 0;
   if (!ParseMonthOrDay(v, m))
-    return false;
+    return {};
   v.remove_prefix(2);
+  int d = 0;
   if (!ParseMonthOrDay(v, d))
-    return false;
-  date = DateComplete{ .year = y, .month = m, .day = d };
-  return true;
+    return {};
+  return std::make_optional<DateComplete>({ .year = y, .month = m, .day = d });
 }
 
-bool
-ParseDicomTime(std::string_view v, TimeParsed& time)
+std::optional<DicomTime>
+ParseDicomTime(std::string_view v)
 {
   // For DICOM TM values, only the hour component is required.
   int hour = 0;
   if (!ParseHour(v, hour))
-    return false;
+    return {};
   v.remove_prefix(2);
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> minute;
   if (v.size() >= 2)
     {
       int m = 0;
       if (!ParseMinute(v, m))
-        return false;
+        return {};
       minute = m;
       v.remove_prefix(2);
     }
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> second;
   if (v.size() >= 2)
     {
       int s = 0;
       // XXX: We ignore any fractional second component '.FFFFFF'.
       if (!ParseSecond(v, s))
-        return false;
+        return {};
       second = s;
     }
-  time = TimeParsed{ .hour = hour, .minute = minute, .second = second };
-  return true;
+  return std::make_optional<DicomTime>(
+      { .hour = hour, .minute = minute, .second = second });
 }
 
-bool
-ParseDicomDateTimeExcludingUtc(std::string_view v, DateParsed& date,
-                               TimeParsed& time)
+std::optional<DicomDateTime>
+ParseDicomDateTimeExcludingUtc(std::string_view v)
 {
   // For DICOM Date Time (DT) values, only the year component is
   // required.
   int year = 0;
   if (!ParseYear(v, year))
-    return false;
+    return {};
   v.remove_prefix(4);
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> month;
   if (v.size() >= 2)
     {
       int m = 0;
       if (!ParseMonthOrDay(v, m))
-        return false;
+        return {};
       month = m;
       v.remove_prefix(2);
     }
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> day;
   if (v.size() >= 2)
     {
       int d = 0;
       if (!ParseMonthOrDay(v, d))
-        return false;
+        return {};
       day = d;
       v.remove_prefix(2);
     }
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> hour;
   if (v.size() >= 2)
     {
       int h = 0;
       if (!ParseHour(v, h))
-        return false;
+        return {};
       hour = h;
       v.remove_prefix(2);
     }
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> minute;
   if (v.size() >= 2)
     {
       int min = 0;
       if (!ParseMinute(v, min))
-        return false;
+        return {};
       minute = min;
       v.remove_prefix(2);
     }
   if (v.size() == 1)
-    return false;
+    return {};
   std::optional<int> second;
   if (v.size() >= 2)
     {
       int s = 0;
       if (!ParseSecond(v, s))
-        return false;
+        return {};
       second = s;
     }
-  date = DateParsed{ .year = year, .month = month, .day = day };
-  time = TimeParsed{ .hour = hour, .minute = minute, .second = second };
-  return true;
+  return std::make_optional<DicomDateTime>({ .year = year,
+                                             .month = month,
+                                             .day = day,
+                                             .hour = hour,
+                                             .minute = minute,
+                                             .second = second });
 }
 
-bool
-ParseDicomUtcOffset(std::string_view v, std::chrono::minutes& offset)
+std::optional<std::chrono::minutes>
+ParseDicomUtcOffset(std::string_view v)
 {
   if (v.size() < 5)
-    return false;
+    return {};
   // C.12.1.1.8: "Leading space characters shall not be present."
   const char sign = v[0];
   if (sign != '+' && sign != '-')
-    return false;
+    return {};
   v.remove_prefix(1);
   int hour = 0;
   if (!ParseHour(v, hour))
-    return false;
+    return {};
   v.remove_prefix(2);
   int minute = 0;
   if (!ParseMinute(v, minute))
-    return false;
-  std::chrono::minutes off{ hour * 60 + minute };
+    return {};
+  std::chrono::minutes offset{ hour * 60 + minute };
   if (sign == '-')
-    off = -off;
+    offset = -offset;
   // C.12.1.1.8: "-0000 shall not be used."
-  if (sign == '-' && off == std::chrono::minutes{ 0 })
-    return false;
+  if (sign == '-' && offset == std::chrono::minutes{ 0 })
+    return {};
   // Table 6.2-1, Date Time VR, Note 1: "The range of the offset is
   // -1200 to +1400."
-  if ((off < std::chrono::minutes{ -12 * 60 })
-      || (off > std::chrono::minutes{ 14 * 60 }))
-    return false;
-  offset = off;
-  return true;
+  if ((offset < std::chrono::minutes{ -12 * 60 })
+      || (offset > std::chrono::minutes{ 14 * 60 }))
+    return {};
+  return offset;
 }
 
 std::expected<DateComplete, TimePointError>
-MakeDateComplete(const DateParsed& date_parsed)
+MakeDateComplete(const DicomDateTime& date_time)
 {
-  if (!date_parsed.month.has_value() || !date_parsed.day.has_value())
+  if (!date_time.month.has_value() || !date_time.day.has_value())
     return std::unexpected(TimePointError::kIncompleteDate);
-  return DateComplete{ .year = date_parsed.year,
-                       .month = date_parsed.month.value(),
-                       .day = date_parsed.day.value() };
+  return DateComplete{ .year = date_time.year,
+                       .month = date_time.month.value(),
+                       .day = date_time.day.value() };
 }
 
 std::expected<TimeComplete, TimePointError>
-MakeTimeComplete(const TimeParsed& time_parsed)
+MakeTimeComplete(const DicomTime& dicom_time)
 {
-  if (!time_parsed.hour.has_value() || !time_parsed.minute.has_value()
-      || !time_parsed.second.has_value())
-    return std::unexpected(TimePointError::kIncompleteTime);
-  return TimeComplete{ .hour = time_parsed.hour.value(),
-                       .minute = time_parsed.minute.value(),
-                       .second = time_parsed.second.value() };
+  if (!dicom_time.minute.has_value() || !dicom_time.second.has_value())
+    return std::unexpected(TimePointError::kIncompleteTimeInDicomTime);
+  return TimeComplete{ .hour = dicom_time.hour,
+                       .minute = dicom_time.minute.value(),
+                       .second = dicom_time.second.value() };
+}
+
+std::expected<TimeComplete, TimePointError>
+MakeTimeComplete(const DicomDateTime& date_time)
+{
+  if (!date_time.hour.has_value() || !date_time.minute.has_value()
+      || !date_time.second.has_value())
+    return std::unexpected(TimePointError::kIncompleteTimeInDicomDateTime);
+  return TimeComplete{ .hour = date_time.hour.value(),
+                       .minute = date_time.minute.value(),
+                       .second = date_time.second.value() };
 }
 
 std::expected<tz::zoned_time<std::chrono::seconds>, TimePointError>
@@ -625,10 +638,11 @@ MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
   if (voffset.has_value())
     {
       // Use offset in VOFFSET.
-      std::chrono::minutes offset{};
-      if (!ParseDicomUtcOffset(voffset.value(), offset))
+      const std::optional<std::chrono::minutes> offset
+          = ParseDicomUtcOffset(voffset.value());
+      if (!offset.has_value())
         return std::unexpected(TimePointError::kFailedUtcOffset);
-      return MakeSysTimeFromOffset(date, time, offset);
+      return MakeSysTimeFromOffset(date, time, offset.value());
     }
   // Interpret DATE and TIME in the time zone TZ.
   if (!tz)
@@ -644,15 +658,17 @@ MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
                                 std::optional<std::string_view> voffset,
                                 const tz::time_zone* tz)
 {
-  DateComplete date;
-  if (!ParseDicomDate(vdate, date))
+  const std::optional<DateComplete> date_parsed = ParseDicomDate(vdate);
+  if (!date_parsed.has_value())
     return std::unexpected(TimePointError::kFailedDate);
-  TimeParsed time_parsed;
-  if (!ParseDicomTime(vtime, time_parsed))
+  const std::optional<DicomTime> time_parsed = ParseDicomTime(vtime);
+  if (!time_parsed.has_value())
     return std::unexpected(TimePointError::kFailedTime);
-  const auto time_complete = MakeTimeComplete(time_parsed);
+  const auto time_complete = MakeTimeComplete(time_parsed.value());
   if (!time_complete.has_value())
     return std::unexpected(time_complete.error());
+
+  const DateComplete date = date_parsed.value();
   const TimeComplete time = time_complete.value();
   return MakeSysTimeFromOffsetOrTimeZone(date, time, voffset, tz);
 }
@@ -662,14 +678,14 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
                              std::optional<std::string_view> voffset,
                              const tz::time_zone* tz)
 {
-  DateParsed date_parsed;
-  TimeParsed time_parsed;
-  if (!ParseDicomDateTimeExcludingUtc(datetime, date_parsed, time_parsed))
+  const std::optional<DicomDateTime> date_time_parsed
+      = ParseDicomDateTimeExcludingUtc(datetime);
+  if (!date_time_parsed.has_value())
     return std::unexpected(TimePointError::kFailedDateTimeExcludingUtcOffset);
-  const auto date_complete = MakeDateComplete(date_parsed);
+  const auto date_complete = MakeDateComplete(date_time_parsed.value());
   if (!date_complete.has_value())
     return std::unexpected(date_complete.error());
-  const auto time_complete = MakeTimeComplete(time_parsed);
+  const auto time_complete = MakeTimeComplete(date_time_parsed.value());
   if (!time_complete.has_value())
     return std::unexpected(time_complete.error());
 
@@ -679,10 +695,11 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
       pos != std::string_view::npos)
     {
       // DT includes an offset; use it.
-      std::chrono::minutes offset{};
-      if (!ParseDicomUtcOffset(datetime.substr(pos), offset))
+      const std::optional<std::chrono::minutes> offset
+          = ParseDicomUtcOffset(datetime.substr(pos));
+      if (!offset.has_value())
         return std::unexpected(TimePointError::kFailedUtcOffsetInDateTime);
-      return MakeSysTimeFromOffset(date, time, offset);
+      return MakeSysTimeFromOffset(date, time, offset.value());
     }
   // DT does not include an offset.
   return MakeSysTimeFromOffsetOrTimeZone(date, time, voffset, tz);
