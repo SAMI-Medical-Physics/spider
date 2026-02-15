@@ -452,7 +452,7 @@ ParseDicomTime(std::string_view v)
 }
 
 std::optional<DicomDateTime>
-ParseDicomDateTimeExcludingUtc(std::string_view v)
+ParseDicomDateTime(std::string_view v)
 {
   // For DICOM Date Time (DT) values, only the year component is
   // required.
@@ -460,6 +460,17 @@ ParseDicomDateTimeExcludingUtc(std::string_view v)
   if (!ParseYear(v, year))
     return {};
   v.remove_prefix(4);
+  // Table 6.2-1, Date Time VR, Note 5: "The offset may be included
+  // regardless of null components; e.g., 2007-0500 is a legal value."
+  std::optional<std::chrono::minutes> utc_offset;
+  if (const std::size_t pos = v.find_first_of("+-");
+      pos != std::string_view::npos)
+    {
+      utc_offset = ParseDicomUtcOffset(v.substr(pos));
+      if (!utc_offset.has_value())
+        return {};
+      v.remove_suffix(v.size() - pos);
+    }
   if (v.size() == 1)
     return {};
   std::optional<int> month;
@@ -519,7 +530,8 @@ ParseDicomDateTimeExcludingUtc(std::string_view v)
                                              .day = day,
                                              .hour = hour,
                                              .minute = minute,
-                                             .second = second });
+                                             .second = second,
+                                             .utc_offset = utc_offset });
 }
 
 std::optional<std::chrono::minutes>
@@ -679,9 +691,9 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
                              const tz::time_zone* tz)
 {
   const std::optional<DicomDateTime> date_time_parsed
-      = ParseDicomDateTimeExcludingUtc(datetime);
+      = ParseDicomDateTime(datetime);
   if (!date_time_parsed.has_value())
-    return std::unexpected(TimePointError::kFailedDateTimeExcludingUtcOffset);
+    return std::unexpected(TimePointError::kFailedDateTime);
   const auto date_complete = MakeDateComplete(date_time_parsed.value());
   if (!date_complete.has_value())
     return std::unexpected(date_complete.error());
@@ -691,15 +703,11 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
 
   const DateComplete date = date_complete.value();
   const TimeComplete time = time_complete.value();
-  if (const std::size_t pos = datetime.find_first_of("+-");
-      pos != std::string_view::npos)
+  if (date_time_parsed.value().utc_offset.has_value())
     {
       // DT includes an offset; use it.
-      const std::optional<std::chrono::minutes> offset
-          = ParseDicomUtcOffset(datetime.substr(pos));
-      if (!offset.has_value())
-        return std::unexpected(TimePointError::kFailedUtcOffsetInDateTime);
-      return MakeSysTimeFromOffset(date, time, offset.value());
+      return MakeSysTimeFromOffset(
+          date, time, date_time_parsed.value().utc_offset.value());
     }
   // DT does not include an offset.
   return MakeSysTimeFromOffsetOrTimeZone(date, time, voffset, tz);

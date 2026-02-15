@@ -487,10 +487,10 @@ TEST(ParseDicomTimeTest, HourAndMinuteAndSecondAndFraction)
   EXPECT_EQ(time.value().second.value(), 14);
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearOnly)
+TEST(ParseDicomDateTimeTest, YearOnly)
 {
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("2023");
+      = spider::ParseDicomDateTime("2023");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   EXPECT_FALSE(date_time.value().month.has_value());
@@ -498,12 +498,27 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearOnly)
   EXPECT_FALSE(date_time.value().hour.has_value());
   EXPECT_FALSE(date_time.value().minute.has_value());
   EXPECT_FALSE(date_time.value().second.has_value());
+
+  // Table 6.2-1, Date Time VR, Note 5: "The offset may be included
+  // regardless of null components; e.g., 2007-0500 is a legal value."
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("2007-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2007);
+  EXPECT_FALSE(date_time_with_offset.value().month.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().day.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().hour.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().minute.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().second.has_value());
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthOnly)
+TEST(ParseDicomDateTimeTest, YearMonthOnly)
 {
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("202303");
+      = spider::ParseDicomDateTime("202303");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   ASSERT_TRUE(date_time.value().month.has_value());
@@ -512,12 +527,26 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthOnly)
   EXPECT_FALSE(date_time.value().hour.has_value());
   EXPECT_FALSE(date_time.value().minute.has_value());
   EXPECT_FALSE(date_time.value().second.has_value());
+
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("202303-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2023);
+  ASSERT_TRUE(date_time_with_offset.value().month.has_value());
+  EXPECT_EQ(date_time_with_offset.value().month.value(), 3);
+  EXPECT_FALSE(date_time_with_offset.value().day.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().hour.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().minute.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().second.has_value());
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayOnly)
+TEST(ParseDicomDateTimeTest, YearMonthDayOnly)
 {
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("20230314");
+      = spider::ParseDicomDateTime("20230314");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   ASSERT_TRUE(date_time.value().month.has_value());
@@ -527,12 +556,27 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayOnly)
   EXPECT_FALSE(date_time.value().hour.has_value());
   EXPECT_FALSE(date_time.value().minute.has_value());
   EXPECT_FALSE(date_time.value().second.has_value());
+
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("20230314-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2023);
+  ASSERT_TRUE(date_time_with_offset.value().month.has_value());
+  EXPECT_EQ(date_time_with_offset.value().month.value(), 3);
+  ASSERT_TRUE(date_time_with_offset.value().day.has_value());
+  EXPECT_EQ(date_time_with_offset.value().day.value(), 14);
+  EXPECT_FALSE(date_time_with_offset.value().hour.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().minute.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().second.has_value());
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourOnly)
+TEST(ParseDicomDateTimeTest, YearMonthDayHourOnly)
 {
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("2023031409");
+      = spider::ParseDicomDateTime("2023031409");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   ASSERT_TRUE(date_time.value().month.has_value());
@@ -543,12 +587,28 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourOnly)
   EXPECT_EQ(date_time.value().hour.value(), 9);
   EXPECT_FALSE(date_time.value().minute.has_value());
   EXPECT_FALSE(date_time.value().second.has_value());
+
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("2023031409-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2023);
+  ASSERT_TRUE(date_time_with_offset.value().month.has_value());
+  EXPECT_EQ(date_time_with_offset.value().month.value(), 3);
+  ASSERT_TRUE(date_time_with_offset.value().day.has_value());
+  EXPECT_EQ(date_time_with_offset.value().day.value(), 14);
+  ASSERT_TRUE(date_time_with_offset.value().hour.has_value());
+  EXPECT_EQ(date_time_with_offset.value().hour.value(), 9);
+  EXPECT_FALSE(date_time_with_offset.value().minute.has_value());
+  EXPECT_FALSE(date_time_with_offset.value().second.has_value());
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteOnly)
+TEST(ParseDicomDateTimeTest, YearMonthDayHourMinuteOnly)
 {
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("202303140945");
+      = spider::ParseDicomDateTime("202303140945");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   ASSERT_TRUE(date_time.value().month.has_value());
@@ -560,12 +620,29 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteOnly)
   ASSERT_TRUE(date_time.value().minute.has_value());
   EXPECT_EQ(date_time.value().minute.value(), 45);
   EXPECT_FALSE(date_time.value().second.has_value());
+
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("202303140945-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2023);
+  ASSERT_TRUE(date_time_with_offset.value().month.has_value());
+  EXPECT_EQ(date_time_with_offset.value().month.value(), 3);
+  ASSERT_TRUE(date_time_with_offset.value().day.has_value());
+  EXPECT_EQ(date_time_with_offset.value().day.value(), 14);
+  ASSERT_TRUE(date_time_with_offset.value().hour.has_value());
+  EXPECT_EQ(date_time_with_offset.value().hour.value(), 9);
+  ASSERT_TRUE(date_time_with_offset.value().minute.has_value());
+  EXPECT_EQ(date_time_with_offset.value().minute.value(), 45);
+  EXPECT_FALSE(date_time_with_offset.value().second.has_value());
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondOnly)
+TEST(ParseDicomDateTimeTest, YearMonthDayHourMinuteSecondOnly)
 {
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("20230314094556");
+      = spider::ParseDicomDateTime("20230314094556");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   ASSERT_TRUE(date_time.value().month.has_value());
@@ -578,14 +655,32 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondOnly)
   EXPECT_EQ(date_time.value().minute.value(), 45);
   ASSERT_TRUE(date_time.value().second.has_value());
   EXPECT_EQ(date_time.value().second.value(), 56);
+
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("20230314094556-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2023);
+  ASSERT_TRUE(date_time_with_offset.value().month.has_value());
+  EXPECT_EQ(date_time_with_offset.value().month.value(), 3);
+  ASSERT_TRUE(date_time_with_offset.value().day.has_value());
+  EXPECT_EQ(date_time_with_offset.value().day.value(), 14);
+  ASSERT_TRUE(date_time_with_offset.value().hour.has_value());
+  EXPECT_EQ(date_time_with_offset.value().hour.value(), 9);
+  ASSERT_TRUE(date_time_with_offset.value().minute.has_value());
+  EXPECT_EQ(date_time_with_offset.value().minute.value(), 45);
+  ASSERT_TRUE(date_time_with_offset.value().second.has_value());
+  EXPECT_EQ(date_time_with_offset.value().second.value(), 56);
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
-TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondFraction)
+TEST(ParseDicomDateTimeTest, YearMonthDayHourMinuteSecondFraction)
 {
   // If DICOM DT value contains a fractional part of a second, that
   // component is ignored.
   std::optional<spider::DicomDateTime> date_time
-      = spider::ParseDicomDateTimeExcludingUtc("20230314094556.30");
+      = spider::ParseDicomDateTime("20230314094556.30");
   ASSERT_TRUE(date_time.has_value());
   EXPECT_EQ(date_time.value().year, 2023);
   ASSERT_TRUE(date_time.value().month.has_value());
@@ -598,6 +693,24 @@ TEST(ParseDicomDateTimeExcludingUtcTest, YearMonthDayHourMinuteSecondFraction)
   EXPECT_EQ(date_time.value().minute.value(), 45);
   ASSERT_TRUE(date_time.value().second.has_value());
   EXPECT_EQ(date_time.value().second.value(), 56);
+
+  std::optional<spider::DicomDateTime> date_time_with_offset
+      = spider::ParseDicomDateTime("20230314094556.30-0500");
+  ASSERT_TRUE(date_time_with_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().year, 2023);
+  ASSERT_TRUE(date_time_with_offset.value().month.has_value());
+  EXPECT_EQ(date_time_with_offset.value().month.value(), 3);
+  ASSERT_TRUE(date_time_with_offset.value().day.has_value());
+  EXPECT_EQ(date_time_with_offset.value().day.value(), 14);
+  ASSERT_TRUE(date_time_with_offset.value().hour.has_value());
+  EXPECT_EQ(date_time_with_offset.value().hour.value(), 9);
+  ASSERT_TRUE(date_time_with_offset.value().minute.has_value());
+  EXPECT_EQ(date_time_with_offset.value().minute.value(), 45);
+  ASSERT_TRUE(date_time_with_offset.value().second.has_value());
+  EXPECT_EQ(date_time_with_offset.value().second.value(), 56);
+  ASSERT_TRUE(date_time_with_offset.value().utc_offset.has_value());
+  EXPECT_EQ(date_time_with_offset.value().utc_offset.value(),
+            std::chrono::minutes{ -5 * 60 });
 }
 
 TEST(ParseDicomUtcOffsetTest, PositiveOffset)
@@ -623,7 +736,8 @@ TEST(MakeDateCompleteTest, Example)
                                    .day = 14,
                                    .hour = std::nullopt,
                                    .minute = std::nullopt,
-                                   .second = std::nullopt };
+                                   .second = std::nullopt,
+                                   .utc_offset = std::nullopt };
   auto date_complete = spider::MakeDateComplete(date_time);
   ASSERT_TRUE(date_complete.has_value());
   EXPECT_EQ(date_complete.value().year, 2023);
@@ -643,9 +757,13 @@ TEST(MakeTimeCompleteTest, DicomTime)
 
 TEST(MakeTimeCompleteTest, DicomDateTime)
 {
-  spider::DicomDateTime date_time{
-    .year = 2020, .month = 2, .day = 4, .hour = 14, .minute = 34, .second = 1
-  };
+  spider::DicomDateTime date_time{ .year = 2020,
+                                   .month = 2,
+                                   .day = 4,
+                                   .hour = 14,
+                                   .minute = 34,
+                                   .second = 1,
+                                   .utc_offset = std::nullopt };
   auto time_complete = spider::MakeTimeComplete(date_time);
   ASSERT_TRUE(time_complete.has_value());
   EXPECT_EQ(time_complete.value().hour, 14);

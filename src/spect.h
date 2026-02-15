@@ -113,6 +113,7 @@ struct DicomDateTime
   std::optional<int> hour;   // [0, 23]
   std::optional<int> minute; // [0, 59]
   std::optional<int> second; // [0, 60], 60 for leap second
+  std::optional<std::chrono::minutes> utc_offset; // [-12h, 14h]
 };
 
 struct TimeComplete
@@ -136,12 +137,12 @@ std::optional<DicomTime>
 ParseDicomTime(std::string_view v);
 
 // Extract the DICOM Date Time (DT) value from the provided string,
-// ignoring any fractional second component and any UTC offset suffix.
-// Returns std::nullopt if the input is invalid.  Characters after the
-// SS component are ignored, so non-DICOM-conformant strings may be
-// parsed successfully.
+// ignoring any fractional second component.  Returns std::nullopt if
+// the input is invalid.  Characters after the SS component and before
+// the UTC offset suffix are ignored, so non-DICOM-conformant strings
+// may be parsed successfully.
 std::optional<DicomDateTime>
-ParseDicomDateTimeExcludingUtc(std::string_view v);
+ParseDicomDateTime(std::string_view v);
 
 // Extract the UTC offset from the provided string formatted like
 // "{+,-}HHMM".  Returns std::nullopt if the input is invalid.  For
@@ -160,8 +161,7 @@ enum class TimePointError
   // provided by Spect: the offset is the DICOM attribute
   // TimezoneOffsetFromUtc.
   kFailedTimezoneOffsetFromUtc,
-  kFailedDateTimeExcludingUtcOffset,
-  kFailedUtcOffsetInDateTime,
+  kFailedDateTime,
   // Missing a required component.
   kIncompleteDate,
   kIncompleteTimeInDicomTime,
@@ -198,11 +198,8 @@ ToString(TimePointError e)
       return "failed to parse UTC offset (expected \"{+,-}HHMM\")";
     case TimePointError::kFailedTimezoneOffsetFromUtc:
       return "failed to parse DICOM attribute: TimezoneOffsetFromUtc";
-    case TimePointError::kFailedDateTimeExcludingUtcOffset:
-      return "failed to parse DICOM Date Time components (not including UTC "
-             "offset)";
-    case TimePointError::kFailedUtcOffsetInDateTime:
-      return "failed to parse UTC offset suffix of DICOM Date Time";
+    case TimePointError::kFailedDateTime:
+      return "failed to parse DICOM Date Time";
 
     case TimePointError::kIncompleteDate:
       return "incomplete date in DICOM Date Time; missing month or day";
