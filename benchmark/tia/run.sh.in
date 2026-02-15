@@ -44,17 +44,15 @@ elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
 
 # Make Spider's TIA image.
 SPIDER_TIA=spider-tia.nii
-"@CMAKE_BINARY_DIR@/apps/spider_dicom_dump" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan4/spect" \
-    | "@CMAKE_BINARY_DIR@/apps/spider_tia" \
-          -f -o "$SPIDER_TIA" \
-          -z America/Detroit \
-          spect1.nii \
-          output_dir2/result.0.nii output_dir3/result.0.nii \
-          output_dir4/result.0.nii
+"@CMAKE_BINARY_DIR@/apps/spider_tia" -f -o "$SPIDER_TIA" -z America/Detroit \
+    -d "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
+    -d "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
+    -d "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
+    -d "$SPECTCTS_DIR/SPECT_Cts/scan4/spect" \
+    -i spect1.nii \
+    -i output_dir2/result.0.nii \
+    -i output_dir3/result.0.nii \
+    -i output_dir4/result.0.nii
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii | \

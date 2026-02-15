@@ -4,15 +4,18 @@
 #include <algorithm> // std::all_of, std::transform
 #include <cctype>    // std::tolower
 #include <chrono>
-#include <cstdio>  // stdin
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS
-#include <cstring> // std::strcmp
 #include <filesystem>
+#include <fstream> // std::ifstream
 #include <iostream>
 #include <stdexcept> // std::runtime_error
 #include <string>
+#include <string_view>
+#include <system_error> // std::error_code
 #include <vector>
 
+#include <gdcmDataSet.h>
+#include <gdcmReader.h>
 #include <itkImage.h>
 #include <itkImageFileWriter.h>
 #include <itkMacro.h> // itk::ExceptionObject
@@ -22,24 +25,8 @@
 #include "tia/tia_pipeline.h"
 #include "tz_compat.h"
 
-#ifdef _WIN32
-#include <io.h> // _isatty, _fileno
-#else
-#include <unistd.h> // isatty
-#endif              // _WIN32
-
 namespace
 {
-
-bool
-StdinIsTty()
-{
-#ifdef _WIN32
-  return _isatty(_fileno(stdin)) != 0;
-#else
-  return isatty(STDIN_FILENO) == 1;
-#endif //_WIN32
-}
 
 // The name of this program.  Print this instead of argv[0], which
 // might be a symlink to a long path.
@@ -48,11 +35,8 @@ constexpr char kProgramName[] = "spider_tia";
 void
 Usage()
 {
-  std::cerr
-      << "usage: " << kProgramName
-      << " [-fV] [-o output_file] [-z time_zone] image1 image2 ... < file\n"
-      << "       " << "spider_dicom_dump directory1 directory2 ... |\n"
-      << "           " << kProgramName << " image1 image2 ...\n";
+  std::cerr << "usage: " << kProgramName << " [-fV] [-o output_file]\n"
+            << "       " << "{ [-z time_zone] -d directory -i image } ...\n";
 }
 
 struct ParsedArguments
@@ -60,33 +44,28 @@ struct ParsedArguments
   bool overwrite = false;
   std::string out_filename;
   std::vector<std::string> tz_names;
-  std::vector<std::string> input_filenames;
+  std::vector<std::string> dicom_dirs;
+  std::vector<std::string> image_filenames;
 };
 
-// Parse program arguments in the style of POSIX shell getopts:
-// options (-f, -V) and option-arguments (-o output_file, -z
-// time_zone) first, then positional arguments (image filenames).
+// Parse program arguments: options (-f, -V) and option-arguments (-o
+// output_file, -z time_zone, -d directory, -i image).
 ParsedArguments
 ParseArguments(int argc, char* argv[])
 {
   ParsedArguments out;
   out.out_filename = "tia.nii";
-  int i = 1;
-  for (; i < argc; ++i)
+  for (int i = 1; i < argc; ++i)
     {
       const char* arg = argv[i];
 
-      if (std::strcmp(arg, "--") == 0)
-        {
-          ++i; // consume "--"
-          break;
-        }
-
-      // Stop at the first non-option.  A lone "-" is treated as a
-      // positional argument.
+      // Reject positional arguments, including a lone "-".
       if (arg[0] != '-' || arg[1] == '\0')
         {
-          break;
+          std::cerr << kProgramName << ": unexpected argument -- " << arg
+                    << "\n";
+          Usage();
+          std::exit(EXIT_FAILURE);
         }
 
       // Parse a cluster of options.
@@ -133,6 +112,52 @@ ParseArguments(int argc, char* argv[])
               break; // finished with argv[i]
             }
 
+          if (opt == 'd')
+            {
+              const char* zarg = nullptr;
+              if (arg[j + 1] != '\0')
+                {
+                  zarg = arg + j + 1;
+                }
+              else
+                {
+                  if (i + 1 == argc)
+                    {
+                      std::cerr << kProgramName
+                                << ": option requires an argument -- " << opt
+                                << "\n";
+                      Usage();
+                      std::exit(EXIT_FAILURE);
+                    }
+                  zarg = argv[++i];
+                }
+              out.dicom_dirs.emplace_back(zarg);
+              break;
+            }
+
+          if (opt == 'i')
+            {
+              const char* zarg = nullptr;
+              if (arg[j + 1] != '\0')
+                {
+                  zarg = arg + j + 1;
+                }
+              else
+                {
+                  if (i + 1 == argc)
+                    {
+                      std::cerr << kProgramName
+                                << ": option requires an argument -- " << opt
+                                << "\n";
+                      Usage();
+                      std::exit(EXIT_FAILURE);
+                    }
+                  zarg = argv[++i];
+                }
+              out.image_filenames.emplace_back(zarg);
+              break;
+            }
+
           if (opt == 'o')
             {
               const char* zarg = nullptr;
@@ -162,7 +187,6 @@ ParseArguments(int argc, char* argv[])
         }
     }
 
-  out.input_filenames.assign(argv + i, argv + argc);
   return out;
 }
 
@@ -199,6 +223,39 @@ OutputFilenames(const std::string& filename)
   return { out_path };
 }
 
+bool
+ReadDicomFileInDir(const std::string_view dir,
+                   std::filesystem::path& path_found, gdcm::Reader& r)
+{
+  std::error_code ec;
+  std::filesystem::directory_iterator it(dir, ec);
+  if (ec)
+    {
+      std::cerr << kProgramName << ": Cannot open directory '" << dir
+                << "': " << ec.message() << '\n';
+      std::exit(EXIT_FAILURE);
+    }
+  const std::filesystem::directory_iterator end{};
+  for (; it != end; ++it)
+    {
+      const std::filesystem::directory_entry& e = *it;
+      if (!e.is_regular_file())
+        continue;
+      // Use SetStream instead of SetFileName because filesystem::path
+      // is wchar_t on Windows.
+      std::ifstream is(e.path(), std::ios::binary);
+      if (!is)
+        continue;
+      r.SetStream(is);
+      if (r.Read())
+        {
+          path_found = e.path();
+          return true;
+        }
+    }
+  return false;
+}
+
 } // namespace
 
 int
@@ -212,7 +269,7 @@ main(int argc, char* argv[])
 
   const ParsedArguments args = ParseArguments(argc, argv);
 
-  if (args.input_filenames.size() < 2)
+  if (args.image_filenames.size() < 2)
     {
       // To fit an exponential.
       std::cerr << kProgramName
@@ -220,7 +277,8 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
-  if (args.tz_names.size() > 1 && args.tz_names.size() != args.input_filenames.size())
+  if (args.tz_names.size() > 1
+      && args.tz_names.size() != args.image_filenames.size())
     {
       std::cerr
           << kProgramName
@@ -229,40 +287,54 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
-  // Parse DICOM attributes for each SPECT in stdin.
-  if (StdinIsTty())
+  // Read DICOM attributes for each SPECT.
+  if (args.dicom_dirs.size() != args.image_filenames.size())
     {
-      std::cerr << kProgramName << ": waiting for input on stdin...\n";
-    }
-  const std::vector<spider::Spect> spects = spider::ReadSpects(std::cin);
-  if (spects.size() != args.input_filenames.size())
-    {
-      std::cerr
-          << kProgramName
-          << ": number of image arguments does not match input on stdin\n";
+      std::cerr << kProgramName
+                << ": number of image arguments does not match number of "
+                   "directory arguments\n";
       return EXIT_FAILURE;
+    }
+
+  std::vector<spider::Spect> spects;
+  for (std::size_t i = 0; i < args.dicom_dirs.size(); ++i)
+    {
+      std::filesystem::path p;
+      gdcm::Reader r;
+      if (!ReadDicomFileInDir(args.dicom_dirs[i], p, r))
+        {
+          std::cerr << kProgramName
+                    << ": Failed to read a DICOM file in directory '"
+                    << args.dicom_dirs[i] << "'\n";
+          return EXIT_FAILURE;
+        }
+      const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+      spider::Log() << "SPECT " << i << ": reading DICOM attributes in " << p
+                    << "...\n";
+      spects.emplace_back(spider::ReadDicomSpect(ds));
+      spider::Log() << "SPECT " << i << ": " << spects.back() << "\n";
     }
 
   // Make a time zone for each SPECT using the specified time zone
   // names or the current time zone.
   std::vector<const spider::tz::time_zone*> time_zones;
   const auto tz_current = spider::tz::current_zone();
-  time_zones.reserve(args.input_filenames.size());
+  time_zones.reserve(args.image_filenames.size());
   try
     {
       if (args.tz_names.empty())
         {
-          time_zones.assign(args.input_filenames.size(), tz_current);
+          time_zones.assign(args.image_filenames.size(), tz_current);
         }
       else if (args.tz_names.size() == 1)
         {
-          time_zones.assign(args.input_filenames.size(),
+          time_zones.assign(args.image_filenames.size(),
                             spider::tz::locate_zone(args.tz_names[0]));
         }
       else
         {
           // We already checked that args.tz_names has the same size as
-          // args.input_filenames.
+          // args.image_filenames.
           for (const auto& name : args.tz_names)
             time_zones.push_back(spider::tz::locate_zone(name));
         }
@@ -383,7 +455,7 @@ main(int argc, char* argv[])
 
   // Compute TIA image.
   spider::TiaFilters tia_filters = spider::PrepareTiaPipeline(
-      args.input_filenames, elapsed_since_administration, decay_factors);
+      args.image_filenames, elapsed_since_administration, decay_factors);
   using PixelType = float;
   constexpr unsigned int ImageDimension = 3;
   using ImageType = itk::Image<PixelType, ImageDimension>;

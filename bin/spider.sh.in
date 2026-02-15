@@ -12,10 +12,7 @@ awk_cmd=awk
 dcm2niix_cmd=dcm2niix
 elastix_cmd=elastix
 mkdir_cmd=mkdir
-mktemp_cmd=mktemp
-rm_cmd=rm
 sed_cmd=sed
-tail_cmd=tail
 
 PROGRAM_NAME=${0##*/}
 
@@ -83,42 +80,52 @@ while [ "$i" -le "$n_spects" ]; do
 done
 
 # Make TIA image.
-# FIXME: Remove this when 'set -o pipefail' is added.
-tmp=$("$mktemp_cmd") || exit 1
-if ! "@CMAKE_INSTALL_FULL_BINDIR@/spider_dicom_dump" "$@" >/dev/null 2>"$tmp"; then
-    "$tail_cmd" -n 1 "$tmp" >&2
-    "$rm_cmd" -f "$tmp"
-    exit 1
+# Convert directory arguments to a newline list to preserve spaces.
+dicom_dirs=
+for d in "$@"; do
+    dicom_dirs=${dicom_dirs}${dicom_dirs:+'
+'}$d
+done
+
+# Rebuild arguments for spider_tia.
+set --
+
+# Propagate -f option.
+if [ "$overwrite" -eq 1 ]; then
+    set -- "$@" -f
 fi
-"$rm_cmd" -f "$tmp"
 
-"@CMAKE_INSTALL_FULL_BINDIR@/spider_dicom_dump" "$@" | (
-    # Rebuild arguments for spider_tia.
-    set --
-    # Propagate -f option.
-    if [ "$overwrite" -eq 1 ]; then
-        set -- "$@" -f
-    fi
-    # Add time zone arguments if any.
-    if [ -n "$tz_list" ]; then
-        # Preserve time zone names containing spaces (even though such
-        # names are invalid).
-        old_ifs=$IFS
-        IFS='
+# Add directory arguments.
+if [ -n "$dicom_dirs" ]; then
+    # Preserve directory names containing spaces.
+    old_ifs=$IFS
+    IFS='
 '
-        for tz in $tz_list; do
-            set -- "$@" -z "$tz"
-        done
-        IFS=$old_ifs
-    fi
-
-    # Add image arguments.
-    set -- "$@" "spect1.nii"
-    i=2
-    while [ "$i" -le "$n_spects" ]; do
-        set -- "$@" "registered_spect$i/result.0.nii"
-        i=$((i + 1))
+    for dir in $dicom_dirs; do
+        set -- "$@" -d "$dir"
     done
+    IFS=$old_ifs
+fi
 
-    exec "@CMAKE_INSTALL_FULL_BINDIR@/spider_tia" "$@"
-)
+# Add image arguments.
+set -- "$@" -i "spect1.nii"
+i=2
+while [ "$i" -le "$n_spects" ]; do
+    set -- "$@" -i "registered_spect$i/result.0.nii"
+    i=$((i + 1))
+done
+
+# Add time zone arguments if any.
+if [ -n "$tz_list" ]; then
+    # Preserve time zone names containing spaces (even though such
+    # names are invalid).
+    old_ifs=$IFS
+    IFS='
+'
+    for tz in $tz_list; do
+        set -- "$@" -z "$tz"
+    done
+    IFS=$old_ifs
+fi
+
+"@CMAKE_INSTALL_FULL_BINDIR@/spider_tia" "$@"
