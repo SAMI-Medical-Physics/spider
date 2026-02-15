@@ -20,18 +20,17 @@ ETC_DIR="@CMAKE_SOURCE_DIR@/etc"
 BENCHMARK_DIR="@CMAKE_SOURCE_DIR@/benchmark/tia"
 
 # Remove previous output of this script.
-rm -f snmmi-tia*
-rm -f spect*
 rm -rf output_dir*
 rm -f hist.eps
 
 # The SPECTs and TIA image in the benchmark dataset are in the form of
-# DICOM series.  Convert them into 3D NIfTI files.
-dcm2niix -o . -f spect1 "$SPECTCTS_DIR/SPECT_Cts/scan1/spect"
-dcm2niix -o . -f spect2 "$SPECTCTS_DIR/SPECT_Cts/scan2/spect"
-dcm2niix -o . -f spect3 "$SPECTCTS_DIR/SPECT_Cts/scan3/spect"
-dcm2niix -o . -f spect4 "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
-dcm2niix -o . -f snmmi-tia "$TIA_DIR/TIA"
+# DICOM series.  Convert them into 3D NIfTI files.  The "-w 1" option
+# overwrites output files.
+dcm2niix -o . -f spect1 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan1/spect"
+dcm2niix -o . -f spect2 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan2/spect"
+dcm2niix -o . -f spect3 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan3/spect"
+dcm2niix -o . -f spect4 -w 1 "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
+dcm2niix -o . -f snmmi-tia -w 1 "$TIA_DIR/TIA"
 
 # Register SPECTs to first SPECT.
 mkdir output_dir2 output_dir3 output_dir4
