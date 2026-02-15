@@ -24,7 +24,7 @@ rm -f snmmi-tia*
 rm -f spect*
 rm -rf output_dir*
 rm -f tia.nii
-rm -f hist.pdf
+rm -f hist.eps
 
 # The SPECTs and TIA image in the benchmark dataset are in the form of
 # DICOM series.  Convert them into 3D NIfTI files.
@@ -59,4 +59,4 @@ elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" tia.nii snmmi-tia.nii | \
     gnuplot "$BENCHMARK_DIR/hist.gp"
 
-echo "Wrote hist.pdf"
+echo "Wrote hist.eps"
