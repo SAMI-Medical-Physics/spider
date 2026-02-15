@@ -2,6 +2,7 @@
 // Copyright (C) 2026 South Australia Medical Imaging
 
 #include <algorithm> // std::all_of, std::transform
+#include <cctype>    // std::tolower
 #include <chrono>
 #include <cstdio>  // stdin
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS
@@ -47,26 +48,29 @@ constexpr char kProgramName[] = "spider_tia";
 void
 Usage()
 {
-  std::cerr << "usage: " << kProgramName
-            << " [-fV] [-z time_zone] image1 image2 ... < file\n"
-            << "       " << "spider_dicom_dump directory1 directory2 ... |\n"
-            << "           " << kProgramName << " image1 image2 ...\n";
+  std::cerr
+      << "usage: " << kProgramName
+      << " [-fV] [-o output_file] [-z time_zone] image1 image2 ... < file\n"
+      << "       " << "spider_dicom_dump directory1 directory2 ... |\n"
+      << "           " << kProgramName << " image1 image2 ...\n";
 }
 
 struct ParsedArguments
 {
   bool overwrite = false;
+  std::string out_filename;
   std::vector<std::string> tz_names;
   std::vector<std::string> input_filenames;
 };
 
 // Parse program arguments in the style of POSIX shell getopts:
-// options (-f, -V) and option-arguments (-z time_zone) first, then
-// positional arguments (image filenames).
+// options (-f, -V) and option-arguments (-o output_file, -z
+// time_zone) first, then positional arguments (image filenames).
 ParsedArguments
 ParseArguments(int argc, char* argv[])
 {
   ParsedArguments out;
+  out.out_filename = "tia.nii";
   int i = 1;
   for (; i < argc; ++i)
     {
@@ -129,6 +133,29 @@ ParseArguments(int argc, char* argv[])
               break; // finished with argv[i]
             }
 
+          if (opt == 'o')
+            {
+              const char* zarg = nullptr;
+              if (arg[j + 1] != '\0')
+                {
+                  zarg = arg + j + 1;
+                }
+              else
+                {
+                  if (i + 1 == argc)
+                    {
+                      std::cerr << kProgramName
+                                << ": option requires an argument -- " << opt
+                                << "\n";
+                      Usage();
+                      std::exit(EXIT_FAILURE);
+                    }
+                  zarg = argv[++i];
+                }
+              out.out_filename = zarg;
+              break;
+            }
+
           std::cerr << kProgramName << ": unknown option -- " << opt << "\n";
           Usage();
           std::exit(EXIT_FAILURE);
@@ -137,6 +164,39 @@ ParseArguments(int argc, char* argv[])
 
   out.input_filenames.assign(argv + i, argv + argc);
   return out;
+}
+
+std::vector<std::filesystem::path>
+OutputFilenames(const std::string& filename)
+{
+  // itk::ImageFileWriter may write file(s) other than the name passed
+  // to SetFileName.  Return the file names that are actually written
+  // when FILENAME is passed to SetFileName.
+  const std::filesystem::path out_path{ filename };
+  const auto ext = out_path.extension();
+  if (ext == ".mhd" || ext == ".nhdr")
+    {
+      // For MetaImage and NRRD header files, a .raw file is written
+      // too.
+      auto raw = out_path;
+      raw.replace_extension(".raw");
+      return { out_path, raw };
+    }
+  auto lower_ext_str = ext.string();
+  std::transform(lower_ext_str.begin(), lower_ext_str.end(),
+                 lower_ext_str.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  if (lower_ext_str == ".mhd" || (ext != ".mha" && lower_ext_str == ".mha"))
+    {
+      // A MetaImage extension containing an upper case character
+      // causes .mhd and .raw files to be written.
+      auto out = out_path;
+      out.replace_extension(".mhd");
+      auto raw = out_path;
+      raw.replace_extension(".raw");
+      return { out, raw };
+    }
+  return { out_path };
 }
 
 } // namespace
@@ -214,12 +274,19 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
-  const std::string out_filename = "tia.nii";
-  if (!args.overwrite && std::filesystem::exists(out_filename))
+  std::vector<std::filesystem::path> out_filenames
+      = OutputFilenames(args.out_filename);
+  if (!args.overwrite)
     {
-      std::cerr << kProgramName << ": file already exists: " << out_filename
-                << "\n";
-      return EXIT_FAILURE;
+      for (const auto& p : out_filenames)
+        {
+          if (std::filesystem::exists(p))
+            {
+              std::cerr << kProgramName << ": file already exists: " << p
+                        << "\n";
+              return EXIT_FAILURE;
+            }
+        }
     }
 
   spider::Log() << "Version " << SPIDER_VERSION << "\n";
@@ -322,7 +389,7 @@ main(int argc, char* argv[])
   using ImageType = itk::Image<PixelType, ImageDimension>;
   using ImageFileWriterType = itk::ImageFileWriter<ImageType>;
   auto image_file_writer = ImageFileWriterType::New();
-  image_file_writer->SetFileName(out_filename);
+  image_file_writer->SetFileName(args.out_filename);
   image_file_writer->SetInput(tia_filters.GetFinalFilter()->GetOutput());
   spider::Log() << "Executing TIA image pipeline\n";
   try
@@ -334,7 +401,11 @@ main(int argc, char* argv[])
       std::cerr << kProgramName << ": " << ex << "\n";
       return EXIT_FAILURE;
     }
-  spider::Log() << "Wrote " << out_filename << "\n";
+
+  for (const auto& p : out_filenames)
+    {
+      spider::Log() << "Wrote " << p << "\n";
+    }
 
   return EXIT_SUCCESS;
 }

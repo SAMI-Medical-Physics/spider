@@ -23,7 +23,6 @@ BENCHMARK_DIR="@CMAKE_SOURCE_DIR@/benchmark/tia"
 rm -f snmmi-tia*
 rm -f spect*
 rm -rf output_dir*
-rm -f tia.nii
 rm -f hist.eps
 
 # The SPECTs and TIA image in the benchmark dataset are in the form of
@@ -44,19 +43,21 @@ elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
         -out output_dir4
 
 # Make Spider's TIA image.
+SPIDER_TIA=spider-tia.nii
 "@CMAKE_BINARY_DIR@/apps/spider_dicom_dump" \
     "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
     "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
     "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
     "$SPECTCTS_DIR/SPECT_Cts/scan4/spect" \
     | "@CMAKE_BINARY_DIR@/apps/spider_tia" \
+          -f -o "$SPIDER_TIA" \
           -z America/Detroit \
           spect1.nii \
           output_dir2/result.0.nii output_dir3/result.0.nii \
           output_dir4/result.0.nii
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
-"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" tia.nii snmmi-tia.nii | \
+"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii | \
     gnuplot "$BENCHMARK_DIR/hist.gp"
 
 echo "Wrote hist.eps"

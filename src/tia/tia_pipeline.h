@@ -51,11 +51,13 @@ struct TiaFilters
 // arguments must have the same size, and that size must be at least
 // 2.
 //
-// Image data is read from INPUT_FILENAMES using itk::ImageFileReader,
-// which supports a variety of file formats, provided the
-// corresponding ImageIO module is listed in the COMPONENTS argument
-// in the CMake find_package(ITK ...) call.  The ImageIO type may be
-// inferred from the file name suffix.
+// INPUT_FILENAMES may be in NIfTI format, compressed or not.
+// MetaImage and NRRD formats are also supported if ITK includes the
+// corresponding ImageIO module.  Each input file name must have a
+// suffix that corresponds to its file format.  For a detached header
+// format, the header file must be specified.  For example, the suffix
+// can be .nii or .nii.gz for NIfTI, .mha or .mhd for MetaImage, and
+// .nrrd or .nhdr for NRRD.
 //
 // We considered separating out the file reading, but
 // itk::ImageFileReader cannot read an image from memory, so tests

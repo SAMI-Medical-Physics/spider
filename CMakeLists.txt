@@ -30,6 +30,9 @@ find_package(ITK REQUIRED
   ITKIOImageBase
   ITKIONIFTI
   ITKStatistics
+  OPTIONAL_COMPONENTS
+  ITKIOMeta
+  ITKIONRRD
 )
 
 # To register the IO factory.  This is required before 'add_executable' or
