@@ -24,51 +24,46 @@ namespace spider
 // Selected DICOM attributes from a SPECT DICOM series.
 struct Spect
 {
-  // For DICOM attributes represented as strings by GDCM, this
-  // abstraction does not distinguish between an empty string value
-  // and an absent attribute.
-  std::string patient_name;
-  std::string radiopharmaceutical_start_date_time;
-  std::string acquisition_date;
-  std::string acquisition_time;
-  std::string series_date;
-  std::string series_time;
-  // std::optional is used for numeric types because there is no
-  // initialised value semantically equivalent to an absent attribute.
+  std::optional<std::string> patient_name;
+  std::optional<std::string> radiopharmaceutical_start_date_time;
+  std::optional<std::string> acquisition_date;
+  std::optional<std::string> acquisition_time;
+  std::optional<std::string> series_date;
+  std::optional<std::string> series_time;
   std::optional<double> frame_reference_time; // milliseconds
-  std::string timezone_offset_from_utc;
-  std::string decay_correction;
+  std::optional<std::string> timezone_offset_from_utc;
+  std::optional<std::string> decay_correction;
   std::optional<double> radionuclide_half_life; // seconds
 };
 
 std::ostream&
 operator<<(std::ostream& os, const Spect& s);
 
-std::string
+std::optional<std::string>
 GetPatientName(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetAcquisitionDate(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetAcquisitionTime(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetSeriesDate(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetSeriesTime(const gdcm::DataSet& ds);
 
 std::optional<double>
 GetFrameReferenceTime(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds);
 
-std::string
+std::optional<std::string>
 GetDecayCorrection(const gdcm::DataSet& ds);
 
 std::optional<double>
@@ -144,15 +139,21 @@ ParseDicomUtcOffset(std::string_view v);
 
 enum class TimePointError
 {
+  // Missing a required DICOM attribute.
+  kMissingRadiopharmaceuticalStartDateTime,
+  kMissingAcquisitionDate,
+  kMissingAcquisitionTime,
+  kMissingSeriesDate,
+  kMissingSeriesTime,
   // Parsing failures.
-  kFailedDate,
-  kFailedTime,
-  kFailedUtcOffset,
-  // The next one is like kFailedUtcOffset but with additional context
+  kInvalidDicomDate,
+  kInvalidDicomTime,
+  kInvalidUtcOffset,
+  // The next one is like kInvalidUtcOffset but with additional context
   // provided by Spect: the offset is the DICOM attribute
   // TimezoneOffsetFromUtc.
-  kFailedTimezoneOffsetFromUtc,
-  kFailedDateTime,
+  kInvalidTimezoneOffsetFromUtc,
+  kInvalidDicomDateTime,
   // Missing a required component.
   kIncompleteDate,
   kIncompleteTimeInDicomTime,
@@ -181,16 +182,27 @@ ToString(TimePointError e)
 {
   switch (e)
     {
-    case TimePointError::kFailedDate:
-      return "failed to parse DICOM Date";
-    case TimePointError::kFailedTime:
-      return "failed to parse DICOM Time";
-    case TimePointError::kFailedUtcOffset:
-      return "failed to parse UTC offset (expected \"{+,-}HHMM\")";
-    case TimePointError::kFailedTimezoneOffsetFromUtc:
-      return "failed to parse DICOM attribute: TimezoneOffsetFromUtc";
-    case TimePointError::kFailedDateTime:
-      return "failed to parse DICOM Date Time";
+    case TimePointError::kMissingRadiopharmaceuticalStartDateTime:
+      return "missing DICOM attribute: RadiopharmaceuticalStartDateTime";
+    case TimePointError::kMissingAcquisitionDate:
+      return "missing DICOM attribute: AcquisitionDate";
+    case TimePointError::kMissingAcquisitionTime:
+      return "missing DICOM attribute: AcquisitionTime";
+    case TimePointError::kMissingSeriesDate:
+      return "missing DICOM attribute: SeriesDate";
+    case TimePointError::kMissingSeriesTime:
+      return "missing DICOM attribute: SeriesTime";
+
+    case TimePointError::kInvalidDicomDate:
+      return "invalid DICOM Date";
+    case TimePointError::kInvalidDicomTime:
+      return "invalid DICOM Time";
+    case TimePointError::kInvalidUtcOffset:
+      return "invalid UTC offset";
+    case TimePointError::kInvalidTimezoneOffsetFromUtc:
+      return "invalid value for DICOM attribute: TimezoneOffsetFromUtc";
+    case TimePointError::kInvalidDicomDateTime:
+      return "invalid DICOM Date Time";
 
     case TimePointError::kIncompleteDate:
       return "incomplete date in DICOM Date Time; missing month or day";
@@ -291,18 +303,26 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
 // Convenience wrapper around MakeSysTimeFromDicomDateAndTime for
 // Spect::acquisition_date, Spect::acquisition_time, and
 // Spect::timezone_offset_from_utc.  On
-// TimePointError::kFailedUtcOffset, remaps to
-// TimePointError::kFailedTimezoneOffsetFromUtc so the error refers to
+// TimePointError::kInvalidUtcOffset, remaps to
+// TimePointError::kInvalidTimezoneOffsetFromUtc so the error refers to
 // Spect::timezone_offset_from_utc.
 inline std::expected<std::chrono::sys_seconds, TimePointErrorWithId>
 MakeAcquisitionSysTime(const Spect& s, const tz::time_zone* tz = nullptr)
 {
+  if (!s.acquisition_date.has_value())
+    return std::unexpected(TimePointErrorWithId{
+        .id = TimePointId::kAcquisitionDateAndTime,
+        .error = TimePointError::kMissingAcquisitionDate });
+  if (!s.acquisition_time.has_value())
+    return std::unexpected(TimePointErrorWithId{
+        .id = TimePointId::kAcquisitionDateAndTime,
+        .error = TimePointError::kMissingAcquisitionTime });
   return MakeSysTimeFromDicomDateAndTime(
-             s.acquisition_date, s.acquisition_time,
-             (s.timezone_offset_from_utc.empty())
-                 ? std::nullopt
-                 : std::optional<
-                       std::string_view>{ s.timezone_offset_from_utc },
+             s.acquisition_date.value(), s.acquisition_time.value(),
+             (s.timezone_offset_from_utc.has_value())
+                 ? std::optional<std::string_view>{ s.timezone_offset_from_utc
+                                                        .value() }
+                 : std::nullopt,
              tz)
       .transform_error(
           [](TimePointError e)
@@ -311,8 +331,8 @@ MakeAcquisitionSysTime(const Spect& s, const tz::time_zone* tz = nullptr)
                 .id = TimePointId::kAcquisitionDateAndTime,
                 // Provide more context for the UTC offset parsing
                 // failure.
-                .error = (e == TimePointError::kFailedUtcOffset)
-                             ? TimePointError::kFailedTimezoneOffsetFromUtc
+                .error = (e == TimePointError::kInvalidUtcOffset)
+                             ? TimePointError::kInvalidTimezoneOffsetFromUtc
                              : e
               };
             });
@@ -321,19 +341,23 @@ MakeAcquisitionSysTime(const Spect& s, const tz::time_zone* tz = nullptr)
 // Convenience wrapper around MakeSysTimeFromDicomDateTime for
 // Spect::radiopharmaceutical_start_date_time and
 // Spect::timezone_offset_from_utc.  On
-// TimePointError::kFailedUtcOffset, remaps to
-// TimePointError::kFailedTimezoneOffsetFromUtc so the error refers to
+// TimePointError::kInvalidUtcOffset, remaps to
+// TimePointError::kInvalidTimezoneOffsetFromUtc so the error refers to
 // Spect::timezone_offset_from_utc.
 inline std::expected<std::chrono::sys_seconds, TimePointErrorWithId>
 MakeRadiopharmaceuticalStartSysTime(const Spect& s,
                                     const tz::time_zone* tz = nullptr)
 {
+  if (!s.radiopharmaceutical_start_date_time.has_value())
+    return std::unexpected(TimePointErrorWithId{
+        .id = TimePointId::kRadiopharmaceuticalStartDateTime,
+        .error = TimePointError::kMissingRadiopharmaceuticalStartDateTime });
   return MakeSysTimeFromDicomDateTime(
-             s.radiopharmaceutical_start_date_time,
-             (s.timezone_offset_from_utc.empty())
-                 ? std::nullopt
-                 : std::optional<
-                       std::string_view>{ s.timezone_offset_from_utc },
+             s.radiopharmaceutical_start_date_time.value(),
+             (s.timezone_offset_from_utc.has_value())
+                 ? std::optional<std::string_view>{ s.timezone_offset_from_utc
+                                                        .value() }
+                 : std::nullopt,
              tz)
       .transform_error(
           [&](TimePointError e)
@@ -342,8 +366,8 @@ MakeRadiopharmaceuticalStartSysTime(const Spect& s,
                 .id = TimePointId::kRadiopharmaceuticalStartDateTime,
                 // Provide more context for UTC offset parsing
                 // failure.
-                .error = (e == TimePointError::kFailedUtcOffset)
-                             ? TimePointError::kFailedTimezoneOffsetFromUtc
+                .error = (e == TimePointError::kInvalidUtcOffset)
+                             ? TimePointError::kInvalidTimezoneOffsetFromUtc
                              : e
               };
             });
@@ -371,9 +395,10 @@ ParseDicomDecayCorrection(const std::string_view v)
 
 enum class DecayCorrectionError
 {
-  // Missing a required component.
+  // Missing a required DICOM attribute.
   kMissingFrameReferenceTime,
   kMissingHalfLife,
+  kMissingDecayCorrection,
   // Validation failures.
   kInvalidDecayCorrection,
   kHalfLifeLessThanOrEqualToZero,
@@ -390,6 +415,8 @@ ToString(DecayCorrectionError e)
       return "missing DICOM attribute: FrameReferenceTime";
     case DecayCorrectionError::kMissingHalfLife:
       return "missing DICOM attribute: RadionuclideHalfLife";
+    case DecayCorrectionError::kMissingDecayCorrection:
+      return "missing DICOM attribute: DecayCorrection";
 
     case DecayCorrectionError::kInvalidDecayCorrection:
       return "invalid value for DICOM attribute: DecayCorrection";

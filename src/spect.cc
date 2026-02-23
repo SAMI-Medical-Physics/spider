@@ -81,27 +81,45 @@ ParseSecond(const std::string_view v, int& out)
 std::ostream&
 operator<<(std::ostream& os, const Spect& s)
 {
-  os << "Spect{"
-     << "patient_name=" << std::quoted(s.patient_name)
-     << ", radiopharmaceutical_start_date_time="
-     << std::quoted(s.radiopharmaceutical_start_date_time)
-     << ", acquisition_date=" << std::quoted(s.acquisition_date)
-     << ", acquisition_time=" << std::quoted(s.acquisition_time)
-     << ", series_date=" << std::quoted(s.series_date)
-     << ", series_time=" << std::quoted(s.series_time);
+  std::ostringstream tmp;
+  if (s.patient_name.has_value())
+    tmp << "patient_name=" << std::quoted(s.patient_name.value()) << ", ";
+  if (s.radiopharmaceutical_start_date_time.has_value())
+    tmp << "radiopharmaceutical_start_date_time="
+        << std::quoted(s.radiopharmaceutical_start_date_time.value()) << ", ";
+  if (s.acquisition_date.has_value())
+    tmp << "acquisition_date=" << std::quoted(s.acquisition_date.value())
+        << ", ";
+  if (s.acquisition_time.has_value())
+    tmp << "acquisition_time=" << std::quoted(s.acquisition_time.value())
+        << ", ";
+  if (s.series_date.has_value())
+    tmp << "series_date=" << std::quoted(s.series_date.value()) << ", ";
+  if (s.series_time.has_value())
+    tmp << "series_time=" << std::quoted(s.series_time.value()) << ", ";
   if (s.frame_reference_time.has_value())
-    os << ", frame_reference_time=" << s.frame_reference_time.value() << " ms";
-  os << ", timezone_offset_from_utc="
-     << std::quoted(s.timezone_offset_from_utc)
-     << ", decay_correction=" << std::quoted(s.decay_correction);
+    tmp << "frame_reference_time=" << s.frame_reference_time.value()
+        << " ms, ";
+  if (s.timezone_offset_from_utc.has_value())
+    tmp << "timezone_offset_from_utc="
+        << std::quoted(s.timezone_offset_from_utc.value()) << ", ";
+  if (s.decay_correction.has_value())
+    tmp << "decay_correction=" << std::quoted(s.decay_correction.value())
+        << ", ";
   if (s.radionuclide_half_life.has_value())
-    os << ", radionuclide_half_life=" << s.radionuclide_half_life.value()
-       << " s";
-  os << "}";
+    tmp << "radionuclide_half_life=" << s.radionuclide_half_life.value()
+        << " s, ";
+
+  std::string body = tmp.str();
+  if (!body.empty())
+    // Remove the last ", ".
+    body.erase(body.size() - 2);
+
+  os << "Spect{" << body << "}";
   return os;
 }
 
-std::string
+std::optional<std::string>
 GetPatientName(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0010, 0x0010)))
@@ -111,10 +129,10 @@ GetPatientName(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0010, 0x0010> a;
   a.SetFromDataSet(ds);
-  return a.GetValue();
+  return std::make_optional<std::string>(a.GetValue());
 }
 
-std::string
+std::optional<std::string>
 GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
 {
   const gdcm::Tag tag_sq(0x0054, 0x0016);
@@ -142,10 +160,10 @@ GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0018, 0x1078> a;
   a.SetFromDataElement(nds.GetDataElement(tag));
-  return a.GetValue();
+  return std::make_optional<std::string>(a.GetValue());
 }
 
-std::string
+std::optional<std::string>
 GetAcquisitionDate(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0022)))
@@ -155,10 +173,10 @@ GetAcquisitionDate(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0008, 0x0022> at;
   at.SetFromDataSet(ds);
-  return at.GetValue();
+  return std::make_optional<std::string>(at.GetValue());
 }
 
-std::string
+std::optional<std::string>
 GetAcquisitionTime(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0032)))
@@ -168,10 +186,10 @@ GetAcquisitionTime(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0008, 0x0032> at;
   at.SetFromDataSet(ds);
-  return at.GetValue();
+  return std::make_optional<std::string>(at.GetValue());
 }
 
-std::string
+std::optional<std::string>
 GetSeriesDate(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0021)))
@@ -181,10 +199,10 @@ GetSeriesDate(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0008, 0x0021> at;
   at.SetFromDataSet(ds);
-  return at.GetValue();
+  return std::make_optional<std::string>(at.GetValue());
 }
 
-std::string
+std::optional<std::string>
 GetSeriesTime(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0031)))
@@ -194,7 +212,7 @@ GetSeriesTime(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0008, 0x0031> at;
   at.SetFromDataSet(ds);
-  return at.GetValue();
+  return std::make_optional<std::string>(at.GetValue());
 }
 
 std::optional<double>
@@ -210,7 +228,7 @@ GetFrameReferenceTime(const gdcm::DataSet& ds)
   return at.GetValue();
 }
 
-std::string
+std::optional<std::string>
 GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0201)))
@@ -220,10 +238,10 @@ GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0008, 0x0201> at;
   at.SetFromDataSet(ds);
-  return at.GetValue();
+  return std::make_optional<std::string>(at.GetValue());
 }
 
-std::string
+std::optional<std::string>
 GetDecayCorrection(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0054, 0x1102)))
@@ -233,7 +251,7 @@ GetDecayCorrection(const gdcm::DataSet& ds)
     }
   gdcm::Attribute<0x0054, 0x1102> a;
   a.SetFromDataSet(ds);
-  return a.GetValue();
+  return std::make_optional<std::string>(a.GetValue());
 }
 
 std::optional<double>
@@ -538,7 +556,7 @@ MakeSysTimeFromOffsetOrTimeZone(const DateComplete& date,
       const std::optional<std::chrono::minutes> offset
           = ParseDicomUtcOffset(voffset.value());
       if (!offset.has_value())
-        return std::unexpected(TimePointError::kFailedUtcOffset);
+        return std::unexpected(TimePointError::kInvalidUtcOffset);
       return MakeSysTimeFromOffset(date, time, offset.value());
     }
   // Interpret DATE and TIME in the time zone TZ.
@@ -557,10 +575,10 @@ MakeSysTimeFromDicomDateAndTime(std::string_view vdate, std::string_view vtime,
 {
   const std::optional<DateComplete> date_parsed = ParseDicomDate(vdate);
   if (!date_parsed.has_value())
-    return std::unexpected(TimePointError::kFailedDate);
+    return std::unexpected(TimePointError::kInvalidDicomDate);
   const std::optional<DicomTime> time_parsed = ParseDicomTime(vtime);
   if (!time_parsed.has_value())
-    return std::unexpected(TimePointError::kFailedTime);
+    return std::unexpected(TimePointError::kInvalidDicomTime);
   const auto time_complete = MakeTimeComplete(time_parsed.value());
   if (!time_complete.has_value())
     return std::unexpected(time_complete.error());
@@ -578,7 +596,7 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
   const std::optional<DicomDateTime> date_time_parsed
       = ParseDicomDateTime(datetime);
   if (!date_time_parsed.has_value())
-    return std::unexpected(TimePointError::kFailedDateTime);
+    return std::unexpected(TimePointError::kInvalidDicomDateTime);
   const auto date_complete = MakeDateComplete(date_time_parsed.value());
   if (!date_complete.has_value())
     return std::unexpected(date_complete.error());
@@ -607,11 +625,20 @@ ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
   // Emission Tomography Supplement, C.8.X.4.1.5.  If
   // FrameReferenceTime is after AcquisitionDate and AcquisitionTime,
   // the decay factor is greater than 1.
+  if (!s.series_date.has_value())
+    return std::unexpected(
+        TimePointErrorWithId{ .id = TimePointId::kSeriesDateAndTime,
+                              .error = TimePointError::kMissingSeriesDate });
+  if (!s.series_time.has_value())
+    return std::unexpected(
+        TimePointErrorWithId{ .id = TimePointId::kSeriesDateAndTime,
+                              .error = TimePointError::kMissingSeriesTime });
   const auto st_series = MakeSysTimeFromDicomDateAndTime(
-      s.series_date, s.series_time,
-      (s.timezone_offset_from_utc.empty())
-          ? std::nullopt
-          : std::optional<std::string_view>{ s.timezone_offset_from_utc },
+      s.series_date.value(), s.series_time.value(),
+      (s.timezone_offset_from_utc.has_value())
+          ? std::optional<std::string_view>{ s.timezone_offset_from_utc
+                                                 .value() }
+          : std::nullopt,
       tz);
   if (!st_series.has_value())
     return std::unexpected(TimePointErrorWithId{
@@ -666,7 +693,9 @@ ComputeDecayFactorAdmin(const Spect& s, const tz::time_zone* tz)
 std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
 ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
 {
-  const auto dc = ParseDicomDecayCorrection(s.decay_correction);
+  if (!s.decay_correction.has_value())
+    return std::unexpected(DecayCorrectionError::kMissingDecayCorrection);
+  const auto dc = ParseDicomDecayCorrection(s.decay_correction.value());
   if (!dc.has_value())
     return std::unexpected(DecayCorrectionError::kInvalidDecayCorrection);
   switch (dc.value())
@@ -684,7 +713,7 @@ ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
 bool
 UsesTimeZone(const Spect& s)
 {
-  return s.timezone_offset_from_utc.empty();
+  return !s.timezone_offset_from_utc.has_value();
 }
 
 } // namespace spider

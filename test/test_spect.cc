@@ -229,7 +229,7 @@ TEST(GetTimezoneOffsetFromUtcTest, RealDataset)
   r.SetFileName(kTestFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  EXPECT_TRUE(spider::GetTimezoneOffsetFromUtc(ds).empty());
+  EXPECT_FALSE(spider::GetTimezoneOffsetFromUtc(ds).has_value());
 }
 
 TEST(GetDecayCorrectionTest, Example)
@@ -290,7 +290,7 @@ TEST(ReadDicomSpectTest, RealDataset)
   EXPECT_EQ(spect.series_date, "20181105");
   EXPECT_EQ(spect.series_time, "122601.000000 ");
   EXPECT_EQ(spect.frame_reference_time, 566124.53848358);
-  EXPECT_TRUE(spect.timezone_offset_from_utc.empty());
+  EXPECT_FALSE(spect.timezone_offset_from_utc.has_value());
   EXPECT_EQ(spect.decay_correction, "START ");
   EXPECT_EQ(spect.radionuclide_half_life, 1223.0);
 }
@@ -873,7 +873,7 @@ TEST(MakeAcquisitionSysTimeTest, RealDataset)
   // caller-supplied time zone is used.
   EXPECT_EQ(spect.acquisition_date, "20181105");
   EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
-  EXPECT_TRUE(spect.timezone_offset_from_utc.empty());
+  EXPECT_FALSE(spect.timezone_offset_from_utc.has_value());
   // Hand-craft a sys time consistent with spect.acquisition_date and
   // spect.acquisition_time.
   const spider::tz::time_zone* tz
@@ -903,7 +903,7 @@ TEST(MakeRadiopharmaceuticalStartSysTimeTest, RealDataset)
   // so a caller-supplied time zone is used.
   EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
-  EXPECT_TRUE(spect.timezone_offset_from_utc.empty());
+  EXPECT_FALSE(spect.timezone_offset_from_utc.has_value());
   // Hand-craft a sys time consistent with
   // spect.radiopharmaceutical_start_date_time.
   const spider::tz::time_zone* tz
@@ -1031,7 +1031,8 @@ TEST(ComputeDecayFactorTest, DecayCorrectionStart)
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   spider::Spect spect = spider::ReadDicomSpect(ds);
 
-  auto dc = spider::ParseDicomDecayCorrection(spect.decay_correction);
+  ASSERT_TRUE(spect.decay_correction.has_value());
+  auto dc = spider::ParseDicomDecayCorrection(spect.decay_correction.value());
   ASSERT_TRUE(dc.has_value());
   EXPECT_EQ(dc.value(), spider::DecayCorrection::kStart);
 
