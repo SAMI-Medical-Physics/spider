@@ -269,33 +269,9 @@ main(int argc, char* argv[])
 
   const ParsedArguments args = ParseArguments(argc, argv);
 
-  if (args.image_filenames.size() < 2)
-    {
-      // To fit an exponential.
-      std::cerr << kProgramName
-                << ": you must specify at least 2 image arguments\n";
-      return EXIT_FAILURE;
-    }
-
-  if (args.tz_names.size() > 1
-      && args.tz_names.size() != args.image_filenames.size())
-    {
-      std::cerr
-          << kProgramName
-          << ": when specifying more than one time zone, you must specify the "
-             "same number of time zones as image arguments\n";
-      return EXIT_FAILURE;
-    }
+  spider::Log() << "Version " << SPIDER_VERSION << "\n";
 
   // Read DICOM attributes for each SPECT.
-  if (args.dicom_dirs.size() != args.image_filenames.size())
-    {
-      std::cerr << kProgramName
-                << ": number of image arguments does not match number of "
-                   "directory arguments\n";
-      return EXIT_FAILURE;
-    }
-
   std::vector<spider::Spect> spects;
   for (std::size_t i = 0; i < args.dicom_dirs.size(); ++i)
     {
@@ -317,24 +293,34 @@ main(int argc, char* argv[])
 
   // Make a time zone for each SPECT using the specified time zone
   // names or the current time zone.
+  if (args.tz_names.size() > 1
+      && args.tz_names.size() != args.dicom_dirs.size())
+    {
+      std::cerr
+          << kProgramName
+          << ": when specifying more than one time zone, you must specify the "
+             "same number of time zones as directory arguments\n";
+      return EXIT_FAILURE;
+    }
+
   std::vector<const spider::tz::time_zone*> time_zones;
   const auto tz_current = spider::tz::current_zone();
-  time_zones.reserve(args.image_filenames.size());
+  time_zones.reserve(args.dicom_dirs.size());
   try
     {
       if (args.tz_names.empty())
         {
-          time_zones.assign(args.image_filenames.size(), tz_current);
+          time_zones.assign(args.dicom_dirs.size(), tz_current);
         }
       else if (args.tz_names.size() == 1)
         {
-          time_zones.assign(args.image_filenames.size(),
+          time_zones.assign(args.dicom_dirs.size(),
                             spider::tz::locate_zone(args.tz_names[0]));
         }
       else
         {
           // We already checked that args.tz_names has the same size as
-          // args.image_filenames.
+          // args.dicom_dirs.
           for (const auto& name : args.tz_names)
             time_zones.push_back(spider::tz::locate_zone(name));
         }
@@ -346,23 +332,6 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
-  std::vector<std::filesystem::path> out_filenames
-      = OutputFilenames(args.out_filename);
-  if (!args.overwrite)
-    {
-      for (const auto& p : out_filenames)
-        {
-          if (std::filesystem::exists(p))
-            {
-              std::cerr << kProgramName << ": file already exists: " << p
-                        << "\n";
-              return EXIT_FAILURE;
-            }
-        }
-    }
-
-  spider::Log() << "Version " << SPIDER_VERSION << "\n";
-
   std::vector<std::chrono::sys_seconds> administration_times;
   administration_times.reserve(spects.size());
   std::vector<std::chrono::sys_seconds> acquisition_times;
@@ -371,8 +340,6 @@ main(int argc, char* argv[])
   decay_factors.reserve(spects.size());
   for (std::size_t i = 0; i < spects.size(); ++i)
     {
-      spider::Log() << "SPECT " << i + 1 << ": " << spects[i] << "\n";
-
       if (spider::UsesTimeZone(spects[i]))
         spider::Warning()
             << "SPECT " << i + 1
@@ -453,7 +420,37 @@ main(int argc, char* argv[])
                     << ", decay factor: " << decay_factors[i] << "\n";
     }
 
+  std::vector<std::filesystem::path> out_filenames
+      = OutputFilenames(args.out_filename);
+  if (!args.overwrite)
+    {
+      for (const auto& p : out_filenames)
+        {
+          if (std::filesystem::exists(p))
+            {
+              std::cerr << kProgramName << ": file already exists: " << p
+                        << "\n";
+              return EXIT_FAILURE;
+            }
+        }
+    }
+
   // Compute TIA image.
+  if (args.image_filenames.size() < 2)
+    {
+      // To fit an exponential.
+      std::cerr << kProgramName
+                << ": you must specify at least 2 image arguments\n";
+      return EXIT_FAILURE;
+    }
+  if (args.image_filenames.size() != args.dicom_dirs.size())
+    {
+      std::cerr << kProgramName
+                << ": number of image arguments does not match number of "
+                   "directory arguments\n";
+      return EXIT_FAILURE;
+    }
+
   spider::TiaFilters tia_filters = spider::PrepareTiaPipeline(
       args.image_filenames, elapsed_since_administration, decay_factors);
   using PixelType = float;
