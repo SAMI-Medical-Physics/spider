@@ -16,7 +16,6 @@
 #include <string>
 #include <string_view>
 #include <system_error> // std::errc
-#include <variant>
 #include <vector>
 
 #include <gdcmAttribute.h>
@@ -616,7 +615,7 @@ MakeSysTimeFromDicomDateTime(std::string_view datetime,
   return MakeSysTimeFromOffsetOrTimeZone(date, time, voffset, tz);
 }
 
-std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+std::expected<double, SpectError>
 ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
 {
   // Compute the decay factor from DICOM FrameReferenceTime to
@@ -627,12 +626,12 @@ ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
   // the decay factor is greater than 1.
   if (!s.series_date.has_value())
     return std::unexpected(
-        TimePointErrorWithId{ .id = TimePointId::kSeriesDateAndTime,
-                              .error = TimePointError::kMissingSeriesDate });
+        SpectError{ .code = SpectErrorCode::kMissingSeriesDate,
+                    .time_point_error = std::nullopt });
   if (!s.series_time.has_value())
     return std::unexpected(
-        TimePointErrorWithId{ .id = TimePointId::kSeriesDateAndTime,
-                              .error = TimePointError::kMissingSeriesTime });
+        SpectError{ .code = SpectErrorCode::kMissingSeriesTime,
+                    .time_point_error = std::nullopt });
   const auto st_series = MakeSysTimeFromDicomDateAndTime(
       s.series_date.value(), s.series_time.value(),
       (s.timezone_offset_from_utc.has_value())
@@ -641,19 +640,23 @@ ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
           : std::nullopt,
       tz);
   if (!st_series.has_value())
-    return std::unexpected(TimePointErrorWithId{
-        .id = TimePointId::kSeriesDateAndTime,
+    return std::unexpected(
         // Provide more context for the UTC offset parsing failure.
-        .error = (st_series.error() == TimePointError::kInvalidUtcOffset)
-                     ? TimePointError::kInvalidTimezoneOffsetFromUtc
-                     : st_series.error() });
+        (st_series.error() == TimePointError::kInvalidUtcOffset)
+            ? SpectError{ .code
+                          = SpectErrorCode::kInvalidTimezoneOffsetFromUtc,
+                          .time_point_error = std::nullopt }
+            : SpectError{ .code = SpectErrorCode::kSeriesDateAndTimeError,
+                          .time_point_error = st_series.error() });
 
   const auto st_acquisition = MakeAcquisitionSysTime(s, tz);
   if (!st_acquisition.has_value())
     return std::unexpected(st_acquisition.error());
 
   if (!s.frame_reference_time.has_value())
-    return std::unexpected(DecayCorrectionError::kMissingFrameReferenceTime);
+    return std::unexpected(
+        SpectError{ .code = SpectErrorCode::kMissingFrameReferenceTime,
+                    .time_point_error = std::nullopt });
   // Time difference in seconds.
   const double delta_t = std::chrono::duration<double>(st_acquisition.value()
                                                        - st_series.value())
@@ -661,14 +664,17 @@ ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
                          - s.frame_reference_time.value() / 1000.0;
 
   if (!s.radionuclide_half_life.has_value())
-    return std::unexpected(DecayCorrectionError::kMissingHalfLife);
+    return std::unexpected(
+        SpectError{ .code = SpectErrorCode::kMissingHalfLife,
+                    .time_point_error = std::nullopt });
   if (s.radionuclide_half_life.value() <= 0.0)
     return std::unexpected(
-        DecayCorrectionError::kHalfLifeLessThanOrEqualToZero);
+        SpectError{ .code = SpectErrorCode::kHalfLifeLessThanOrEqualToZero,
+                    .time_point_error = std::nullopt });
   return std::exp(-std::log(2) * delta_t / s.radionuclide_half_life.value());
 }
 
-std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+std::expected<double, SpectError>
 ComputeDecayFactorAdmin(const Spect& s, const tz::time_zone* tz)
 {
   // Compute the decay factor from DICOM
@@ -687,21 +693,28 @@ ComputeDecayFactorAdmin(const Spect& s, const tz::time_zone* tz)
                              .count();
 
   if (!s.radionuclide_half_life.has_value())
-    return std::unexpected(DecayCorrectionError::kMissingHalfLife);
+    return std::unexpected(
+        SpectError{ .code = SpectErrorCode::kMissingHalfLife,
+                    .time_point_error = std::nullopt });
   if (s.radionuclide_half_life.value() <= 0.0)
     return std::unexpected(
-        DecayCorrectionError::kHalfLifeLessThanOrEqualToZero);
+        SpectError{ .code = SpectErrorCode::kHalfLifeLessThanOrEqualToZero,
+                    .time_point_error = std::nullopt });
   return std::exp(-std::log(2) * delta_t / s.radionuclide_half_life.value());
 }
 
-std::expected<double, std::variant<TimePointErrorWithId, DecayCorrectionError>>
+std::expected<double, SpectError>
 ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
 {
   if (!s.decay_correction.has_value())
-    return std::unexpected(DecayCorrectionError::kMissingDecayCorrection);
+    return std::unexpected(
+        SpectError{ .code = SpectErrorCode::kMissingDecayCorrection,
+                    .time_point_error = std::nullopt });
   const auto dc = ParseDicomDecayCorrection(s.decay_correction.value());
   if (!dc.has_value())
-    return std::unexpected(DecayCorrectionError::kInvalidDecayCorrection);
+    return std::unexpected(
+        SpectError{ .code = SpectErrorCode::kInvalidDecayCorrection,
+                    .time_point_error = std::nullopt });
   switch (dc.value())
     {
     case DecayCorrection::kNone:
@@ -711,7 +724,8 @@ ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
     case DecayCorrection::kAdmin:
       return ComputeDecayFactorAdmin(s, tz);
     }
-  return std::unexpected(DecayCorrectionError::kUnreachable);
+  return std::unexpected(SpectError{ .code = SpectErrorCode::kUnreachable,
+                                     .time_point_error = std::nullopt });
 }
 
 bool
