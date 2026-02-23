@@ -309,10 +309,10 @@ main(int argc, char* argv[])
           return EXIT_FAILURE;
         }
       const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-      spider::Log() << "SPECT " << i << ": reading DICOM attributes in " << p
-                    << "...\n";
+      spider::Log() << "SPECT " << i + 1 << ": reading DICOM attributes in "
+                    << p << "...\n";
       spects.emplace_back(spider::ReadDicomSpect(ds));
-      spider::Log() << "SPECT " << i << ": " << spects.back() << "\n";
+      spider::Log() << "SPECT " << i + 1 << ": " << spects.back() << "\n";
     }
 
   // Make a time zone for each SPECT using the specified time zone
