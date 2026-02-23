@@ -1,0 +1,97 @@
+.\" SPDX-License-Identifier: GFDL-1.3-or-later
+.\" Copyright (C) 2026 South Australia Medical Imaging
+.Dd 24 February 2026
+.Dt SPIDER_TIA 1
+.Os
+.Sh NAME
+.Nm spider_tia
+.Nd compute a time-integrated activity image
+.Sh SYNOPSIS
+.Nm spider_tia
+.Op Fl fV
+.Op Fl o Ar output_file
+.br
+{
+.Op Fl z Ar time_zone
+.Fl d Ar directory
+.Fl i Ar image
+}
+.Ar ...
+.Sh DESCRIPTION
+.Nm
+computes the time-integrated activity image from a time series of two
+or more SPECT scans.  A
+.Ar directory
+argument and an
+.Ar image
+argument are provided for each SPECT scan:
+.Ar directory
+is the directory containing the SPECT DICOM series, and
+.Ar image
+is a three-dimensional image file obtained by converting that DICOM
+series, optionally modified by image registration.  The images are
+expected to be co-registered.  The images are expected to have the
+same pixel value units (e.g. Bq/mL).  The time-integrated activity
+image has those units \(mu seconds.  The time-integrated activity
+image is written in NIfTI format to a file named tia.nii in the
+current directory, unless the
+.Fl o
+option is specified.
+.Pp
+The order in which
+.Fl d
+options are provided must correspond to the order in which
+.Fl i
+options are provided; i.e., the nth
+.Fl d
+option and the nth
+.Fl i
+option must correspond to the same SPECT scan.  Likewise, if the
+.Fl z
+option is provided more than once, it must be provided once for each
+SPECT scan, in the order matching the
+.Fl d
+and
+.Fl i
+options.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl f
+Overwrite output files.
+.Pp
+.It Fl V
+Display the version number and exit.
+.Pp
+.It Fl o Ar output_file
+Write the time-integrated activity image to
+.Ar output_file .
+The parent directory must already exist.  See the
+.Fl i
+option for supported file formats and file name suffix requirements.
+.Pp
+.It Fl z Ar time_zone
+For this SPECT's DICOM series, interpret DICOM Date, Time, and Date
+Time values that lack an explicit time zone in
+.Ar time_zone ,
+the name of a time zone in the IANA tz database (e.g. Europe/Paris).
+If this option is specified only once, this time zone is used for all
+SPECTs.  If this option is specified more than once, it must be
+specified once for each SPECT.  If omitted, the local time zone is
+used for all SPECTs.
+.Pp
+.It Fl d Ar directory
+The directory containing the DICOM series of the SPECT scan.
+.Pp
+.It Fl i Ar image
+The file name of the three-dimensional SPECT image.  This file may be
+in NIfTI format, compressed or not.  MetaImage and NRRD formats are
+also supported if the corresponding ImageIO module is included in the
+ITK library against which
+.Nm
+was built.  The file name must have a suffix corresponding to its file
+format.  For a detached header format, the header file must be
+specified.  For example, the suffix can be .nii or .nii.gz for
+NIfTI, .mha or .mhd for MetaImage, and .nrrd or .nhdr for NRRD.
+.Sh EXIT STATUS
+.Ex -std
