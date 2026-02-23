@@ -87,8 +87,8 @@ operator<<(std::ostream& os, const Spect& s)
      << std::quoted(s.radiopharmaceutical_start_date_time)
      << ", acquisition_date=" << std::quoted(s.acquisition_date)
      << ", acquisition_time=" << std::quoted(s.acquisition_time)
-     << ", series_date=" << std::quoted(s.acquisition_date)
-     << ", series_time=" << std::quoted(s.acquisition_time);
+     << ", series_date=" << std::quoted(s.series_date)
+     << ", series_time=" << std::quoted(s.series_time);
   if (s.frame_reference_time.has_value())
     os << ", frame_reference_time=" << s.frame_reference_time.value() << " ms";
   os << ", timezone_offset_from_utc="
