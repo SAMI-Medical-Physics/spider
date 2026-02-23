@@ -373,7 +373,7 @@ main(int argc, char* argv[])
     {
       spider::Log() << "SPECT " << i + 1 << ": " << spects[i] << "\n";
 
-      if (UsesTimeZone(spects[i]))
+      if (spider::UsesTimeZone(spects[i]))
         spider::Warning()
             << "SPECT " << i + 1
             << ": assuming Dates (DA), Times (TM), and Date Times (DT) "
