@@ -183,6 +183,7 @@ ToString(TimePointError e)
     case TimePointError::kNonexistentLocalTime:
       return "nonexistent local time";
     }
+  assert(false && "Unhandled TimePointError");
   return "unknown error";
 }
 
@@ -265,8 +266,6 @@ enum class SpectErrorCode
   kRadiopharmaceuticalStartDateTimeError,
   kAcquisitionDateAndTimeError,
   kSeriesDateAndTimeError,
-  // Other.
-  kUnreachable,
 };
 
 constexpr std::string_view
@@ -305,10 +304,8 @@ ToString(SpectErrorCode e)
       return "failed to make time point for acquisition date and time";
     case SpectErrorCode::kSeriesDateAndTimeError:
       return "failed to make time point for series date and time";
-
-    case SpectErrorCode::kUnreachable:
-      return "you found a bug";
     }
+  assert(false && "Unhandled SpectErrorCode");
   return "unknown error";
 }
 

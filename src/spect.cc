@@ -7,7 +7,8 @@
 #include <chrono>
 #include <cmath>   // std::exp, std::log
 #include <cstddef> // std::size_t
-#include <cstdlib> // std::strtod
+#include <cstdio>  // std::fputs, stderr
+#include <cstdlib> // std::strtod, std::exit, EXIT_FAILURE
 #include <expected>
 #include <iomanip> // std::quoted
 #include <istream>
@@ -724,8 +725,8 @@ ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
     case DecayCorrection::kAdmin:
       return ComputeDecayFactorAdmin(s, tz);
     }
-  return std::unexpected(SpectError{ .code = SpectErrorCode::kUnreachable,
-                                     .time_point_error = std::nullopt });
+  std::fputs("you found a bug: unhandled DecayCorrection, exiting\n", stderr);
+  std::exit(EXIT_FAILURE);
 }
 
 bool
