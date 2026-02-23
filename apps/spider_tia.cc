@@ -292,7 +292,9 @@ main(int argc, char* argv[])
     }
 
   // Make a time zone for each SPECT using the specified time zone
-  // names or the current time zone.
+  // names or the current time zone.  These time zones are only used
+  // to interpret DICOM DA, TM, and DT values when the time zone is
+  // not specified by the DICOM attributes.
   if (args.tz_names.size() > 1
       && args.tz_names.size() != args.dicom_dirs.size())
     {
@@ -332,6 +334,8 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
+  // Compute the administration time points, acquisition time points,
+  // and decay factors.
   std::vector<std::chrono::sys_seconds> administration_times;
   administration_times.reserve(spects.size());
   std::vector<std::chrono::sys_seconds> acquisition_times;
@@ -420,6 +424,7 @@ main(int argc, char* argv[])
                     << ", decay factor: " << decay_factors[i] << "\n";
     }
 
+  // Do not overwrite output files unless requested.
   std::vector<std::filesystem::path> out_filenames
       = OutputFilenames(args.out_filename);
   if (!args.overwrite)
@@ -438,7 +443,7 @@ main(int argc, char* argv[])
   // Compute TIA image.
   if (args.image_filenames.size() < 2)
     {
-      // To fit an exponential.
+      // Required by PrepareTiaPipeline.
       std::cerr << kProgramName
                 << ": you must specify at least 2 image arguments\n";
       return EXIT_FAILURE;
