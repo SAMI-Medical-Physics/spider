@@ -89,17 +89,15 @@ operator<<(std::ostream& os, const Spect& s)
      << ", acquisition_time=" << std::quoted(s.acquisition_time)
      << ", series_date=" << std::quoted(s.acquisition_date)
      << ", series_time=" << std::quoted(s.acquisition_time);
-  os << ", frame_reference_time=";
   if (s.frame_reference_time.has_value())
-    os << s.frame_reference_time.value();
-  os << " ms"
-     << ", timezone_offset_from_utc="
+    os << ", frame_reference_time=" << s.frame_reference_time.value() << " ms";
+  os << ", timezone_offset_from_utc="
      << std::quoted(s.timezone_offset_from_utc)
-     << ", decay_correction=" << std::quoted(s.decay_correction)
-     << ", radionuclide_half_life=";
+     << ", decay_correction=" << std::quoted(s.decay_correction);
   if (s.radionuclide_half_life.has_value())
-    os << s.radionuclide_half_life.value();
-  os << " s}";
+    os << ", radionuclide_half_life=" << s.radionuclide_half_life.value()
+       << " s";
+  os << "}";
   return os;
 }
 
