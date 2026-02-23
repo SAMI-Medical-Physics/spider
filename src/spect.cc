@@ -642,7 +642,11 @@ ComputeDecayFactorNone(const Spect& s, const tz::time_zone* tz)
       tz);
   if (!st_series.has_value())
     return std::unexpected(TimePointErrorWithId{
-        .id = TimePointId::kSeriesDateAndTime, .error = st_series.error() });
+        .id = TimePointId::kSeriesDateAndTime,
+        // Provide more context for the UTC offset parsing failure.
+        .error = (st_series.error() == TimePointError::kInvalidUtcOffset)
+                     ? TimePointError::kInvalidTimezoneOffsetFromUtc
+                     : st_series.error() });
 
   const auto st_acquisition = MakeAcquisitionSysTime(s, tz);
   if (!st_acquisition.has_value())
