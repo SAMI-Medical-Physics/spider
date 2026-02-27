@@ -3,6 +3,8 @@
 Spider is a software pipeline for estimating patient radiation dose
 from radionuclide therapy based on multiple time-point imaging.
 
+Note this project is a work in progress.
+
 ## SNMMI Lu-177 Dosimetry Challenge 2021
 
 Spider's performance can be evaluated by executing it on the image
