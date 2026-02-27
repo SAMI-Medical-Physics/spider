@@ -76,10 +76,10 @@ main(int argc, char* argv[])
   // Bin width of 0.5, centred on 0.
   constexpr int bins_per_dimension = 40;
   ImageToHistogramFilterType::HistogramType::MeasurementVectorType lower_bound(
-      bins_per_dimension);
+      measurement_vector_size);
   lower_bound.Fill(-10.25);
   ImageToHistogramFilterType::HistogramType::MeasurementVectorType upper_bound(
-      bins_per_dimension);
+      measurement_vector_size);
   upper_bound.Fill(9.75);
 
   ImageToHistogramFilterType::HistogramType::SizeType size(
