@@ -1,6 +1,6 @@
 # Benchmark Spider's performance using image data from the SNMMI
 # Lu-177 Dosimetry Challenge 2021:
-# <https://snmmi.org/Therapy/SNMMI-THERAPY/Dosimetry_Challenge.aspx>.
+# <https://deepblue.lib.umich.edu/data/collections/hm50ts030>.
 
 option(SPIDER_DOWNLOAD_BENCHMARK_DATA "Download the benchmark data." ON)
 if(SPIDER_DOWNLOAD_BENCHMARK_DATA)

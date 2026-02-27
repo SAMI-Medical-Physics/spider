@@ -11,7 +11,7 @@
 
 ;; Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
 ;; Challenge 2021
-;; (<https://snmmi.org/Therapy/SNMMI-THERAPY/Dosimetry_Challenge.aspx>)
+;; (<https://deepblue.lib.umich.edu/data/collections/hm50ts030>)
 ;; through Spider's time-integrated activity (TIA) pipeline in an
 ;; isolated, self-contained, and reproducible build environment with
 ;; bullet-proof caching (work re-use) using GNU Guix.

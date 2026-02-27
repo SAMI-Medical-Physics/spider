@@ -7,7 +7,7 @@ from radionuclide therapy based on multiple time-point imaging.
 
 Spider's performance can be evaluated by executing it on the image
 dataset from the [SNMMI Lu-177 Dosimetry Challenge
-2021](https://snmmi.org/Therapy/SNMMI-THERAPY/Dosimetry_Challenge.aspx)
+2021](https://deepblue.lib.umich.edu/data/collections/hm50ts030)
 (hereafter referred to as the benchmark dataset).
 Pass CMake the flag `-DSPIDER_BUILD_BENCHMARKS=ON` to download the
 benchmark dataset and build the script `benchmark/tia/run.sh`.
