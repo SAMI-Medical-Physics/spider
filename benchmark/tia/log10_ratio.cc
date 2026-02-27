@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2025, 2026 South Australia Medical Imaging
 
+// Read files NUMERATOR and DENOM as three-dimensional images of pixel
+// type float.  Output a histogram of the base-10 logarithm of the
+// per-pixel ratio NUMERATOR / DENOM.  The output is formatted as:
+// <lower edge of bin> <upper edge of bin> <bin counts>.  If the third
+// argument THRESHOLD is provided, the histogram excludes pixels with
+// value less than THRESHOLD in DENOM image.
+
 #include <cstdlib> // EXIT_SUCCESS, EXIT_FAILURE
 #include <iostream>
 #include <optional>
@@ -19,7 +26,7 @@ main(int argc, char* argv[])
 {
   if (argc < 3)
     {
-      std::cerr << "Usage: " << argv[0] << " new old [threshold]\n";
+      std::cerr << "Usage: " << argv[0] << " numerator denom [threshold]\n";
       return EXIT_FAILURE;
     }
 
@@ -27,59 +34,60 @@ main(int argc, char* argv[])
   if (argc > 3)
     {
       threshold = std::stof(argv[3]);
+      std::cerr << "threshold = " << threshold.value() << "\n";
     }
 
-  // XXX: This is the pixel type AFTER applying rescale slope and
-  // intercept.
   using PixelType = float;
   constexpr unsigned int ImageDimension = 3;
   using ImageType = itk::Image<PixelType, ImageDimension>;
 
   using ImageFileReaderType = itk::ImageFileReader<ImageType>;
-  auto image_file_reader_new = ImageFileReaderType::New();
-  image_file_reader_new->SetFileName(argv[1]);
-  auto image_file_reader_old = ImageFileReaderType::New();
-  image_file_reader_old->SetFileName(argv[2]);
+  auto image_file_reader_numerator = ImageFileReaderType::New();
+  image_file_reader_numerator->SetFileName(argv[1]);
+  auto image_file_reader_denom = ImageFileReaderType::New();
+  image_file_reader_denom->SetFileName(argv[2]);
 
   using ThresholdImageFilterType = itk::ThresholdImageFilter<ImageType>;
   auto threshold_image_filter = ThresholdImageFilterType::New();
   if (threshold)
     {
-      // Set pixels in OLD image to 0 if below THRESHOLD.
-      threshold_image_filter->SetInput(image_file_reader_old->GetOutput());
+      // Set pixels in DENOM image to zero if below THRESHOLD.
+      threshold_image_filter->SetInput(image_file_reader_denom->GetOutput());
       threshold_image_filter->ThresholdBelow(threshold.value());
-      threshold_image_filter->SetOutsideValue(0.0);
+      threshold_image_filter->SetOutsideValue(0.0f);
     }
 
-  // XXX: If the denominator (pixel in OLD image) is zero, the result
-  // of division is 3.40282e+38 for float.
+  // XXX: If the pixel in DENOM image is zero, the result of division
+  // is FLT_MAX (3.40282e+38).
   using DivideImageFilterType
       = itk::DivideImageFilter<ImageType, ImageType, ImageType>;
   auto divide_image_filter = DivideImageFilterType::New();
   // FIXME: Why is this required?  I.e. why does elastix output have
   // slightly different coordinates?
   divide_image_filter->SetCoordinateTolerance(1e-3);
-  divide_image_filter->SetInput1(image_file_reader_new->GetOutput());
-  divide_image_filter->SetInput2(threshold
+  divide_image_filter->SetInput1(image_file_reader_numerator->GetOutput());
+  divide_image_filter->SetInput2(threshold.has_value()
                                      ? threshold_image_filter->GetOutput()
-                                     : image_file_reader_old->GetOutput());
+                                     : image_file_reader_denom->GetOutput());
 
-  // Take the log base 10.
+  // Take the logarithm with base 10.
   using Log10ImageFilterType = itk::Log10ImageFilter<ImageType, ImageType>;
   auto log10_image_filter = Log10ImageFilterType::New();
   log10_image_filter->SetInput(divide_image_filter->GetOutput());
 
-  // Histogram of log base 10 of new / old images.
+  // Histogram of base-10 logarithm of NUMERATOR / DENOM.
   using ImageToHistogramFilterType
       = itk::Statistics::ImageToHistogramFilter<ImageType>;
   constexpr int measurement_vector_size = 1; // grayscale
-  // Bin width of 0.5, centred on 0.
+  // Bin width of 0.5, including a bin from -0.25 to 0.25.
   constexpr int bins_per_dimension = 40;
   ImageToHistogramFilterType::HistogramType::MeasurementVectorType lower_bound(
       measurement_vector_size);
   lower_bound.Fill(-10.25);
   ImageToHistogramFilterType::HistogramType::MeasurementVectorType upper_bound(
       measurement_vector_size);
+  // Choose an upper bound less than log10(FLT_MAX) ~ 38.5 to exclude
+  // pixels with value zero in DENOM image.
   upper_bound.Fill(9.75);
 
   ImageToHistogramFilterType::HistogramType::SizeType size(
