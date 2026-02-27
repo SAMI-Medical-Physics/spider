@@ -1,0 +1,49 @@
+name: benchmark
+on:
+  schedule:
+    # Sunday 17:00 UTC.
+    - cron: "0 17 * * 0"
+  # To run the workflow from the Actions tab.
+  workflow_dispatch:
+jobs:
+  build:
+    name: Evaluate benchmarks and upload
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Guix
+        uses: PromyLOPh/guix-install-action@v1
+        with:
+          channels: |-
+            (cons
+             (channel
+              (name 'guix-science)
+              (url "https://codeberg.org/guix-science/guix-science.git")
+              (introduction
+               (make-channel-introduction
+                "b1fe5aaff3ab48e798a4cce02f0212bc91f423dc"
+                (openpgp-fingerprint
+                 "CA4F 8CF4 37D7 478F DA05  5FD4 4213 7701 1A37 8446"))))
+             %default-channels)
+      - name: Evaluate benchmarks
+        run: |
+          out=$(guix build -f benchmark/guix.scm)
+          mkdir site
+          cp -rL $out/. site
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site/
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy pages
+        id: deployment
+        uses: actions/deploy-pages@v4
