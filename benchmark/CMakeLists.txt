@@ -47,3 +47,7 @@ if(NOT SPIDER_BENCHMARK_SPECTCTS_DIR OR NOT SPIDER_BENCHMARK_TIA_DIR)
 endif()
 
 add_subdirectory(tia)
+
+configure_file(run.sh.in run.sh @ONLY)
+file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/run.sh"
+  PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)

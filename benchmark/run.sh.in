@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Evaluate the performance of the Spider dosimetry pipeline by
+# applying it to publicly available datasets.
+
+set -eu
+
+(cd tia && ./run.sh)
+
+# Generate a report of the benchmark results (requires docutils).
+if command -v rst2html5 >/dev/null 2>&1; then
+    rst2html5 "@CMAKE_SOURCE_DIR@/benchmark/index.rst" index.html
+    echo "Wrote index.html"
+else
+    echo "Command 'rst2html5' was not found, so index.html was not generated"
+fi

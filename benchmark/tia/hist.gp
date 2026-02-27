@@ -7,8 +7,8 @@
 # Warning: The horizontal axis tick interval is hard-coded to 1.
 
 # Write to a file.
-set terminal postscript eps
-set output 'hist.eps'
+set terminal svg
+set output 'hist.svg'
 
 set style fill solid
 # Remove legend.

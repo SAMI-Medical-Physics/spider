@@ -176,15 +176,8 @@
               (close to)
               (close from)
               (for-each waitpid pids))
-
-            ;; Remove timestamps for reproducibility.
-            (with-fluids ((%default-port-encoding "ISO-8859-1"))
-              (substitute* "hist.eps"
-                (("^%%CreationDate: .*") "%%CreationDate: reproducible")
-                (("/CreationDate \\(.*\\)") "/CreationDate (reproducible)")))
-
-            (copy-file "hist.eps"
-                       (string-append #$output "/hist-" threshold ".eps")))
+            (copy-file "hist.svg"
+                       (string-append #$output "/hist-" threshold ".svg")))
           '("" "1e10"))))))
 
 tia-comparison

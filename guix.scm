@@ -10,6 +10,7 @@
              (gnu packages image-processing)
              (gnu packages maths)
              (gnu packages nss)
+             (gnu packages python-xyz)
              (guix-science packages neuroscience)) ;dcm2niix, elastix
 
 (define spider
@@ -54,7 +55,8 @@
                  ;; Development inputs.
                  gnuplot
                  itk-snap
-                 nss-certs))            ;for CMake FetchContent
+                 nss-certs              ;for CMake FetchContent
+                 python-docutils))      ;for rst2html5
    (native-inputs
     (list (origin
             (method url-fetch)

@@ -56,12 +56,12 @@ SPIDER_TIA=spider-tia.nii
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii | \
     gnuplot "$BENCHMARK_DIR/hist.gp"
 # Free up the output filename for the next run of hist.gp.
-mv hist.eps hist-.eps
-echo "Wrote hist-.eps"
+mv hist.svg hist-.svg
+echo "Wrote hist-.svg"
 
 # Exclude voxels that have TIA < 1e10 disintegrations/mL in the
 # benchmark image.
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii 1e10 | \
     gnuplot "$BENCHMARK_DIR/hist.gp"
-mv hist.eps hist-1e10.eps
-echo "Wrote hist-1e10.eps"
+mv hist.svg hist-1e10.svg
+echo "Wrote hist-1e10.svg"
