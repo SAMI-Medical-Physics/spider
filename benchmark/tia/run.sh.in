@@ -19,10 +19,6 @@ TIA_DIR="@SPIDER_BENCHMARK_TIA_DIR@"
 ETC_DIR="@CMAKE_SOURCE_DIR@/etc"
 BENCHMARK_DIR="@CMAKE_SOURCE_DIR@/benchmark/tia"
 
-# Remove previous output of this script.
-rm -rf output_dir*
-rm -f hist.eps
-
 # The SPECTs and TIA image in the benchmark dataset are in the form of
 # DICOM series.  Convert them into 3D NIfTI files.  The "-w 1" option
 # overwrites output files.  "-g i" (ignore user defaults file) is used
@@ -35,6 +31,7 @@ dcm2niix -o . -f spect4 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
 dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
 
 # Register SPECTs to first SPECT.
+rm -rf output_dir2 output_dir3 output_dir4
 mkdir output_dir2 output_dir3 output_dir4
 elastix -f spect1.nii -m spect2.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
         -out output_dir2
@@ -58,5 +55,13 @@ SPIDER_TIA=spider-tia.nii
 # Compare Spider's TIA image with the one in the benchmark dataset.
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii | \
     gnuplot "$BENCHMARK_DIR/hist.gp"
+# Free up the output filename for the next run of hist.gp.
+mv hist.eps hist-.eps
+echo "Wrote hist-.eps"
 
-echo "Wrote hist.eps"
+# Exclude voxels that have TIA < 1e10 disintegrations/mL in the
+# benchmark image.
+"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii 1e10 | \
+    gnuplot "$BENCHMARK_DIR/hist.gp"
+mv hist.eps hist-1e10.eps
+echo "Wrote hist-1e10.eps"
