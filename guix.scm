@@ -27,10 +27,7 @@
      #:configure-flags
      #~(list "-DSPIDER_DOWNLOAD_TEST_DATA=OFF"
              (string-append "-DSPIDER_TEST_DATA_DIR=" (canonicalize-path ".")
-                            "/source/pet-images-01")
-             ;; Development flags.
-             "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror")
-     #:build-type "Debug"               ;for assertions in development
+                            "/source/pet-images-01"))
      #:phases
      #~(modify-phases %standard-phases
          (add-after 'unpack 'prepare-test-data
@@ -49,14 +46,7 @@
                                   (search-input-file
                                    inputs (string-append "bin/" command))))))
               '("awk" "dcm2niix" "elastix" "mkdir" "sed")))))))
-   (inputs (list dcm2niix
-                 elastix
-                 insight-toolkit
-                 ;; Development inputs.
-                 gnuplot
-                 itk-snap
-                 nss-certs              ;for CMake FetchContent
-                 python-docutils))      ;for rst2html5
+   (inputs (list dcm2niix elastix insight-toolkit))
    (native-inputs
     (list (origin
             (method url-fetch)
@@ -74,5 +64,21 @@
 dosimetry for radionuclide therapy patients.")
    (home-page "https://github.com/SAMI-Medical-Physics/spider")
    (license license:agpl3+)))
+
+;; Provide a variant for development.
+(define spider-devel
+  (package/inherit spider
+    (arguments
+     (append
+      (list #:build-type "Debug")       ;for assertions
+      (substitute-keyword-arguments (package-arguments spider)
+        ((#:configure-flags flags #~'())
+         #~(cons* "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror"
+                  #$flags)))))
+    (inputs (modify-inputs (package-inputs spider)
+              (prepend gnuplot
+                       itk-snap
+                       nss-certs            ;for CMake FetchContent
+                       python-docutils))))) ;for rst2html5
 
 spider
