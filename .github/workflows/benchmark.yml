@@ -30,7 +30,7 @@ jobs:
         # x86_64-linux are available from
         # https://guix.bordeaux.inria.fr.  Authorise them.
         run: |
-          sudo guix archive --authorize <<EOF
+          sudo /var/guix/profiles/per-user/root/current-guix/bin/guix archive --authorize <<EOF
           (public-key
            (ecc
             (curve Ed25519)
