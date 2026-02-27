@@ -9,6 +9,7 @@
              (gnu packages compression)
              (gnu packages image-processing)
              (gnu packages maths)
+             (gnu packages nss)
              (guix-science packages neuroscience)) ;dcm2niix, elastix
 
 (define spider
@@ -52,7 +53,8 @@
                  insight-toolkit
                  ;; Development inputs.
                  gnuplot
-                 itk-snap))
+                 itk-snap
+                 nss-certs))            ;for CMake FetchContent
    (native-inputs
     (list (origin
             (method url-fetch)
