@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copyright (C) 2025 South Australia Medical Imaging
+// Copyright (C) 2025, 2026 South Australia Medical Imaging
 
 #include <cstdlib> // EXIT_SUCCESS, EXIT_FAILURE
 #include <iostream>
@@ -45,8 +45,8 @@ main(int argc, char* argv[])
   auto threshold_image_filter = ThresholdImageFilterType::New();
   if (threshold)
     {
-      // Set pixels in NEW image to 0 if below THRESHOLD.
-      threshold_image_filter->SetInput(image_file_reader_new->GetOutput());
+      // Set pixels in OLD image to 0 if below THRESHOLD.
+      threshold_image_filter->SetInput(image_file_reader_old->GetOutput());
       threshold_image_filter->ThresholdBelow(threshold.value());
       threshold_image_filter->SetOutsideValue(0.0);
     }
@@ -59,10 +59,10 @@ main(int argc, char* argv[])
   // FIXME: Why is this required?  I.e. why does elastix output have
   // slightly different coordinates?
   divide_image_filter->SetCoordinateTolerance(1e-3);
-  divide_image_filter->SetInput1(threshold
+  divide_image_filter->SetInput1(image_file_reader_new->GetOutput());
+  divide_image_filter->SetInput2(threshold
                                      ? threshold_image_filter->GetOutput()
-                                     : image_file_reader_new->GetOutput());
-  divide_image_filter->SetInput2(image_file_reader_old->GetOutput());
+                                     : image_file_reader_old->GetOutput());
 
   // Take the log base 10.
   using Log10ImageFilterType = itk::Log10ImageFilter<ImageType, ImageType>;

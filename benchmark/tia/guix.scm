@@ -185,6 +185,6 @@
 
             (copy-file "hist.eps"
                        (string-append #$output "/hist-" threshold ".eps")))
-          '("" "1e9"))))))
+          '("" "1e10"))))))
 
 tia-comparison
