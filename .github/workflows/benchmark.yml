@@ -25,9 +25,22 @@ jobs:
                 (openpgp-fingerprint
                  "CA4F 8CF4 37D7 478F DA05  5FD4 4213 7701 1A37 8446"))))
              %default-channels)
+      - name: Authorise substitutes
+        # Binary substitutes for Guix Science packages for
+        # x86_64-linux are available from
+        # https://guix.bordeaux.inria.fr.  Authorise them.
+        run: |
+          sudo guix archive --authorize <<EOF
+          (public-key
+           (ecc
+            (curve Ed25519)
+            (q #89FBA276A976A8DE2A69774771A92C8C879E0F24614AAAAE23119608707B3F06#)))
+          EOF
       - name: Evaluate benchmarks
         run: |
-          out=$(guix build -f benchmark/guix.scm)
+          out=$(guix build \
+            --substitute-urls='https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://guix.bordeaux.inria.fr' \
+            -f benchmark/guix.scm)
           mkdir site
           cp -rL $out/. site
       - name: Upload pages artifact
