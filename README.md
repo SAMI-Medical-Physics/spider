@@ -5,6 +5,11 @@ from radionuclide therapy based on multiple time-point imaging.
 
 Note this project is a work in progress.
 
+## Building Spider
+
+See [doc/build.md](doc/build.md) for build and installation
+instructions.
+
 ## Benchmarks
 
 Spider's performance is evaluated by applying it to publicly available
