@@ -21,3 +21,8 @@ https://sami-medical-physics.github.io/spider/.
 
 See [doc/benchmark.md](doc/benchmark.md) for instructions on running
 the benchmarks locally.
+
+## License
+
+Spider is licensed under AGPL-3.0-or-later.
+See COPYING file for details.
