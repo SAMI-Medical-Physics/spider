@@ -14,17 +14,7 @@ jobs:
       - name: Install Guix
         uses: PromyLOPh/guix-install-action@v1
         with:
-          channels: |-
-            (cons
-             (channel
-              (name 'guix-science)
-              (url "https://codeberg.org/guix-science/guix-science.git")
-              (introduction
-               (make-channel-introduction
-                "b1fe5aaff3ab48e798a4cce02f0212bc91f423dc"
-                (openpgp-fingerprint
-                 "CA4F 8CF4 37D7 478F DA05  5FD4 4213 7701 1A37 8446"))))
-             %default-channels)
+          pullAfterInstall: false
       - name: Authorise substitutes
         # Binary substitutes for Guix Science packages for
         # x86_64-linux are available from
@@ -38,7 +28,9 @@ jobs:
           EOF
       - name: Evaluate benchmarks
         run: |
-          out=$(guix build \
+          guix time-machine -C channels.scm -- describe -f channels \
+            | tee ${{ runner.temp }}/channels.scm.lock
+          out=$(guix time-machine -C ${{ runner.temp }}/channels.scm.lock -- build \
             --substitute-urls='https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://guix.bordeaux.inria.fr' \
             -f benchmark/guix.scm)
           mkdir site
