@@ -99,14 +99,10 @@ public:
       {
         slope_numerator += time_point_deviation_s_[i] * (logy[i] - logy_mean);
       }
-    const double slope = slope_numerator / slope_denominator_s2_; // -b
-    // Require a negative slope for finite TIA.
-    if (slope >= 0.0)
-      // return static_cast<OutPixelType>(0.0);
-      return 0.0f;
+    const double slope = slope_numerator / slope_denominator_s2_;     // -b
     const double intercept = logy_mean - slope * time_points_mean_s_; // log(A)
-    // If b_est is slower than physical decay, use A_est and physical
-    // decay.
+    // If the slope is positive or b_est is slower than physical
+    // decay, use A_est and physical decay.
     assert(half_life_s_ != 0.0);
     const double b_est = std::max(-slope, std::log(2) / half_life_s_);
     const double A_est = std::exp(intercept);
