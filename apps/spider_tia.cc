@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cctype> // std::tolower
 #include <chrono>
+#include <cmath>   // std::llround
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS
 #include <filesystem>
 #include <fstream> // std::ifstream
@@ -257,6 +258,19 @@ ReadDicomFileInDir(const std::string_view dir,
   return false;
 }
 
+double
+GetRadionuclideHalfLife(const std::vector<spider::Spect>& spects)
+{
+  for (const auto& spect : spects)
+    {
+      if (spect.radionuclide_half_life.has_value())
+        return spect.radionuclide_half_life.value();
+    }
+  std::cerr << kProgramName
+            << ": no SPECT has DICOM attribute RadionuclideHalfLife\n";
+  std::exit(EXIT_FAILURE);
+}
+
 } // namespace
 
 int
@@ -464,8 +478,20 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
+  const double radionuclide_half_life_s = GetRadionuclideHalfLife(spects);
+  if (!std::all_of(spects.cbegin(), spects.cend(),
+                   [&](const spider::Spect& spect)
+                     {
+                       return spect.radionuclide_half_life.has_value()
+                              && spect.radionuclide_half_life.value()
+                                     == radionuclide_half_life_s;
+                     }))
+    spider::Warning() << "DICOM attribute RadionuclideHalfLife differs for "
+                         "two or more SPECTs\n";
+
   spider::TiaFilters tia_filters = spider::PrepareTiaPipeline(
-      args.image_filenames, elapsed_since_administration, decay_factors);
+      args.image_filenames, elapsed_since_administration, decay_factors,
+      std::chrono::seconds(std::llround(radionuclide_half_life_s)));
   using PixelType = float;
   constexpr unsigned int ImageDimension = 3;
   using ImageType = itk::Image<PixelType, ImageDimension>;

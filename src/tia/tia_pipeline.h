@@ -68,7 +68,8 @@ struct TiaFilters
 TiaFilters
 PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
                    const std::vector<std::chrono::seconds>& time_points,
-                   const std::vector<double>& decay_factors);
+                   const std::vector<double>& decay_factors,
+                   std::chrono::seconds radionuclide_half_life);
 } // namespace spider
 
 #endif // SPIDER_TIA_TIA_PIPELINE_H

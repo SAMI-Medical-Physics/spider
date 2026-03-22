@@ -4,6 +4,7 @@
 #ifndef SPIDER_TIA_EXP_FIT_FUNCTOR_H
 #define SPIDER_TIA_EXP_FIT_FUNCTOR_H
 
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <cmath>   // std::log, std::exp
@@ -29,6 +30,8 @@ namespace spider
 // the operator() argument (itk::VariableLengthVector<float>) must
 // match the number of time points last passed to SetTimePoints, and
 // must be at least 2.
+//
+// XXX: SetRadionuclideHalfLife must be called before operator().
 class ExpFitFunctor
 {
 public:
@@ -56,6 +59,12 @@ public:
         slope_denominator_s2_
             += time_point_deviation_s_[i] * time_point_deviation_s_[i];
       }
+  }
+
+  void
+  SetRadionuclideHalfLife(std::chrono::seconds half_life)
+  {
+    half_life_s_ = std::chrono::duration<double>(half_life).count();
   }
 
   // It was originally inlined because it was templated.
@@ -91,14 +100,15 @@ public:
         slope_numerator += time_point_deviation_s_[i] * (logy[i] - logy_mean);
       }
     const double slope = slope_numerator / slope_denominator_s2_; // -b
-    // Avoid returning a negative TIA for the pixel.
+    // Require a negative slope for finite TIA.
     if (slope >= 0.0)
       // return static_cast<OutPixelType>(0.0);
       return 0.0f;
     const double intercept = logy_mean - slope * time_points_mean_s_; // log(A)
-    const double b_est = -slope;
-    // FIXME: Would it help to have a lower limit on b_est
-    // corresponding to the physical half-life?
+    // If b_est is slower than physical decay, use A_est and physical
+    // decay.
+    assert(half_life_s_ != 0.0);
+    const double b_est = std::max(-slope, std::log(2) / half_life_s_);
     const double A_est = std::exp(intercept);
     // Return the TIA in units of pixel units * seconds.
     const double time_integrated_activity = A_est / b_est;
@@ -110,6 +120,7 @@ private:
   double time_points_mean_s_ = 0.0;
   std::vector<double> time_point_deviation_s_;
   double slope_denominator_s2_ = 0.0;
+  double half_life_s_ = 0.0;
 };
 } // namespace spider
 

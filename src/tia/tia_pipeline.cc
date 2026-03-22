@@ -23,7 +23,8 @@ namespace spider
 TiaFilters
 PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
                    const std::vector<std::chrono::seconds>& time_points,
-                   const std::vector<double>& decay_factors)
+                   const std::vector<double>& decay_factors,
+                   std::chrono::seconds radionuclide_half_life)
 {
   const std::size_t num_images = input_filenames.size();
   TiaFilters filters;
@@ -68,6 +69,8 @@ PrepareTiaPipeline(const std::vector<std::string>& input_filenames,
                                      itk::Image<float, 3>, ExpFitFunctor>;
   filters.functor_filter = UnaryFunctorImageFilterType::New();
   filters.functor_filter->GetFunctor().SetTimePoints(time_points);
+  filters.functor_filter->GetFunctor().SetRadionuclideHalfLife(
+      radionuclide_half_life);
   filters.functor_filter->SetInput(filters.compose_filter->GetOutput());
   return filters;
 }

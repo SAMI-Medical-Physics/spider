@@ -25,6 +25,7 @@ TEST(ExpFitFunctorTest, Pixel)
   };
   spider::ExpFitFunctor func;
   func.SetTimePoints(time_points);
+  func.SetRadionuclideHalfLife(std::chrono::hours(7));
 
   itk::VariableLengthVector<float> pixel_in;
   pixel_in.SetSize(4);
@@ -76,6 +77,8 @@ TEST(ExpFitFunctorTest, Image)
     std::chrono::hours{ 18 }, std::chrono::hours{ 24 }
   };
   unary_functor_image_filter->GetFunctor().SetTimePoints(time_points);
+  unary_functor_image_filter->GetFunctor().SetRadionuclideHalfLife(
+      std::chrono::hours(7));
   unary_functor_image_filter->SetInput(compose_image_filter->GetOutput());
 
   // The data is a perfect fit to: 20 * exp(-log(2) * t / (6 h)).  TIA
