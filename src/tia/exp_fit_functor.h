@@ -81,7 +81,7 @@ public:
       }
 
     const double logy_mean
-        = std::accumulate(logy.begin(), logy.end(), 0.0) / num_time_points_;
+        = std::accumulate(logy.cbegin(), logy.cend(), 0.0) / num_time_points_;
 
     // Compute the slope and intercept of logy = intercept + slope *
     // t.

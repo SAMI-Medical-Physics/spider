@@ -394,19 +394,19 @@ main(int argc, char* argv[])
     }
 
   assert(!administration_times.empty());
-  if (!std::all_of(administration_times.begin() + 1,
-                   administration_times.end(),
+  const auto administration_time = administration_times.front();
+  if (!std::all_of(administration_times.cbegin() + 1,
+                   administration_times.cend(),
                    [&](const std::chrono::sys_seconds& st)
-                     { return st == administration_times.front(); }))
+                     { return st == administration_time; }))
     spider::Warning()
         << "administration date time differs for two or more SPECTs\n";
-  const auto administration_time = administration_times.front();
 
   // Calculate the time delay from administration to the start of each
   // SPECT acquisition.
   std::vector<std::chrono::seconds> elapsed_since_administration(
       acquisition_times.size());
-  std::transform(acquisition_times.begin(), acquisition_times.end(),
+  std::transform(acquisition_times.cbegin(), acquisition_times.cend(),
                  elapsed_since_administration.begin(),
                  [&](const std::chrono::sys_seconds& acquisition_time)
                    { return acquisition_time - administration_time; });
