@@ -265,7 +265,7 @@ main(int argc, char* argv[])
   if (argc == 1)
     {
       Usage();
-      std::exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
 
   const ParsedArguments args = ParseArguments(argc, argv);
