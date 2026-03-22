@@ -2,7 +2,8 @@
 // Copyright (C) 2026 South Australia Medical Imaging
 
 #include <algorithm> // std::all_of, std::transform
-#include <cctype>    // std::tolower
+#include <cassert>
+#include <cctype> // std::tolower
 #include <chrono>
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS
 #include <filesystem>
@@ -269,6 +270,12 @@ main(int argc, char* argv[])
 
   const ParsedArguments args = ParseArguments(argc, argv);
 
+  if (args.dicom_dirs.empty())
+    {
+      Usage();
+      return EXIT_FAILURE;
+    }
+
   spider::Log() << "Version " << SPIDER_VERSION << "\n";
 
   // Read DICOM attributes for each SPECT.
@@ -386,6 +393,7 @@ main(int argc, char* argv[])
       decay_factors.push_back(decay_factor.value());
     }
 
+  assert(!administration_times.empty());
   if (!std::all_of(administration_times.begin() + 1,
                    administration_times.end(),
                    [&](const std::chrono::sys_seconds& st)
