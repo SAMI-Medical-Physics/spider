@@ -19,5 +19,5 @@ Running the following command starts an interactive shell with Spider
 available:
 
 ```sh
-guix shell -f guix.scm
+guix time-machine -C channels.scm -- shell -f guix.scm
 ```

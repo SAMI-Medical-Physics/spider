@@ -20,5 +20,5 @@ This script requires the external programs:
 In a checkout of this repository, run
 
 ```sh
-guix build -f benchmark/guix.scm
+guix time-machine -C channels.scm -- build -f benchmark/guix.scm
 ```
