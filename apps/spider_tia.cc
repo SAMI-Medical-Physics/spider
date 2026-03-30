@@ -37,8 +37,9 @@ constexpr char kProgramName[] = "spider_tia";
 void
 Usage()
 {
-  std::cerr << "usage: " << kProgramName << " [-fV] [-o output_file]\n"
-            << "       " << "{ [-z time_zone] -d directory -i image } ...\n";
+  std::cerr << "usage: " << kProgramName
+            << " [-fV] [-o output_file]\n                  "
+            << "{ [-z time_zone] -d directory -i image } ...\n";
 }
 
 struct ParsedArguments
