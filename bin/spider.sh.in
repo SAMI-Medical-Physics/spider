@@ -17,13 +17,13 @@ sed_cmd=sed
 PROGRAM_NAME=${0##*/}
 
 usage() {
-    printf 'usage: %s [-fV] [-e elastix_params] [-z time_zone]
-              directory1 directory2 ...\n' "$PROGRAM_NAME" >&2
+    printf 'usage: %s [-fV] [-e elastix_param] [-z time_zone] directory1 directory2 ...\n' \
+           "$PROGRAM_NAME" >&2
     exit 2
 }
 
 overwrite=0
-elastix_params="@CMAKE_INSTALL_FULL_DATADIR@/spider/Parameters_Rigid.txt"
+elastix_param="@CMAKE_INSTALL_FULL_DATADIR@/spider/Parameters_Rigid.txt"
 tz_list=""
 
 ensure_filename_available() {
@@ -47,7 +47,7 @@ while getopts "fVe:z:" opt; do
                    "$spider_version" "$dcm2niix_version" "$elastix_version"
             exit 0
             ;;
-        e) elastix_params=$OPTARG ;;
+        e) elastix_param=$OPTARG ;;
         z) tz_list=${tz_list}${tz_list:+'
 '}$OPTARG ;;
         \?) usage ;;
@@ -77,7 +77,7 @@ while [ "$i" -le "$n_spects" ]; do
     ensure_filename_available "$outdir/result.0.nii"
     "$mkdir_cmd" -p "$outdir"
     "$elastix_cmd" -f spect1.nii -m "spect$i.nii" \
-                   -p "$elastix_params" \
+                   -p "$elastix_param" \
                    -out "$outdir"
     i=$((i + 1))
 done
