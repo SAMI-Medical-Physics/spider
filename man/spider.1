@@ -1,0 +1,54 @@
+.\" SPDX-License-Identifier: GFDL-1.3-or-later
+.\" Copyright (C) 2026 South Australia Medical Imaging
+.Dd 1 April 2026
+.Dt SPIDER 1
+.Os
+.Sh NAME
+.Nm spider
+.Nd compute a time-integrated activity image
+.Sh SYNOPSIS
+.Nm spider
+.Op Fl fV
+.Op Fl e Ar elastix_param
+.Op Fl z Ar time_zone
+.Ar directory1
+.Ar directory2
+.Ar ...
+.Sh DESCRIPTION
+.Nm
+computes the time-integrated activity image from a time series of two
+or more SPECT scans.  Each directory argument specifies a SPECT DICOM
+series.  SPECT images are registered to the SPECT in
+.Ar directory1 .
+All SPECTs are expected to have the same value for the DICOM attribute
+Units (0054,1001), and the resulting time-integrated activity image
+has those units \(mu seconds.  The image is written in NIfTI format to
+a file named tia.nii in the current directory.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl f
+Overwrite output files.
+.Pp
+.It Fl V
+Display the version number and exit.
+.Pp
+.It Fl e Ar elastix_param
+The elastix parameter file to use for SPECT image registration.  See
+.Lk http://elastix.dev
+for details.  The default is the installed
+.Pa share/spider/Parameters_Rigid.txt .
+.Pp
+.It Fl z Ar time_zone
+For this SPECT's DICOM series, interpret DICOM Date, Time, and Date
+Time values that lack an explicit time zone in
+.Ar time_zone ,
+the name of a time zone in the IANA tz database (e.g. Europe/Paris).
+If this option is specified only once, this time zone is used for all
+SPECTs.  If this option is specified more than once, it must be
+specified once for each SPECT, in the same order as the directory
+arguments.  If omitted, the local time zone is used for all SPECTs.
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr spider_tia 1
