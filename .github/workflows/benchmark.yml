@@ -10,7 +10,7 @@ jobs:
     name: Evaluate benchmarks and upload
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Guix
         uses: PromyLOPh/guix-install-action@v1
         with:
@@ -36,7 +36,7 @@ jobs:
           mkdir site
           cp -rL $out/. site
       - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site/
   deploy:
@@ -51,4 +51,4 @@ jobs:
     steps:
       - name: Deploy pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
