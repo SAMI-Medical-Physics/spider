@@ -317,7 +317,7 @@ ParseDicomDate(std::string_view v)
   int d = 0;
   if (!ParseMonthOrDay(v, d))
     return {};
-  return std::make_optional<DateComplete>({ .year = y, .month = m, .day = d });
+  return std::make_optional(DateComplete{ .year = y, .month = m, .day = d });
 }
 
 std::optional<DicomTime>
@@ -350,8 +350,8 @@ ParseDicomTime(std::string_view v)
         return {};
       second = s;
     }
-  return std::make_optional<DicomTime>(
-      { .hour = hour, .minute = minute, .second = second });
+  return std::make_optional(
+      DicomTime{ .hour = hour, .minute = minute, .second = second });
 }
 
 std::optional<DicomDateTime>
@@ -428,13 +428,13 @@ ParseDicomDateTime(std::string_view v)
         return {};
       second = s;
     }
-  return std::make_optional<DicomDateTime>({ .year = year,
-                                             .month = month,
-                                             .day = day,
-                                             .hour = hour,
-                                             .minute = minute,
-                                             .second = second,
-                                             .utc_offset = utc_offset });
+  return std::make_optional(DicomDateTime{ .year = year,
+                                           .month = month,
+                                           .day = day,
+                                           .hour = hour,
+                                           .minute = minute,
+                                           .second = second,
+                                           .utc_offset = utc_offset });
 }
 
 std::optional<std::chrono::minutes>
