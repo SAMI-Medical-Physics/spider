@@ -63,6 +63,8 @@
 
 (define (registered-spect n)
   ;; 'result.0.nii' is the Nth SPECT registered to the first SPECT.
+  ;; Note the documentation for the benchmark TIA image also describes
+  ;; registering SPECTs to the first SPECT.
   (computed-file (string-append "benchmark-patient-4-spect-"
                                 (number->string n)
                                 "-registered")
