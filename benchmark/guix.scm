@@ -80,6 +80,16 @@ But running the experiments this way is not reproducible."
                              "index.rst"
                              (string-append #$output "/index.html"))
                      (mkdir-p (string-append #$output "/tia"))
+                     (map (lambda (z)
+                            (symlink (string-append #$tia-comparison "/image1_"
+                                                    z ".png")
+                                     (string-append #$output "/tia/image1_"
+                                                    z ".png"))
+                            (symlink (string-append #$tia-comparison "/image2_"
+                                                    z ".png")
+                                     (string-append #$output "/tia/image2_"
+                                                    z ".png")))
+                          '("145" "133"))
                      (symlink (string-append #$tia-comparison "/hist-.svg")
                               (string-append #$output "/tia/hist-.svg"))
                      (symlink (string-append #$tia-comparison "/hist-1e10.svg")

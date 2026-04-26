@@ -55,6 +55,17 @@ SPIDER_TIA=spider-tia.nii
     -i output_dir4/result.0.nii
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
+# Generate PNG images of axial slices over registered CT.
+dcm2niix -o . -f ct1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
+
+# Slice 145 (0-indexed) contains the large lesion in the liver.
+"@CMAKE_CURRENT_BINARY_DIR@/../slice_compare" snmmi-tia.nii "$SPIDER_TIA" \
+    ct1.nii 145 1e11 0.5
+
+# Slice 133 contains the small lesion in the liver.
+"@CMAKE_CURRENT_BINARY_DIR@/../slice_compare" snmmi-tia.nii "$SPIDER_TIA" \
+    ct1.nii 133 1e11 0.5
+
 "@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii | \
     gnuplot "$BENCHMARK_DIR/hist.gp"
 # Free up the output filename for the next run of hist.gp.

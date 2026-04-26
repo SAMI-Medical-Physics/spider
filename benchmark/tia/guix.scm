@@ -95,6 +95,7 @@
         #~(modify-phases #$phases
             (replace 'install
               (lambda _
+                (install-file "benchmark/slice_compare" #$output)
                 (install-file "benchmark/tia/log10_ratio" #$output)))))))))
 
 (define spider-tia
@@ -146,6 +147,22 @@
 
 ;;; Compare TIA images from Spider and the benchmark dataset.
 
+(define (ct-dicom-dir n)
+  #~(string-append #$spect/cts "/patient_4/SPECT_Cts/scan"
+                   #$(number->string n) "/ct"))
+
+(define (ct n)
+  ;; 3D NIfTI image and BIDS sidecar of CT scan number N.
+  (computed-file (string-append "benchmark-patient-4-ct" (number->string n))
+                 (with-imported-modules '((guix build utils)) ;for invoke
+                   #~(begin
+                       (use-modules (guix build utils))
+                       (mkdir #$output)
+                       (invoke (string-append #$dcm2niix "/bin/dcm2niix")
+                               "-o" #$output
+                               "-f" "ct"
+                               #$(ct-dicom-dir n))))))
+
 (define gnuplot
   (specification->package "gnuplot"))
 
@@ -155,12 +172,24 @@
 (define tia-comparison
   (computed-file
    "benchmark-patient-4-tia-comparison"
-   (with-imported-modules '((guix build utils)) ;for substitute*
+   (with-imported-modules '((guix build utils)) ;for invoke, install-file
      #~(begin
          (use-modules (guix build utils)
                       (ice-9 popen)
                       (ice-9 receive))
-         (mkdir #$output)
+         ;; Generate PNG images of axial slices over registered CT.
+         (map
+          (lambda (z)
+            (invoke (string-append #$spider-benchmark "/slice_compare")
+                    (string-append #$benchmark-tia "/tia.nii")
+                    (string-append #$spider-tia "/tia.nii")
+                    (string-append #$(ct 1) "/ct.nii")
+                    z "1e11" "0.5")
+            (install-file (string-append "image1_" z ".png") #$output)
+            (install-file (string-append "image2_" z ".png") #$output))
+          '("145" ;slice 145 (0-indexed) contains the large lesion in the liver
+            "133")) ;slice 133 contains the small lesion in the liver
+
          ;; hist.gp uses 'cat'.
          (setenv "PATH" (string-append #$coreutils "/bin"))
          (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig

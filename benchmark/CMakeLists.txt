@@ -46,6 +46,9 @@ if(NOT SPIDER_BENCHMARK_SPECTCTS_DIR OR NOT SPIDER_BENCHMARK_TIA_DIR)
   )
 endif()
 
+add_executable(slice_compare slice_compare.cc)
+target_link_libraries(slice_compare ${ITK_LIBRARIES})
+
 add_subdirectory(tia)
 
 configure_file(run.sh.in run.sh @ONLY)

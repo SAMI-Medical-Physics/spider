@@ -28,6 +28,22 @@ MRT Dosimetry package.
 
 The TIA image from Spider was compared with the TIA image from the
 benchmark dataset.
+Below are two axial slices from the benchmark TIA image (left) and
+Spider's TIA image (right) over registered CT.
+The cyan contour is at a TIA of 10\ :sup:`11` disintegrations mL\
+:sup:`-1` (≈ 28 MBq h mL\ :sup:`-1`).
+
+.. list-table::
+   :class: borderless
+   :align: center
+
+   * - .. image:: tia/image1_145.png
+     - .. image:: tia/image2_145.png
+   * - .. image:: tia/image1_133.png
+     - .. image:: tia/image2_133.png
+   * - *Benchmark TIA*
+     - *Spider TIA*
+
 We calculated the per-pixel ratio of TIA values between the Spider and
 benchmark images.
 The distribution of the base-10 logarithm of this ratio is shown in
