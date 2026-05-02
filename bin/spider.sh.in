@@ -41,7 +41,7 @@ while getopts "fVe:z:" opt; do
     f) overwrite=1 ;;
     V)
         spider_version="@PROJECT_VERSION@"
-        dcm2niix_version=$("$dcm2niix_cmd" -v 2>/dev/null | "$sed_cmd" -n '2p')
+        dcm2niix_version=$("$dcm2niix_cmd" -v | "$sed_cmd" -n '2p')
         elastix_version=$("$elastix_cmd" --version | "$awk_cmd" '{print $NF}')
         printf 'Spider %s, dcm2niix %s, elastix %s\n' \
             "$spider_version" "$dcm2niix_version" "$elastix_version"
