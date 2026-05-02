@@ -18,7 +18,7 @@ PROGRAM_NAME=${0##*/}
 
 usage() {
     printf 'usage: %s [-fV] [-e elastix_param] [-z time_zone] directory1 directory2 ...\n' \
-           "$PROGRAM_NAME" >&2
+        "$PROGRAM_NAME" >&2
     exit 2
 }
 
@@ -38,19 +38,19 @@ ensure_filename_available() {
 
 while getopts "fVe:z:" opt; do
     case "$opt" in
-        f) overwrite=1 ;;
-        V)
-            spider_version="@PROJECT_VERSION@"
-            dcm2niix_version=$("$dcm2niix_cmd" -v 2>/dev/null | "$sed_cmd" -n '2p')
-            elastix_version=$("$elastix_cmd" --version | "$awk_cmd" '{print $NF}')
-            printf 'Spider %s, dcm2niix %s, elastix %s\n' \
-                   "$spider_version" "$dcm2niix_version" "$elastix_version"
-            exit 0
-            ;;
-        e) elastix_param=$OPTARG ;;
-        z) tz_list=${tz_list}${tz_list:+'
+    f) overwrite=1 ;;
+    V)
+        spider_version="@PROJECT_VERSION@"
+        dcm2niix_version=$("$dcm2niix_cmd" -v 2>/dev/null | "$sed_cmd" -n '2p')
+        elastix_version=$("$elastix_cmd" --version | "$awk_cmd" '{print $NF}')
+        printf 'Spider %s, dcm2niix %s, elastix %s\n' \
+            "$spider_version" "$dcm2niix_version" "$elastix_version"
+        exit 0
+        ;;
+    e) elastix_param=$OPTARG ;;
+    z) tz_list=${tz_list}${tz_list:+'
 '}$OPTARG ;;
-        \?) usage ;;
+    \?) usage ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -77,8 +77,8 @@ while [ "$i" -le "$n_spects" ]; do
     ensure_filename_available "$outdir/result.0.nii"
     "$mkdir_cmd" -p "$outdir"
     "$elastix_cmd" -f spect1.nii -m "spect$i.nii" \
-                   -p "$elastix_param" \
-                   -out "$outdir"
+        -p "$elastix_param" \
+        -out "$outdir"
     i=$((i + 1))
 done
 

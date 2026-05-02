@@ -36,11 +36,11 @@ dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
 rm -rf output_dir2 output_dir3 output_dir4
 mkdir output_dir2 output_dir3 output_dir4
 elastix -f spect1.nii -m spect2.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-        -out output_dir2
+    -out output_dir2
 elastix -f spect1.nii -m spect3.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-        -out output_dir3
+    -out output_dir3
 elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-        -out output_dir4
+    -out output_dir4
 
 # Make Spider's TIA image.
 SPIDER_TIA=spider-tia.nii
@@ -66,7 +66,7 @@ dcm2niix -o . -f ct1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
 "@CMAKE_CURRENT_BINARY_DIR@/../slice_compare" snmmi-tia.nii "$SPIDER_TIA" \
     ct1.nii 133 1e11 0.5
 
-"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii | \
+"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii |
     gnuplot "$BENCHMARK_DIR/hist.gp"
 # Free up the output filename for the next run of hist.gp.
 mv hist.svg hist-.svg
@@ -74,7 +74,7 @@ echo "Wrote hist-.svg"
 
 # Exclude voxels that have TIA < 1e10 disintegrations/mL in the
 # benchmark image.
-"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii 1e10 | \
+"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii 1e10 |
     gnuplot "$BENCHMARK_DIR/hist.gp"
 mv hist.svg hist-1e10.svg
 echo "Wrote hist-1e10.svg"
