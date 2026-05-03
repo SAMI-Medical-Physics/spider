@@ -13,14 +13,14 @@ namespace spider
 inline std::ostream&
 Log()
 {
-  std::cerr << "\033[94m[Spider]\033[0m ";
+  std::cerr << "[Spider] ";
   return std::cerr;
 }
 
 inline std::ostream&
 Warning()
 {
-  std::cerr << "\033[38;5;208m[Spider Warning]\033[0m ";
+  std::cerr << "[Spider Warning] ";
   return std::cerr;
 }
 } // namespace spider
