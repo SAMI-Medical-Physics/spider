@@ -8,4 +8,18 @@ target_compile_definitions(spider_tia
 
 install(TARGETS
   spider_tia
+  RUNTIME_DEPENDENCY_SET spider_runtime_deps
 )
+
+if(MSVC)
+  option(SPIDER_BUNDLE_EXTERNAL_DLLS
+    "Bundle external DLL dependencies in the install tree."
+    ON
+  )
+  if(SPIDER_BUNDLE_EXTERNAL_DLLS)
+    install(RUNTIME_DEPENDENCY_SET spider_runtime_deps
+      PRE_EXCLUDE_REGEXES "api-ms-.*" "ext-ms-.*"
+      POST_EXCLUDE_REGEXES ".*WINDOWS[\\/]system32.*"
+    )
+  endif()
+endif()

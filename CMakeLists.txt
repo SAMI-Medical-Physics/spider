@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21) # for RUNTIME_DEPENDENCY_SET
 project(Spider VERSION 0.0.0)
 
 # This requirement is driven by the calendar and time zone
