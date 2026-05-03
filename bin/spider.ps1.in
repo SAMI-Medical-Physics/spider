@@ -1,0 +1,184 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 South Australia Medical Imaging
+
+# Requires the external programs 'dcm2niix' and 'elastix'.  There is
+# no work re-use.
+
+param(
+    [Alias('f')]
+    [switch] $force,
+    # Variables are case-insensitive in PowerShell.  Rename options to
+    # avoid surprises.
+    [switch] $version,
+    [Alias('e')]
+    [string] $elastix_param,
+    [Alias('z')]
+    [string[]] $time_zone,
+    [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
+    [string[]] $directories
+)
+
+# Handle comma-separated repeated option arguments passed to
+# spider.cmd wrapper.
+if ($time_zone)
+{
+    $time_zone = $time_zone | ForEach-Object { $_ -split ',' }
+}
+
+if (-not $elastix_param)
+{
+    # Use the default elastix parameter file.  Support relocation of
+    # install tree.
+    $default_elastix_param_from_script_dir = '@SPIDER_DATADIR_FROM_BINDIR@' +
+    '/spider/Parameters_Rigid.txt'
+    $elastix_param = [System.IO.Path]::GetFullPath(
+        (Join-Path $PSScriptRoot $default_elastix_param_from_script_dir)
+    )
+}
+
+# Look for the executable in the same directory as this script first,
+# then in PATH.
+$dcm2niix_bundled = (Join-Path $PSScriptRoot 'dcm2niix.exe')
+$dcm2niix_cmd = if (Test-Path -LiteralPath $dcm2niix_bundled)
+{
+    $dcm2niix_bundled
+}
+else
+{
+    (Get-Command dcm2niix -ErrorAction Stop).Source
+}
+
+$elastix_bundled = (Join-Path $PSScriptRoot 'elastix.exe')
+$elastix_cmd = if (Test-Path -LiteralPath $elastix_bundled)
+{
+    $elastix_bundled
+}
+else
+{
+    (Get-Command elastix -ErrorAction Stop).Source
+}
+
+function print_version
+{
+    $spider_version = '@PROJECT_VERSION@'
+    $dcm2niix_version = (& $dcm2niix_cmd -v)[1]
+    $elastix_version = (& $elastix_cmd --version) -split '\s' |
+      Select-Object -Last 1
+    [Console]::Out.WriteLine(
+        "Spider $spider_version, dcm2niix $dcm2niix_version, " +
+        "elastix $elastix_version"
+    )
+    exit 0
+}
+
+if ($version)
+{
+    print_version
+}
+
+function usage
+{
+    [Console]::Error.WriteLine(
+        'usage: spider [-f] [-version] [-e elastix_param] ' +
+        '[-z time_zone[,time_zone ...]]
+    directory1 directory2 ...'
+    )
+    exit 2
+}
+
+# Require at least two SPECT DICOM series.
+if ($directories.Count -lt 2)
+{
+    usage
+}
+
+function ensure_filename_available
+{
+    # A filename is available if it does not exist or $force is $true.
+    param(
+        [string] $filename
+    )
+    if (-not (Test-Path -LiteralPath $filename))
+    {
+        return
+    }
+    if (-not $force)
+    {
+        [Console]::Error.WriteLine(
+            "spider: file already exists: `"$filename`""
+        )
+        exit 1
+    }
+}
+
+# Convert each SPECT DICOM series to a 3D NIfTI image.
+$i = 1
+foreach ($d in $directories)
+{
+    ensure_filename_available "spect$i.nii"
+    # "-w 1" overwrites output files.  Use "-g i" (ignore user
+    # defaults file) to ensure the output file is called
+    # "spect$i.nii".
+    & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d
+    if ($LASTEXITCODE -ne 0)
+    {
+        exit $LASTEXITCODE
+    }
+    ++$i
+}
+
+# Create SPECTs registered to first SPECT.
+for ($i=2; $i -le $directories.Count; $i++)
+{
+    $outdir = "registered_spect$i"
+    ensure_filename_available (Join-Path $outdir 'result.0.nii')
+    New-Item -ItemType Directory -Path $outdir -Force | Out-Null
+    $elastix_args = @(
+        '-f', 'spect1.nii'
+        '-m', "spect$i.nii"
+        '-p', $elastix_param
+        '-out', $outdir
+    )
+    & $elastix_cmd @elastix_args
+    if ($LASTEXITCODE -ne 0)
+    {
+        exit $LASTEXITCODE
+    }
+}
+
+# Make TIA image.  Build arguments for spider_tia.
+$spider_tia_args = @()
+
+# Propagate -f option.
+if ($force)
+{
+    $spider_tia_args += '-f'
+}
+
+# Add directory and image arguments.
+for ($i = 0; $i -lt $directories.Count; $i++)
+{
+    $spider_tia_args += '-d', $directories[$i], '-i'
+    if ($i -eq 0)
+    {
+        $spider_tia_args += 'spect1.nii'
+    }
+    else
+    {
+        $spider_tia_args += (Join-Path "registered_spect$($i+1)" 'result.0.nii')
+    }
+}
+
+# Add time zone arguments if any.
+if ($time_zone)
+{
+    foreach ($tz in $time_zone)
+    {
+        $spider_tia_args += '-z', $tz
+    }
+}
+
+# Do not rely on the 'bin' directory of the install tree being in
+# PATH.
+& (Join-Path $PSScriptRoot 'spider_tia.exe') @spider_tia_args
+exit $LASTEXITCODE

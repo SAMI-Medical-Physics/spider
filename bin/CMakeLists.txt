@@ -4,14 +4,21 @@ install(FILES
   DESTINATION "${CMAKE_INSTALL_DATADIR}/spider"
 )
 
-configure_file(spider.sh.in spider @ONLY)
-
-install(PROGRAMS
-  "${CMAKE_CURRENT_BINARY_DIR}/spider"
-  DESTINATION "${CMAKE_INSTALL_BINDIR}"
-)
-
 if(MSVC)
+  # SPIDER_DATADIR_FROM_BINDIR is used in spider.ps1.in to support
+  # relocation of the install tree.
+  cmake_path(
+    RELATIVE_PATH CMAKE_INSTALL_DATADIR
+    BASE_DIRECTORY "${CMAKE_INSTALL_BINDIR}"
+    OUTPUT_VARIABLE SPIDER_DATADIR_FROM_BINDIR
+  )
+  configure_file(spider.ps1.in spider.ps1 @ONLY)
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/spider.ps1"
+    spider.cmd
+    DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  )
+
   # For deploying to other Windows machines.
   option(SPIDER_BUNDLE_EXTERNAL_EXECUTABLES
     "Bundle external executable dependencies in the install tree."
@@ -42,4 +49,10 @@ if(MSVC)
       POST_EXCLUDE_REGEXES ".*WINDOWS[\\/]system32.*"
     )
   endif()
+else()
+  configure_file(spider.sh.in spider @ONLY)
+  install(PROGRAMS
+    "${CMAKE_CURRENT_BINARY_DIR}/spider"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}"
+  )
 endif()
