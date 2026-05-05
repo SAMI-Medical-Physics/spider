@@ -81,7 +81,7 @@ function usage
     [Console]::Error.WriteLine(
         'usage: spider [-f] [-version] [-e elastix_param] ' +
         '[-z time_zone[,time_zone ...]]
-    directory1 directory2 ...'
+              directory1 directory2 ...'
     )
     exit 2
 }
