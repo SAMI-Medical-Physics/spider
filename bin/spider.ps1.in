@@ -123,7 +123,8 @@ foreach ($d in $directories)
     # "-w 1" overwrites output files.  Use "-g i" (ignore user
     # defaults file) to ensure the output file is called
     # "spect$i.nii".
-    & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d
+    & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d |
+        ForEach-Object {[Console]::Error.WriteLine($_)}
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
@@ -143,7 +144,8 @@ for ($i=2; $i -le $directories.Count; $i++)
         '-p', $elastix_param
         '-out', $outdir
     )
-    & $elastix_cmd @elastix_args
+    & $elastix_cmd @elastix_args |
+        ForEach-Object {[Console]::Error.WriteLine($_)}
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
