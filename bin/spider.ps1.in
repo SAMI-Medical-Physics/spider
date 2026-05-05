@@ -86,9 +86,13 @@ function usage
     exit 2
 }
 
-# Require at least two SPECT DICOM series.
+# PrepareTiaPipeline in spider_tia requires at least two SPECT DICOM
+# series.
 if ($directories.Count -lt 2)
 {
+    [Console]::Error.WriteLine(
+        "spider: you must specify at least 2 directory arguments"
+    )
     usage
 }
 

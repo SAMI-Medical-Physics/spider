@@ -55,8 +55,13 @@ while getopts "fVe:z:" opt; do
 done
 shift $((OPTIND - 1))
 
-# Require at least two SPECT DICOM series.
-[ $# -ge 2 ] || usage
+# PrepareTiaPipeline in spider_tia requires at least two SPECT DICOM
+# series.
+[ $# -ge 2 ] || {
+    printf '%s: you must specify at least 2 directory arguments\n' \
+        "$PROGRAM_NAME" >&2
+    usage
+}
 
 # Convert each SPECT DICOM series to a 3D NIfTI image.
 i=1
