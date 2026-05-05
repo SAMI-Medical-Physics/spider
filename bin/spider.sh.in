@@ -70,7 +70,7 @@ for d in "$@"; do
     # "-w 1" overwrites output files.  Use "-g i" (ignore user
     # defaults file) to ensure the output file is called
     # "spect$i.nii".
-    "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d"
+    "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >&2
     i=$((i + 1))
 done
 
@@ -83,7 +83,7 @@ while [ "$i" -le "$n_spects" ]; do
     "$mkdir_cmd" -p "$outdir"
     "$elastix_cmd" -f spect1.nii -m "spect$i.nii" \
         -p "$elastix_param" \
-        -out "$outdir"
+        -out "$outdir" >&2
     i=$((i + 1))
 done
 
