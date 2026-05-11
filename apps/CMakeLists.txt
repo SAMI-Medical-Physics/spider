@@ -6,12 +6,11 @@ target_link_libraries(spider_tia spider_spect spider_tia_pipeline)
 target_compile_definitions(spider_tia
   PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
 
-install(TARGETS
-  spider_tia
-  RUNTIME_DEPENDENCY_SET spider_runtime_deps
-)
-
 if(MSVC)
+  install(TARGETS
+    spider_tia
+    RUNTIME_DEPENDENCY_SET spider_runtime_deps
+  )
   option(SPIDER_BUNDLE_EXTERNAL_DLLS
     "Bundle external DLL dependencies in the install tree."
     ON
@@ -22,4 +21,8 @@ if(MSVC)
       POST_EXCLUDE_REGEXES ".*WINDOWS[\\/]system32.*"
     )
   endif()
+else()
+  install(TARGETS
+    spider_tia
+  )
 endif()
