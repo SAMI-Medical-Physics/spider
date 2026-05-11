@@ -8,7 +8,6 @@
 #include <chrono>
 #include <expected>
 #include <optional>
-#include <ostream>
 #include <string>
 #include <string_view>
 
@@ -33,9 +32,6 @@ struct Spect
   std::optional<std::string> decay_correction;
   std::optional<double> radionuclide_half_life; // seconds
 };
-
-std::ostream&
-operator<<(std::ostream& os, const Spect& s);
 
 std::optional<std::string>
 GetPatientName(const gdcm::DataSet& ds);

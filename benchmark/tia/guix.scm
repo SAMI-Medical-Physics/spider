@@ -104,7 +104,7 @@
                  (with-imported-modules '((guix build utils))
                    #~(begin (use-modules (guix build utils))
                             (invoke (string-append #$spider "/bin/spider_tia")
-                                    "-z" "America/Detroit"
+                                    "-v" "-z" "America/Detroit"
                                     "-d" #$(spect-dicom-dir 1)
                                     "-d" #$(spect-dicom-dir 2)
                                     "-d" #$(spect-dicom-dir 3)

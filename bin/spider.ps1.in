@@ -161,6 +161,9 @@ if ($force)
     $spider_tia_args += '-f'
 }
 
+# Verbose mode.
+$spider_tia_args += '-v'
+
 # Add directory and image arguments.
 for ($i = 0; $i -lt $directories.Count; $i++)
 {

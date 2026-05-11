@@ -103,6 +103,9 @@ if [ "$overwrite" -eq 1 ]; then
     set -- "$@" -f
 fi
 
+# Verbose mode.
+set -- "$@" -v
+
 # Add directory arguments.
 if [ -n "$dicom_dirs" ]; then
     # Preserve directory names containing spaces.

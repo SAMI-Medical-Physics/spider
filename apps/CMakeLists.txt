@@ -4,6 +4,7 @@ add_executable(
 )
 target_link_libraries(spider_tia
   PRIVATE
+  spider_logging
   spider_spect
   spider_tia_pipeline
 )

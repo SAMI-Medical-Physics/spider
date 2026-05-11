@@ -22,12 +22,13 @@
 #include <itkImageFileWriter.h>
 #include <itkMacro.h> // itk::ExceptionObject
 
-#include "logging.h"          // Log, Warning
-#include "spect.h"            // Spect, ReadDicomSpect, << for Spect,
-                              // ToString for SpectError,
-                              // MakeAcquisitionSysTime,
+#include "logging.h"          // LogLevel, SetLogLevel, Warning,
+                              // WarningF, Debug, DebugF
+#include "spect.h"            // Spect, ReadDicomSpect, ToString for
+                              // SpectError, MakeAcquisitionSysTime,
                               // MakeRadiopharmaceuticalStartSysTime,
                               // ComputeDecayFactor, UsesTimeZone
+#include "spect_format.h"     // DebugF with Spect argument
 #include "tia/tia_pipeline.h" // TiaFilters, PrepareTiaPipeline
 #include "tz_compat.h"        // tz::
 
@@ -42,12 +43,13 @@ void
 Usage()
 {
   std::cerr << "usage: " << kProgramName
-            << " [-fV] [-o output_file]\n                  "
+            << " [-fVv] [-o output_file]\n                  "
             << "{ [-z time_zone] -d directory -i image } ...\n";
 }
 
 struct ParsedArguments
 {
+  spider::LogLevel log_level = spider::LogLevel::kWarn;
   bool overwrite = false;
   std::string out_filename;
   std::vector<std::string> tz_names;
@@ -55,8 +57,8 @@ struct ParsedArguments
   std::vector<std::string> image_filenames;
 };
 
-// Parse program arguments: options (-f, -V) and option-arguments (-o
-// output_file, -z time_zone, -d directory, -i image).
+// Parse program arguments: options (-f, -V, -v) and option-arguments
+// (-o output_file, -z time_zone, -d directory, -i image).
 ParsedArguments
 ParseArguments(int argc, char* argv[])
 {
@@ -90,6 +92,12 @@ ParseArguments(int argc, char* argv[])
             {
               std::cout << "Spider " << SPIDER_VERSION << "\n";
               std::exit(EXIT_SUCCESS);
+            }
+
+          if (opt == 'v')
+            {
+              out.log_level = spider::LogLevel::kDebug;
+              continue;
             }
 
           if (opt == 'z')
@@ -288,6 +296,7 @@ main(int argc, char* argv[])
     }
 
   const ParsedArguments args = ParseArguments(argc, argv);
+  spider::SetLogLevel(args.log_level);
 
   if (args.dicom_dirs.empty())
     {
@@ -295,7 +304,7 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
-  spider::Log() << "Version " << SPIDER_VERSION << "\n";
+  spider::DebugF("Version {}", SPIDER_VERSION);
 
   // Read DICOM attributes for each SPECT.
   std::vector<spider::Spect> spects;
@@ -311,10 +320,12 @@ main(int argc, char* argv[])
           return EXIT_FAILURE;
         }
       const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-      spider::Log() << "SPECT " << i + 1 << ": reading DICOM attributes in "
-                    << p << "...\n";
+      spider::DebugF("SPECT {}: reading DICOM attributes in {}...", i + 1,
+                     // FIXME: See compiler support for
+                     // std::formatter<std::filesystem::path>.
+                     p.string());
       spects.emplace_back(spider::ReadDicomSpect(ds));
-      spider::Log() << "SPECT " << i + 1 << ": " << spects.back() << "\n";
+      spider::DebugF("SPECT {}: {}", i + 1, spects.back());
     }
 
   // Make a time zone for each SPECT using the specified time zone
@@ -371,11 +382,10 @@ main(int argc, char* argv[])
   for (std::size_t i = 0; i < spects.size(); ++i)
     {
       if (spider::UsesTimeZone(spects[i]))
-        spider::Warning()
-            << "SPECT " << i + 1
-            << ": assuming Dates (DA), Times (TM), and Date Times (DT) "
-               "without a UTC offset suffix are in time zone "
-            << time_zones[i]->name() << "\n";
+        spider::WarningF(
+            "SPECT {}: assuming Dates (DA), Times (TM), and Date Times (DT) "
+            "without a UTC offset suffix are in time zone {}",
+            i + 1, time_zones[i]->name());
 
       // Make administration time point.
       const auto administration_time
@@ -418,8 +428,7 @@ main(int argc, char* argv[])
                    administration_times.cend(),
                    [&](const std::chrono::sys_seconds& st)
                      { return st == administration_time; }))
-    spider::Warning()
-        << "administration date time differs for two or more SPECTs\n";
+    spider::Warning("administration date time differs for two or more SPECTs");
 
   // Calculate the time delay from administration to the start of each
   // SPECT acquisition.
@@ -432,23 +441,37 @@ main(int argc, char* argv[])
 
   for (std::size_t i = 0; i < elapsed_since_administration.size(); ++i)
     {
-      spider::Log() << "SPECT " << i + 1 << ": administration: "
-                    << spider::tz::zoned_time<
-                           // The time can be presented in any time
-                           // zone.
-                           std::chrono::seconds>{ time_zones[i],
-                                                  administration_times[i] }
-                    << ", acquisition: "
-                    << spider::tz::zoned_time<
-                           std::chrono::seconds>{ time_zones[i],
-                                                  acquisition_times[i] }
-                    << ", delay: "
-                    << std::chrono::duration<double>(
-                           elapsed_since_administration[i])
-                               .count()
-                           / 3600.0
-                    << " h"
-                    << ", decay factor: " << decay_factors[i] << "\n";
+#if SPIDER_HAVE_STD_CHRONO_TZ
+      spider::DebugF(
+          "SPECT {}: administration: {:%F %T %Z}, acquisition: {:%F %T %Z}, "
+          "delay: {} h, decay_factor: {}",
+          i + 1,
+          std::chrono::zoned_time<std::chrono::seconds>{
+              time_zones[i], administration_times[i] },
+          std::chrono::zoned_time<std::chrono::seconds>{
+              time_zones[i], acquisition_times[i] },
+          std::chrono::duration<double>(elapsed_since_administration[i])
+                  .count()
+              / 3600.0,
+          decay_factors[i]);
+#else
+      spider::DebugF(
+          // std::print does not support date::zoned_time so
+          // pre-format it.
+          "SPECT {}: administration: {}, acquisition: {}, delay: {} h, "
+          "decay_factor: {}",
+          i + 1,
+          date::format("%F %T %Z",
+                       date::zoned_time<std::chrono::seconds>{
+                           time_zones[i], administration_times[i] }),
+          date::format("%F %T %Z",
+                       date::zoned_time<std::chrono::seconds>{
+                           time_zones[i], acquisition_times[i] }),
+          std::chrono::duration<double>(elapsed_since_administration[i])
+                  .count()
+              / 3600.0,
+          decay_factors[i]);
+#endif
     }
 
   // Do not overwrite output files unless requested.
@@ -491,8 +514,8 @@ main(int argc, char* argv[])
                               && spect.radionuclide_half_life.value()
                                      == radionuclide_half_life_s;
                      }))
-    spider::Warning() << "DICOM attribute RadionuclideHalfLife differs for "
-                         "two or more SPECTs\n";
+    spider::Warning(
+        "DICOM attribute RadionuclideHalfLife differs for two or more SPECTs");
 
   spider::TiaFilters tia_filters = spider::PrepareTiaPipeline(
       args.image_filenames, elapsed_since_administration, decay_factors,
@@ -504,7 +527,7 @@ main(int argc, char* argv[])
   auto image_file_writer = ImageFileWriterType::New();
   image_file_writer->SetFileName(args.out_filename);
   image_file_writer->SetInput(tia_filters.GetFinalFilter()->GetOutput());
-  spider::Log() << "Executing TIA image pipeline\n";
+  spider::Debug("Executing TIA image pipeline");
   try
     {
       image_file_writer->Update();
@@ -517,7 +540,7 @@ main(int argc, char* argv[])
 
   for (const auto& p : out_filenames)
     {
-      spider::Log() << "Wrote " << p << "\n";
+      spider::DebugF("Wrote {}", p.string());
     }
 
   return EXIT_SUCCESS;

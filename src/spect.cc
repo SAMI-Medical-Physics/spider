@@ -7,12 +7,9 @@
 #include <chrono>
 #include <cmath>   // std::exp, std::log
 #include <cstddef> // std::size_t
-#include <cstdio>  // std::fputs, stderr
 #include <cstdlib> // std::exit, EXIT_FAILURE
 #include <expected>
-#include <iomanip> // std::quoted
 #include <optional>
-#include <ostream>
 #include <string>
 #include <string_view>
 #include <system_error> // std::errc
@@ -23,7 +20,7 @@
 #include <gdcmSmartPointer.h>
 #include <gdcmTag.h>
 
-#include "logging.h"   // Warning
+#include "logging.h"   // Warning, WarningF, Error
 #include "tz_compat.h" // tz::
 
 namespace spider
@@ -76,53 +73,12 @@ ParseSecond(const std::string_view v, int& out)
 
 } // namespace
 
-std::ostream&
-operator<<(std::ostream& os, const Spect& s)
-{
-  std::ostringstream tmp;
-  if (s.patient_name.has_value())
-    tmp << "patient_name=" << std::quoted(s.patient_name.value()) << ", ";
-  if (s.radiopharmaceutical_start_date_time.has_value())
-    tmp << "radiopharmaceutical_start_date_time="
-        << std::quoted(s.radiopharmaceutical_start_date_time.value()) << ", ";
-  if (s.acquisition_date.has_value())
-    tmp << "acquisition_date=" << std::quoted(s.acquisition_date.value())
-        << ", ";
-  if (s.acquisition_time.has_value())
-    tmp << "acquisition_time=" << std::quoted(s.acquisition_time.value())
-        << ", ";
-  if (s.series_date.has_value())
-    tmp << "series_date=" << std::quoted(s.series_date.value()) << ", ";
-  if (s.series_time.has_value())
-    tmp << "series_time=" << std::quoted(s.series_time.value()) << ", ";
-  if (s.frame_reference_time.has_value())
-    tmp << "frame_reference_time=" << s.frame_reference_time.value()
-        << " ms, ";
-  if (s.timezone_offset_from_utc.has_value())
-    tmp << "timezone_offset_from_utc="
-        << std::quoted(s.timezone_offset_from_utc.value()) << ", ";
-  if (s.decay_correction.has_value())
-    tmp << "decay_correction=" << std::quoted(s.decay_correction.value())
-        << ", ";
-  if (s.radionuclide_half_life.has_value())
-    tmp << "radionuclide_half_life=" << s.radionuclide_half_life.value()
-        << " s, ";
-
-  std::string body = tmp.str();
-  if (!body.empty())
-    // Remove the last ", ".
-    body.erase(body.size() - 2);
-
-  os << "Spect{" << body << "}";
-  return os;
-}
-
 std::optional<std::string>
 GetPatientName(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0010, 0x0010)))
     {
-      Warning() << "missing DICOM attribute: PatientName\n";
+      Warning("missing DICOM attribute: PatientName");
       return {};
     }
   gdcm::Attribute<0x0010, 0x0010> a;
@@ -136,24 +92,23 @@ GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
   const gdcm::Tag tag_sq(0x0054, 0x0016);
   if (!ds.FindDataElement(tag_sq))
     {
-      Warning() << "missing DICOM attribute: "
-                   "RadiopharmaceuticalInformationSequence\n";
+      Warning(
+          "missing DICOM attribute: RadiopharmaceuticalInformationSequence");
       return {};
     }
   gdcm::SmartPointer<gdcm::SequenceOfItems> sq
       = ds.GetDataElement(tag_sq).GetValueAsSQ();
   if (!sq || !sq->GetNumberOfItems())
     {
-      Warning() << "DICOM attribute RadiopharmaceuticalInformationSequence is "
-                   "present but either empty or not encoded as SQ\n";
+      Warning("DICOM attribute RadiopharmaceuticalInformationSequence is "
+              "present but either empty or not encoded as SQ");
       return {};
     }
   const gdcm::DataSet& nds = sq->GetItem(1).GetNestedDataSet();
   const gdcm::Tag tag(0x0018, 0x1078);
   if (!nds.FindDataElement(tag))
     {
-      Warning()
-          << "missing DICOM attribute: RadiopharmaceuticalStartDateTime\n";
+      Warning("missing DICOM attribute: RadiopharmaceuticalStartDateTime");
       return {};
     }
   gdcm::Attribute<0x0018, 0x1078> a;
@@ -166,7 +121,7 @@ GetAcquisitionDate(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0022)))
     {
-      Warning() << "missing DICOM attribute: AcquisitionDate\n";
+      Warning("missing DICOM attribute: AcquisitionDate");
       return {};
     }
   gdcm::Attribute<0x0008, 0x0022> at;
@@ -179,7 +134,7 @@ GetAcquisitionTime(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0032)))
     {
-      Warning() << "missing DICOM attribute: AcquisitionTime\n";
+      Warning("missing DICOM attribute: AcquisitionTime");
       return {};
     }
   gdcm::Attribute<0x0008, 0x0032> at;
@@ -192,7 +147,7 @@ GetSeriesDate(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0021)))
     {
-      Warning() << "missing DICOM attribute: SeriesDate\n";
+      Warning("missing DICOM attribute: SeriesDate");
       return {};
     }
   gdcm::Attribute<0x0008, 0x0021> at;
@@ -205,7 +160,7 @@ GetSeriesTime(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0031)))
     {
-      Warning() << "missing DICOM attribute: SeriesTime\n";
+      Warning("missing DICOM attribute: SeriesTime");
       return {};
     }
   gdcm::Attribute<0x0008, 0x0031> at;
@@ -218,7 +173,7 @@ GetFrameReferenceTime(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0054, 0x1300)))
     {
-      Warning() << "missing DICOM attribute: FrameReferenceTime\n";
+      Warning("missing DICOM attribute: FrameReferenceTime");
       return {};
     }
   gdcm::Attribute<0x0054, 0x1300> at;
@@ -231,7 +186,7 @@ GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0201)))
     {
-      Warning() << "missing DICOM attribute: TimezoneOffsetFromUTC\n";
+      Warning("missing DICOM attribute: TimezoneOffsetFromUTC");
       return {};
     }
   gdcm::Attribute<0x0008, 0x0201> at;
@@ -244,7 +199,7 @@ GetDecayCorrection(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0054, 0x1102)))
     {
-      Warning() << "missing DICOM attribute: DecayCorrection\n";
+      Warning("missing DICOM attribute: DecayCorrection");
       return {};
     }
   gdcm::Attribute<0x0054, 0x1102> a;
@@ -258,23 +213,23 @@ GetRadionuclideHalfLife(const gdcm::DataSet& ds)
   const gdcm::Tag tag_sq(0x0054, 0x0016);
   if (!ds.FindDataElement(tag_sq))
     {
-      Warning() << "missing DICOM attribute: "
-                   "RadiopharmaceuticalInformationSequence\n";
+      Warning(
+          "missing DICOM attribute: RadiopharmaceuticalInformationSequence");
       return {};
     }
   gdcm::SmartPointer<gdcm::SequenceOfItems> sq
       = ds.GetDataElement(tag_sq).GetValueAsSQ();
   if (!sq || !sq->GetNumberOfItems())
     {
-      Warning() << "DICOM attribute RadiopharmaceuticalInformationSequence is "
-                   "present but either empty or not encoded as SQ\n";
+      Warning("DICOM attribute RadiopharmaceuticalInformationSequence is "
+              "present but either empty or not encoded as SQ");
       return {};
     }
   const gdcm::DataSet& nds = sq->GetItem(1).GetNestedDataSet();
   const gdcm::Tag tag(0x0018, 0x1075);
   if (!nds.FindDataElement(tag))
     {
-      Warning() << "missing DICOM attribute: RadionuclideHalfLife\n";
+      Warning("missing DICOM attribute: RadionuclideHalfLife");
       return {};
     }
   gdcm::Attribute<0x0018, 0x1075> a;
@@ -516,7 +471,7 @@ MakeZonedTime(const DateComplete& d, const TimeComplete& t,
   catch (const tz::ambiguous_local_time& e)
     {
       // DST fall-back.
-      Warning() << e.what() << "\nChoosing the earlier time point\n";
+      WarningF("{}\nChoosing the earlier time point", e.what());
       return tz::zoned_time<std::chrono::seconds>{ &tz, lt,
                                                    tz::choose::earliest };
     }
@@ -723,7 +678,7 @@ ComputeDecayFactor(const Spect& s, const tz::time_zone* tz)
     case DecayCorrection::kAdmin:
       return ComputeDecayFactorAdmin(s, tz);
     }
-  std::fputs("you found a bug: unhandled DecayCorrection, exiting\n", stderr);
+  Error("you found a bug: unhandled DecayCorrection, exiting");
   std::exit(EXIT_FAILURE);
 }
 
