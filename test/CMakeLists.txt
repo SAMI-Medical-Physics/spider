@@ -30,8 +30,8 @@ add_executable(
   test_spect
   test_spect.cc
 )
-target_link_libraries(
-  test_spect
+target_link_libraries(test_spect
+  PRIVATE
   spider_spect
   GTest::gtest_main
 )

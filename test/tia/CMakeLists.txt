@@ -4,8 +4,8 @@ target_include_directories(test_exp_fit_functor
   "${CMAKE_CURRENT_SOURCE_DIR}/.."
   "${CMAKE_SOURCE_DIR}/src"
 )
-target_link_libraries(
-  test_exp_fit_functor
+target_link_libraries(test_exp_fit_functor
+  PRIVATE
   GTest::gtest_main
   ${ITK_LIBRARIES}
 )
@@ -18,8 +18,8 @@ target_include_directories(test_tia_pipeline
   PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/.."
 )
-target_link_libraries(
-  test_tia_pipeline
+target_link_libraries(test_tia_pipeline
+  PRIVATE
   spider_tia_pipeline
   GTest::gtest_main
 )
