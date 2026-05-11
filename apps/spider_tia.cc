@@ -6,10 +6,10 @@
 #include <cctype> // std::tolower
 #include <chrono>
 #include <cmath>   // std::llround
+#include <cstdio>  // std::fputc, std::fputs, std::puts, stderr, stdout
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS
 #include <filesystem>
-#include <fstream> // std::ifstream
-#include <iostream>
+#include <fstream>   // std::ifstream
 #include <stdexcept> // std::runtime_error
 #include <string>
 #include <string_view>
@@ -42,9 +42,9 @@ constexpr char kProgramName[] = "spider_tia";
 void
 Usage()
 {
-  std::cerr << "usage: " << kProgramName
-            << " [-fVv] [-o output_file]\n                  "
-            << "{ [-z time_zone] -d directory -i image } ...\n";
+  std::fputs("usage: spider_tia [-fVv] [-o output_file]\n"
+             "                  {{ [-z time_zone] -d directory -i image }}\n",
+             stderr);
 }
 
 struct ParsedArguments
@@ -71,8 +71,9 @@ ParseArguments(int argc, char* argv[])
       // Reject positional arguments, including a lone "-".
       if (arg[0] != '-' || arg[1] == '\0')
         {
-          std::cerr << kProgramName << ": unexpected argument -- " << arg
-                    << "\n";
+          std::fputs("spider_tia: unexpected argument -- ", stderr);
+          std::fputs(arg, stderr);
+          std::fputc('\n', stderr);
           Usage();
           std::exit(EXIT_FAILURE);
         }
@@ -90,7 +91,8 @@ ParseArguments(int argc, char* argv[])
 
           if (opt == 'V')
             {
-              std::cout << "Spider " << SPIDER_VERSION << "\n";
+              std::fputs("Spider ", stdout);
+              std::puts(SPIDER_VERSION);
               std::exit(EXIT_SUCCESS);
             }
 
@@ -114,9 +116,9 @@ ParseArguments(int argc, char* argv[])
                 {
                   if (i + 1 == argc)
                     {
-                      std::cerr << kProgramName
-                                << ": option requires an argument -- " << opt
-                                << "\n";
+                      std::fputs(
+                          "spider_tia: option requires an argument -- z\n",
+                          stderr);
                       Usage();
                       std::exit(EXIT_FAILURE);
                     }
@@ -138,9 +140,9 @@ ParseArguments(int argc, char* argv[])
                 {
                   if (i + 1 == argc)
                     {
-                      std::cerr << kProgramName
-                                << ": option requires an argument -- " << opt
-                                << "\n";
+                      std::fputs(
+                          "spider_tia: option requires an argument -- d\n",
+                          stderr);
                       Usage();
                       std::exit(EXIT_FAILURE);
                     }
@@ -161,9 +163,9 @@ ParseArguments(int argc, char* argv[])
                 {
                   if (i + 1 == argc)
                     {
-                      std::cerr << kProgramName
-                                << ": option requires an argument -- " << opt
-                                << "\n";
+                      std::fputs(
+                          "spider_tia: option requires an argument -- i\n",
+                          stderr);
                       Usage();
                       std::exit(EXIT_FAILURE);
                     }
@@ -184,9 +186,9 @@ ParseArguments(int argc, char* argv[])
                 {
                   if (i + 1 == argc)
                     {
-                      std::cerr << kProgramName
-                                << ": option requires an argument -- " << opt
-                                << "\n";
+                      std::fputs(
+                          "spider_tia: option requires an argument -- o\n",
+                          stderr);
                       Usage();
                       std::exit(EXIT_FAILURE);
                     }
@@ -196,7 +198,9 @@ ParseArguments(int argc, char* argv[])
               break;
             }
 
-          std::cerr << kProgramName << ": unknown option -- " << opt << "\n";
+          std::fputs("spider_tia: unknown option -- ", stderr);
+          std::fputc(opt, stderr);
+          std::fputc('\n', stderr);
           Usage();
           std::exit(EXIT_FAILURE);
         }
@@ -246,8 +250,8 @@ ReadDicomFileInDir(const std::string_view dir,
   std::filesystem::directory_iterator it(dir, ec);
   if (ec)
     {
-      std::cerr << kProgramName << ": Cannot open directory '" << dir
-                << "': " << ec.message() << '\n';
+      spider::ErrorF("{}: Cannot open directory '{}': {}", kProgramName, dir,
+                     ec.message());
       std::exit(EXIT_FAILURE);
     }
   const std::filesystem::directory_iterator end{};
@@ -279,8 +283,8 @@ GetRadionuclideHalfLife(const std::vector<spider::Spect>& spects)
       if (spect.radionuclide_half_life.has_value())
         return spect.radionuclide_half_life.value();
     }
-  std::cerr << kProgramName
-            << ": no SPECT has DICOM attribute RadionuclideHalfLife\n";
+  spider::Error(
+      "spider_tia: no SPECT has DICOM attribute RadionuclideHalfLife");
   std::exit(EXIT_FAILURE);
 }
 
@@ -314,9 +318,8 @@ main(int argc, char* argv[])
       gdcm::Reader r;
       if (!ReadDicomFileInDir(args.dicom_dirs[i], p, r))
         {
-          std::cerr << kProgramName
-                    << ": Failed to read a DICOM file in directory '"
-                    << args.dicom_dirs[i] << "'\n";
+          spider::ErrorF("{}: Failed to read a DICOM file in directory '{}'",
+                         kProgramName, args.dicom_dirs[i]);
           return EXIT_FAILURE;
         }
       const gdcm::DataSet& ds = r.GetFile().GetDataSet();
@@ -335,10 +338,9 @@ main(int argc, char* argv[])
   if (args.tz_names.size() > 1
       && args.tz_names.size() != args.dicom_dirs.size())
     {
-      std::cerr
-          << kProgramName
-          << ": when specifying more than one time zone, you must specify the "
-             "same number of time zones as directory arguments\n";
+      spider::Error(
+          "spect_tia: when specifying more than one time zone, you must "
+          "specify the same number of time zones as directory arguments");
       return EXIT_FAILURE;
     }
 
@@ -367,7 +369,7 @@ main(int argc, char* argv[])
   catch (const std::runtime_error& ex)
     {
       // Catch 'tzdb: cannot locate zone'.
-      std::cerr << kProgramName << ": " << ex.what() << '\n';
+      spider::ErrorF("{}: {}", kProgramName, ex.what());
       return EXIT_FAILURE;
     }
 
@@ -393,8 +395,8 @@ main(int argc, char* argv[])
                                                         time_zones[i]);
       if (!administration_time.has_value())
         {
-          std::cerr << kProgramName << ": SPECT " << i + 1 << ": "
-                    << spider::ToString(administration_time.error()) << "\n";
+          spider::ErrorF("{}: SPECT {}: {}", kProgramName, i + 1,
+                         spider::ToString(administration_time.error()));
           return EXIT_FAILURE;
         }
       administration_times.push_back(administration_time.value());
@@ -404,8 +406,8 @@ main(int argc, char* argv[])
           = spider::MakeAcquisitionSysTime(spects[i], time_zones[i]);
       if (!acquisition_time.has_value())
         {
-          std::cerr << kProgramName << ": SPECT " << i + 1 << ": "
-                    << spider::ToString(acquisition_time.error()) << "\n";
+          spider::ErrorF("{}: SPECT {}: {}", kProgramName, i + 1,
+                         spider::ToString(acquisition_time.error()));
           return EXIT_FAILURE;
         }
       acquisition_times.push_back(acquisition_time.value());
@@ -415,8 +417,8 @@ main(int argc, char* argv[])
           = spider::ComputeDecayFactor(spects[i], time_zones[i]);
       if (!decay_factor.has_value())
         {
-          std::cerr << kProgramName << ": SPECT " << i + 1 << ": "
-                    << spider::ToString(decay_factor.error()) << "\n";
+          spider::ErrorF("{}: SPECT {}: {}", kProgramName, i + 1,
+                         spider::ToString(decay_factor.error()));
           return EXIT_FAILURE;
         }
       decay_factors.push_back(decay_factor.value());
@@ -483,8 +485,8 @@ main(int argc, char* argv[])
         {
           if (std::filesystem::exists(p))
             {
-              std::cerr << kProgramName << ": file already exists: " << p
-                        << "\n";
+              spider::ErrorF("{}: file already exists: {}", kProgramName,
+                             p.string());
               return EXIT_FAILURE;
             }
         }
@@ -494,15 +496,13 @@ main(int argc, char* argv[])
   if (args.image_filenames.size() < 2)
     {
       // Required by PrepareTiaPipeline.
-      std::cerr << kProgramName
-                << ": you must specify at least 2 image arguments\n";
+      spider::Error("spider_tia: you must specify at least 2 image arguments");
       return EXIT_FAILURE;
     }
   if (args.image_filenames.size() != args.dicom_dirs.size())
     {
-      std::cerr << kProgramName
-                << ": number of image arguments does not match number of "
-                   "directory arguments\n";
+      spider::Error("spider_tia: number of image arguments does not match "
+                    "number of directory arguments");
       return EXIT_FAILURE;
     }
 
@@ -534,7 +534,7 @@ main(int argc, char* argv[])
     }
   catch (const itk::ExceptionObject& ex)
     {
-      std::cerr << kProgramName << ": " << ex << "\n";
+      spider::ErrorF("{}: {}", kProgramName, ex.what());
       return EXIT_FAILURE;
     }
 

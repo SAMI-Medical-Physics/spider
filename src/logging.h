@@ -38,12 +38,20 @@ LogLevelEnabled(LogLevel level);
 void
 Error(std::string_view msg);
 
+// "F" denotes a formatted variant; FMT is formatted using ARGS as
+// with std::format and std::print.
+template <typename... Args>
+void
+ErrorF(std::format_string<Args...> fmt, Args&&... args)
+{
+  if (LogLevelEnabled(LogLevel::kError))
+    std::println(stderr, fmt, std::forward<Args>(args)...);
+}
+
 // Warning messages are shown at log levels kWarn, kInfo, and kDebug.
 void
 Warning(std::string_view msg);
 
-// "F" denotes a formatted variant; FMT is formatted using ARGS as
-// with std::format and std::print.
 template <typename... Args>
 void
 WarningF(std::format_string<Args...> fmt, Args&&... args)
