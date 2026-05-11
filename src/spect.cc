@@ -8,16 +8,14 @@
 #include <cmath>   // std::exp, std::log
 #include <cstddef> // std::size_t
 #include <cstdio>  // std::fputs, stderr
-#include <cstdlib> // std::strtod, std::exit, EXIT_FAILURE
+#include <cstdlib> // std::exit, EXIT_FAILURE
 #include <expected>
 #include <iomanip> // std::quoted
-#include <istream>
 #include <optional>
 #include <ostream>
 #include <string>
 #include <string_view>
 #include <system_error> // std::errc
-#include <vector>
 
 #include <gdcmAttribute.h>
 #include <gdcmDataSet.h>

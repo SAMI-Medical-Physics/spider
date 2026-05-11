@@ -4,10 +4,10 @@
 #ifndef SPIDER_TZ_COMPAT_H
 #define SPIDER_TZ_COMPAT_H
 
-#include <chrono>
-
 // SPIDER_HAVE_STD_CHRONO_TZ is a CMake compile definition.
-#if !SPIDER_HAVE_STD_CHRONO_TZ
+#if SPIDER_HAVE_STD_CHRONO_TZ
+#include <chrono>
+#else
 #include <date/tz.h>
 #endif
 

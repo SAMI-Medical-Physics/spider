@@ -12,7 +12,7 @@
 
 (use-modules (git)
              (guix channels)            ;for channel->code
-             (guix describe)            ;for current-channesl
+             (guix describe)            ;for current-channels
              (guix gexp))
 
 ;; For tia-comparison.

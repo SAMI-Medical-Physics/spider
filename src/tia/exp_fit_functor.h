@@ -4,7 +4,7 @@
 #ifndef SPIDER_TIA_EXP_FIT_FUNCTOR_H
 #define SPIDER_TIA_EXP_FIT_FUNCTOR_H
 
-#include <algorithm>
+#include <algorithm> // std::max
 #include <cassert>
 #include <chrono>
 #include <cmath>   // std::log, std::exp

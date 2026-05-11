@@ -7,12 +7,10 @@
 #include <cassert>
 #include <chrono>
 #include <expected>
-#include <istream>
 #include <optional>
 #include <ostream>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include <gdcmDataSet.h>
 
