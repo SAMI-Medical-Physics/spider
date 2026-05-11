@@ -22,10 +22,14 @@
 #include <itkImageFileWriter.h>
 #include <itkMacro.h> // itk::ExceptionObject
 
-#include "logging.h"
-#include "spect.h"
-#include "tia/tia_pipeline.h"
-#include "tz_compat.h"
+#include "logging.h"          // Log, Warning
+#include "spect.h"            // Spect, ReadDicomSpect, << for Spect,
+                              // ToString for SpectError,
+                              // MakeAcquisitionSysTime,
+                              // MakeRadiopharmaceuticalStartSysTime,
+                              // ComputeDecayFactor, UsesTimeZone
+#include "tia/tia_pipeline.h" // TiaFilters, PrepareTiaPipeline
+#include "tz_compat.h"        // tz::
 
 namespace
 {

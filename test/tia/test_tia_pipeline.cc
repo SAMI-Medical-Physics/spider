@@ -16,7 +16,7 @@
 #include <itkImageFileWriter.h>
 #include <itkTestingComparisonImageFilter.h>
 
-#include "test_utils.h"
+#include "test_utils.h" // test::CreateImage
 
 TEST(TiaPipelineTest, NoDecay)
 {

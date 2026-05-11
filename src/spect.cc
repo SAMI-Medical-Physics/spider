@@ -23,8 +23,8 @@
 #include <gdcmSmartPointer.h>
 #include <gdcmTag.h>
 
-#include "logging.h"
-#include "tz_compat.h"
+#include "logging.h"   // Warning
+#include "tz_compat.h" // tz::
 
 namespace spider
 {

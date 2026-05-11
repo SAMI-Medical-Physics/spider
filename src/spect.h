@@ -14,7 +14,7 @@
 
 #include <gdcmDataSet.h>
 
-#include "tz_compat.h"
+#include "tz_compat.h" // tz::
 
 namespace spider
 {

@@ -15,7 +15,7 @@
 #include <itkUnaryFunctorImageFilter.h>
 #include <itkVectorImage.h>
 
-#include "test_utils.h"
+#include "test_utils.h" // test::CreateImage
 
 TEST(ExpFitFunctorTest, Pixel)
 {

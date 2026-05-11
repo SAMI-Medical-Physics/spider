@@ -20,7 +20,7 @@
 #include <gdcmVR.h>
 #include <gtest/gtest.h>
 
-#include "tz_compat.h"
+#include "tz_compat.h" // tz::
 
 namespace
 {

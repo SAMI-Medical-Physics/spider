@@ -15,7 +15,7 @@
 #include <itkUnaryFunctorImageFilter.h>
 #include <itkVectorImage.h>
 
-#include "tia/exp_fit_functor.h"
+#include "tia/exp_fit_functor.h" // ExpFitFunctor
 
 namespace spider
 {
