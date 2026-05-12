@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.21) # for RUNTIME_DEPENDENCY_SET
 project(Spider VERSION 0.0.0)
 
 # This requirement is driven by the calendar and time zone
-# functionality added in C++20 and std::expected from C++23.
+# functionality added in C++20.  We also use C++23 <expected> for
+# error handling and <print> for logging.
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

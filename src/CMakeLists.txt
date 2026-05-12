@@ -2,6 +2,12 @@ add_library(spider_logging
   STATIC
   logging.cc
 )
+if(MINGW AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_libraries(spider_logging
+    PRIVATE
+    stdc++exp                   # C++23 <print>
+  )
+endif()
 
 add_library(spider_spect
   STATIC
