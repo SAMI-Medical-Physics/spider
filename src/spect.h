@@ -15,57 +15,13 @@
 
 #include "tz_compat.h" // tz::
 
+// Compute information about a SPECT study.
+
 namespace spider
 {
-
-// Selected DICOM attributes from a SPECT DICOM series.
-struct Spect
-{
-  std::optional<std::string> patient_name;
-  std::optional<std::string> radiopharmaceutical_start_date_time;
-  std::optional<std::string> acquisition_date;
-  std::optional<std::string> acquisition_time;
-  std::optional<std::string> series_date;
-  std::optional<std::string> series_time;
-  std::optional<double> frame_reference_time; // milliseconds
-  std::optional<std::string> timezone_offset_from_utc;
-  std::optional<std::string> decay_correction;
-  std::optional<double> radionuclide_half_life; // seconds
-};
-
-std::optional<std::string>
-GetPatientName(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetAcquisitionDate(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetAcquisitionTime(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetSeriesDate(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetSeriesTime(const gdcm::DataSet& ds);
-
-std::optional<double>
-GetFrameReferenceTime(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds);
-
-std::optional<std::string>
-GetDecayCorrection(const gdcm::DataSet& ds);
-
-std::optional<double>
-GetRadionuclideHalfLife(const gdcm::DataSet& ds);
-
-// Fill a Spect from the DICOM attributes in dataset DS.
-Spect
-ReadDicomSpect(const gdcm::DataSet& ds);
+
+// Parse values of the DICOM VRs Date (DA), Time (TM), and Date Time
+// (DT), and the DICOM attribute TimezoneOffsetFromUtc.
 
 struct DateComplete
 {
@@ -130,6 +86,9 @@ ParseDicomDateTime(std::string_view v);
 // valid value of the DICOM attribute TimezoneOffsetFromUtc.
 std::optional<std::chrono::minutes>
 ParseDicomUtcOffset(std::string_view v);
+
+// Construct time points from combinations of DICOM DA, TM, DT, the
+// DICOM attribute TimezoneOffsetFromUtc, and time zone.
 
 enum class TimePointError
 {
@@ -237,6 +196,48 @@ std::expected<std::chrono::sys_seconds, TimePointError>
 MakeSysTimeFromDicomDateTime(std::string_view datetime,
                              std::optional<std::string_view> voffset,
                              const tz::time_zone* tz = nullptr);
+
+// Parse other DICOM attributes.
+
+// Values of the DICOM attribute DecayCorrection.
+enum class DecayCorrection
+{
+  kNone,
+  kStart,
+  kAdmin
+};
+
+constexpr std::optional<DecayCorrection>
+ParseDicomDecayCorrection(const std::string_view v)
+{
+  if (v == "NONE")
+    return DecayCorrection::kNone;
+  if (v == "START ")
+    return DecayCorrection::kStart;
+  if (v == "ADMIN ")
+    return DecayCorrection::kAdmin;
+  return {};
+}
+
+// Compute useful information about a SPECT study; e.g., the time
+// point of the start of the acquisiton (MakeAcquisitionSysTime) and
+// the factor required to decay-correct the image to acquisition start
+// (ComputeDecayFactor).
+
+// Selected DICOM attributes from a SPECT study.
+struct Spect
+{
+  std::optional<std::string> patient_name;
+  std::optional<std::string> radiopharmaceutical_start_date_time;
+  std::optional<std::string> acquisition_date;
+  std::optional<std::string> acquisition_time;
+  std::optional<std::string> series_date;
+  std::optional<std::string> series_time;
+  std::optional<double> frame_reference_time; // milliseconds
+  std::optional<std::string> timezone_offset_from_utc;
+  std::optional<std::string> decay_correction;
+  std::optional<double> radionuclide_half_life; // seconds
+};
 
 enum class SpectErrorCode
 {
@@ -405,26 +406,6 @@ MakeRadiopharmaceuticalStartSysTime(const Spect& s,
             });
 }
 
-// Values of the DICOM attribute DecayCorrection.
-enum class DecayCorrection
-{
-  kNone,
-  kStart,
-  kAdmin
-};
-
-constexpr std::optional<DecayCorrection>
-ParseDicomDecayCorrection(const std::string_view v)
-{
-  if (v == "NONE")
-    return DecayCorrection::kNone;
-  if (v == "START ")
-    return DecayCorrection::kStart;
-  if (v == "ADMIN ")
-    return DecayCorrection::kAdmin;
-  return {};
-}
-
 // Compute the decay factor for the SPECT series as if the DICOM
 // attribute DecayCorrection were NONE.  See ComputeDecayFactor for
 // the meaning of decay factor.  Note that Spect::decay_correction
@@ -450,6 +431,42 @@ ComputeDecayFactor(const Spect& s, const tz::time_zone* tz = nullptr);
 // suffix, uses the caller-supplied time zone.
 bool
 UsesTimeZone(const Spect& s);
+
+// Construct a Spect from a GDCM dataset.
+
+std::optional<std::string>
+GetPatientName(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetAcquisitionDate(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetAcquisitionTime(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetSeriesDate(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetSeriesTime(const gdcm::DataSet& ds);
+
+std::optional<double>
+GetFrameReferenceTime(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetDecayCorrection(const gdcm::DataSet& ds);
+
+std::optional<double>
+GetRadionuclideHalfLife(const gdcm::DataSet& ds);
+
+// Fill a Spect from the DICOM attributes in dataset DS.
+Spect
+ReadDicomSpect(const gdcm::DataSet& ds);
 
 } // namespace spider
 
