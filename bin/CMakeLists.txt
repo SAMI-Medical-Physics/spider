@@ -8,8 +8,8 @@ if(MSVC)
   # SPIDER_DATADIR_FROM_BINDIR is used in spider.ps1.in to support
   # relocation of the install tree.
   cmake_path(
-    RELATIVE_PATH CMAKE_INSTALL_DATADIR
-    BASE_DIRECTORY "${CMAKE_INSTALL_BINDIR}"
+    RELATIVE_PATH CMAKE_INSTALL_FULL_DATADIR
+    BASE_DIRECTORY "${CMAKE_INSTALL_FULL_BINDIR}"
     OUTPUT_VARIABLE SPIDER_DATADIR_FROM_BINDIR
   )
   configure_file(spider.ps1.in spider.ps1 @ONLY)
