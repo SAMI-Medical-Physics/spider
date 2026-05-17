@@ -15,7 +15,8 @@
 
 #include "tz_compat.h" // tz::
 
-// Compute information about a SPECT study.
+// Compute information about a SPECT study from a DICOM dataset with
+// SOP Class Positron Emission Tomography Image Storage.
 
 namespace spider
 {
@@ -224,7 +225,8 @@ ParseDicomDecayCorrection(const std::string_view v)
 // the factor required to decay-correct the image to acquisition start
 // (ComputeDecayFactor).
 
-// Selected DICOM attributes from a SPECT study.
+// Selected DICOM attributes from a SPECT study.  They are defined for
+// datasets of the PositronEmissionTomographyImageStorage SOP Class.
 struct Spect
 {
   std::optional<std::string> patient_name;
