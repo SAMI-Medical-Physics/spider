@@ -12,6 +12,7 @@ awk_cmd=awk
 dcm2niix_cmd=dcm2niix
 elastix_cmd=elastix
 mkdir_cmd=mkdir
+rm_cmd=rm
 sed_cmd=sed
 
 PROGRAM_NAME=${0##*/}
@@ -67,10 +68,16 @@ shift $((OPTIND - 1))
 i=1
 for d in "$@"; do
     ensure_filename_available "spect$i.nii"
+    # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
+    # even though no NIfTI file is produced.  Delete any previous
+    # output file so we can detect when this happens via a missing
+    # output file.
+    "$rm_cmd" -f "spect$i.nii"
     # "-w 1" overwrites output files.  Use "-g i" (ignore user
     # defaults file) to ensure the output file is called
     # "spect$i.nii".
     "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >&2
+    test -e "spect$i.nii"
     i=$((i + 1))
 done
 
