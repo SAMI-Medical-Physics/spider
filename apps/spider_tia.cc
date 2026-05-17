@@ -308,8 +308,6 @@ main(int argc, char* argv[])
       return EXIT_FAILURE;
     }
 
-  spider::DebugF("Version {}", SPIDER_VERSION);
-
   // Read DICOM attributes for each SPECT.
   std::vector<spider::Spect> spects;
   for (std::size_t i = 0; i < args.dicom_dirs.size(); ++i)
