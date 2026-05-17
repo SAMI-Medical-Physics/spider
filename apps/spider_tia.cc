@@ -23,7 +23,7 @@
 #include <itkMacro.h> // itk::ExceptionObject
 
 #include "logging.h"          // LogLevel, SetLogLevel, Warning,
-                              // WarningF, Debug, DebugF
+                              // Debug, DebugF
 #include "spect.h"            // Spect, ReadDicomSpect, ToString for
                               // SpectError, MakeAcquisitionSysTime,
                               // MakeRadiopharmaceuticalStartSysTime,
@@ -384,7 +384,7 @@ main(int argc, char* argv[])
   for (std::size_t i = 0; i < spects.size(); ++i)
     {
       if (spider::UsesTimeZone(spects[i]))
-        spider::WarningF(
+        spider::DebugF(
             "SPECT {}: assuming Dates (DA), Times (TM), and Date Times (DT) "
             "without a UTC offset suffix are in time zone {}",
             i + 1, time_zones[i]->name());

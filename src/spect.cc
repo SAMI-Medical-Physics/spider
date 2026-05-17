@@ -20,7 +20,7 @@
 #include <gdcmSmartPointer.h>
 #include <gdcmTag.h>
 
-#include "logging.h"   // Warning, WarningF, Error
+#include "logging.h"   // Warning, WarningF, Error, Debug
 #include "tz_compat.h" // tz::
 
 namespace spider
@@ -621,7 +621,7 @@ GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds)
 {
   if (!ds.FindDataElement(gdcm::Tag(0x0008, 0x0201)))
     {
-      Warning("missing DICOM attribute: TimezoneOffsetFromUTC");
+      Debug("missing DICOM attribute: TimezoneOffsetFromUTC");
       return {};
     }
   gdcm::Attribute<0x0008, 0x0201> at;
