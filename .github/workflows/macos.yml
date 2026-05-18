@@ -1,0 +1,20 @@
+name: macos
+on:
+  # To run the workflow from the Actions tab.
+  workflow_dispatch:
+jobs:
+  build:
+    name: Build Spider on macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: brew install itk googletest
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_TESTING=ON
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Install
+        run: cmake --install build
