@@ -11,7 +11,7 @@ jobs:
       - name: Install dependencies
         run: brew install itk howard-hinnant-date googletest
       - name: Configure
-        run: cmake -S . -B build -DBUILD_TESTING=ON
+        run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_OSX_SYSROOT=macosx
       - name: Build
         run: cmake --build build --verbose
       - name: Test
