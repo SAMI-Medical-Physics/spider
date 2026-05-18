@@ -13,7 +13,7 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -DBUILD_TESTING=ON
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --verbose
       - name: Test
         run: ctest --test-dir build --output-on-failure
       - name: Install
