@@ -5,16 +5,43 @@ install(FILES
 )
 
 if(MSVC)
-  # SPIDER_DATADIR_FROM_BINDIR is used in spider.ps1.in to support
-  # relocation of the install tree.
+  # SPIDER_DATADIR_FROM_BINDIR is used in spider.ps1.in to locate
+  # Parameters_Rigid.txt.  It is a relative path to support relocation
+  # of the install tree.  It is allowed to be different for the build
+  # and the installation to avoid mirroring the installation paths in
+  # the build, since that could require making directories and files
+  # outside of the build tree.
+
+  # For the build tree.
+  cmake_path(
+    RELATIVE_PATH CMAKE_SOURCE_DIR
+    BASE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    OUTPUT_VARIABLE SPIDER_SOURCEDIR_FROM_BINDIR
+  )
+  set(SPIDER_DATADIR_FROM_BINDIR
+    "${SPIDER_SOURCEDIR_FROM_BINDIR}/etc"
+  )
+  configure_file(spider.ps1.in spider.ps1 @ONLY)
+  file(COPY spider.cmd
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )
+
+  # For the installation.
   cmake_path(
     RELATIVE_PATH CMAKE_INSTALL_FULL_DATADIR
     BASE_DIRECTORY "${CMAKE_INSTALL_FULL_BINDIR}"
     OUTPUT_VARIABLE SPIDER_DATADIR_FROM_BINDIR
   )
-  configure_file(spider.ps1.in spider.ps1 @ONLY)
+  set(SPIDER_DATADIR_FROM_BINDIR
+    "${SPIDER_DATADIR_FROM_BINDIR}/spider"
+  )
+  configure_file(spider.ps1.in spider.ps1.install @ONLY)
   install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/spider.ps1"
+    "${CMAKE_CURRENT_BINARY_DIR}/spider.ps1.install"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    RENAME spider.ps1
+  )
+  install(FILES
     spider.cmd
     DESTINATION "${CMAKE_INSTALL_BINDIR}"
   )
@@ -50,9 +77,34 @@ if(MSVC)
     )
   endif()
 else()
+  # SPIDER_DATADIR and SPIDER_BINDIR are used in spider.sh.in to
+  # locate Parameters_Rigid.txt and spider_tia, respectively.
+
+  # For the build tree.
+  set(SPIDER_DATADIR
+    "${CMAKE_SOURCE_DIR}/etc"
+  )
+  set(SPIDER_BINDIR
+    "${CMAKE_CURRENT_BINARY_DIR}"
+  )
   configure_file(spider.sh.in spider @ONLY)
+  file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/spider"
+    PERMISSIONS
+    OWNER_READ
+    OWNER_EXECUTE
+  )
+
+  # For the installation.
+  set(SPIDER_DATADIR
+    "${CMAKE_INSTALL_FULL_DATADIR}/spider"
+  )
+  set(SPIDER_BINDIR
+    "${CMAKE_INSTALL_FULL_BINDIR}"
+  )
+  configure_file(spider.sh.in spider.install @ONLY)
   install(PROGRAMS
-    "${CMAKE_CURRENT_BINARY_DIR}/spider"
+    "${CMAKE_CURRENT_BINARY_DIR}/spider.install"
     DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    RENAME spider
   )
 endif()

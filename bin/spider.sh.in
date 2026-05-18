@@ -24,7 +24,7 @@ usage() {
 }
 
 overwrite=0
-elastix_param="@CMAKE_INSTALL_FULL_DATADIR@/spider/Parameters_Rigid.txt"
+elastix_param="@SPIDER_DATADIR@/Parameters_Rigid.txt"
 tz_list=""
 
 ensure_filename_available() {
@@ -146,4 +146,4 @@ if [ -n "$tz_list" ]; then
     IFS=$old_ifs
 fi
 
-"@CMAKE_INSTALL_FULL_BINDIR@/spider_tia" "$@"
+"@SPIDER_BINDIR@/spider_tia" "$@"

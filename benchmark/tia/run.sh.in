@@ -44,7 +44,7 @@ elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
 
 # Make Spider's TIA image.
 SPIDER_TIA=spider-tia.nii
-"@CMAKE_BINARY_DIR@/apps/spider_tia" -fv -o "$SPIDER_TIA" -z America/Detroit \
+"@CMAKE_BINARY_DIR@/bin/spider_tia" -fv -o "$SPIDER_TIA" -z America/Detroit \
     -d "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
     -d "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
     -d "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \

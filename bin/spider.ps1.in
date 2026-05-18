@@ -30,7 +30,7 @@ if (-not $elastix_param)
     # Use the default elastix parameter file.  Support relocation of
     # install tree.
     $default_elastix_param_from_script_dir = '@SPIDER_DATADIR_FROM_BINDIR@' +
-    '/spider/Parameters_Rigid.txt'
+    '/Parameters_Rigid.txt'
     $elastix_param = [System.IO.Path]::GetFullPath(
         (Join-Path $PSScriptRoot $default_elastix_param_from_script_dir)
     )
