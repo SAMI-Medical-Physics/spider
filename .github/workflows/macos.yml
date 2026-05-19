@@ -9,20 +9,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Build and install ITK
-        # FIXME: We would like to use ITK from Homebrew, but
+        # FIXME: We would like to install ITK from Homebrew, but
         # include(${ITK_USE_FILE}) places command-line tools SDK
         # /usr/include ahead of libc++ headers, breaking includes like
         # <cstdio>.  ITK_USE_FILE will not be required in ITK 6.
         run: |
-          git clone https://github.com/insightsoftwareconsortium/itk.git \
+          git clone --branch v5.4.6 --depth 1 \
+            https://github.com/insightsoftwareconsortium/itk.git \
             ../itk-source
-          cmake -S ../itk-source -B ../itk-build
+          cmake -S ../itk-source -B ../itk-build \
+            -DCMAKE_INSTALL_PREFIX=$PWD/../itk-install
           cmake --build ../itk-build --verbose
           cmake --install ../itk-build
       - name: Install other dependencies
         run: brew install howard-hinnant-date googletest
       - name: Configure
-        run: cmake -S . -B build -DBUILD_TESTING=ON
+        run: cmake -S . -B build -DBUILD_TESTING=ON \
+          -DITK_DIR=$PWD/../itk-install/lib/cmake/ITK-5.4
       - name: Build
         run: cmake --build build --verbose
       - name: Test
