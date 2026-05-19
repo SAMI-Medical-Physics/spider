@@ -9,13 +9,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install dependencies
-        run: |
-          brew install itk howard-hinnant-date googletest
-          grep -R -n "CommandLineTools/SDKs/MacOSX15.sdk/usr/include" \
-          /opt/homebrew/Cellar/itk \
-          /opt/homebrew/Cellar || true
+        run: brew install itk howard-hinnant-date googletest
       - name: Configure
-        run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_OSX_SYSROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk
+        run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_OSX_SYSROOT=macosx
       - name: Build
         run: cmake --build build --verbose
       - name: Test
