@@ -19,7 +19,7 @@ jobs:
             ../itk-source
           cmake -S ../itk-source -B ../itk-build \
             -DCMAKE_INSTALL_PREFIX=$PWD/../itk-install
-          cmake --build ../itk-build --verbose --parallel
+          cmake --build ../itk-build --verbose
           cmake --install ../itk-build
       - name: Install other dependencies
         run: brew install howard-hinnant-date googletest
