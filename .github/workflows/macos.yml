@@ -19,13 +19,14 @@ jobs:
             ../itk-source
           cmake -S ../itk-source -B ../itk-build \
             -DCMAKE_INSTALL_PREFIX=$PWD/../itk-install
-          cmake --build ../itk-build --verbose
+          cmake --build ../itk-build --verbose --parallel
           cmake --install ../itk-build
       - name: Install other dependencies
         run: brew install howard-hinnant-date googletest
       - name: Configure
-        run: cmake -S . -B build -DBUILD_TESTING=ON \
-          -DITK_DIR=$PWD/../itk-install/lib/cmake/ITK-5.4
+        run: |
+          cmake -S . -B build -DBUILD_TESTING=ON \
+            -DITK_DIR="$PWD/../itk-install/lib/cmake/ITK-5.4"
       - name: Build
         run: cmake --build build --verbose
       - name: Test
