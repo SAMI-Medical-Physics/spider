@@ -8,12 +8,38 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Install dependencies
-        run: brew install itk howard-hinnant-date googletest
+        # FIXME: We cannot use ITK from Homebrew because then
+        # include(${ITK_USE_FILE}) in Spider adds the command-line
+        # tools SDK /usr/include as an include directory.  Then
+        # compiling Spider targets gives the error: "header search
+        # paths should contain the C++ Standard Library headers before
+        # any C Standard Library".  ITK_USE_FILE will not be required
+        # in ITK 6.
+      - name: Install ITK dependencies
+        run: |
+          brew install double-conversion eigen expat fftw gdcm hdf5 jpeg-turbo \
+          libpng libtiff
+      - name: Build ITK
+        run: |
+          git clone --branch v5.4.6 --depth 1 \
+            https://github.com/insightsoftwareconsortium/itk.git \
+            ../itk-source
+          cmake -S ../itk-source -B ../itk-build \
+            -DCMAKE_INSTALL_PREFIX="$PWD/../itk-install" \
+            -DITK_USE_SYSTEM_LIBRARIES=ON \
+            -DITK_USE_SYSTEM_GOOGLETEST=OFF \
+            -DBUILD_TESTING=OFF
+          cmake --build ../itk-build --verbose
+          cmake --install ../itk-build
+      - name: Install other Spider dependencies
+        run: brew install howard-hinnant-date googletest
       - name: Configure
-        run: cmake -S . -B build -DBUILD_TESTING=ON
+        run: |
+          cmake -S . -B build -DBUILD_TESTING=ON \
+            -DITK_DIR="$PWD/../itk-install/lib/cmake/ITK-5.4" \
+            -DCMAKE_INSTALL_PREFIX="$PWD/../spider-install"
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --verbose
       - name: Test
         run: ctest --test-dir build --output-on-failure
       - name: Install
