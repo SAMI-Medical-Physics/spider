@@ -244,6 +244,16 @@ OutputFilenames(const std::string& filename)
       || ext == ".nrrd" || ext == ".mha")
     return { out };
 
+  // NIfTI detached.
+  if (ext == ".hdr")
+    return { out, WithExtension(out, ".img") };
+  if (ext == ".gz" && out.stem().extension() == ".hdr") // path/to/x.hdr.gz
+    {
+      auto img = out;
+      img.replace_extension().replace_extension(".img.gz");
+      return { out, img };
+    }
+
   // MetaImage or NRRD detached.
   if (ext == ".mhd" || ext == ".nhdr")
     return { out, WithExtension(out, ".raw") };
