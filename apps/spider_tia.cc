@@ -209,37 +209,65 @@ ParseArguments(int argc, char* argv[])
   return out;
 }
 
+std::filesystem::path
+WithExtension(std::filesystem::path p, std::string_view ext)
+{
+  p.replace_extension(ext);
+  return p;
+}
+
+std::filesystem::path
+SiblingFile(const std::filesystem::path& p, std::string_view name)
+{
+  return p.parent_path() / name;
+}
+
+std::string
+Lower(std::string s)
+{
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return s;
+}
+
 std::vector<std::filesystem::path>
 OutputFilenames(const std::string& filename)
 {
   // itk::ImageFileWriter may write file(s) other than the name passed
   // to SetFileName.  Return the file names that are actually written
   // when FILENAME is passed to SetFileName.
-  const std::filesystem::path out_path{ filename };
-  const auto ext = out_path.extension();
+  const std::filesystem::path out{ filename };
+  const auto ext = out.extension();
+
+  // Do the most common ones first.
+  if (ext == ".nii" || (ext == ".gz" && out.stem().extension() == ".nii")
+      || ext == ".nrrd" || ext == ".mha")
+    return { out };
+
+  // MetaImage or NRRD detached.
   if (ext == ".mhd" || ext == ".nhdr")
-    {
-      // For MetaImage and NRRD header files, a .raw file is written
-      // too.
-      auto raw = out_path;
-      raw.replace_extension(".raw");
-      return { out_path, raw };
-    }
-  auto lower_ext_str = ext.string();
-  std::transform(lower_ext_str.begin(), lower_ext_str.end(),
-                 lower_ext_str.begin(),
-                 [](unsigned char c) { return std::tolower(c); });
-  if (lower_ext_str == ".mhd" || (ext != ".mha" && lower_ext_str == ".mha"))
-    {
-      // A MetaImage extension containing an upper case character
-      // causes .mhd and .raw files to be written.
-      auto out = out_path;
-      out.replace_extension(".mhd");
-      auto raw = out_path;
-      raw.replace_extension(".raw");
-      return { out, raw };
-    }
-  return { out_path };
+    return { out, WithExtension(out, ".raw") };
+  const auto fname = out.filename();
+  if (fname == ".mhd")
+    return { out, SiblingFile(out, ".raw") };
+
+  // MetaImage extension .mha or .mhd containing an upper case
+  // character causes .mhd and .raw or .zraw files to be written.
+  const auto ext_lower = Lower(ext.string());
+  const bool mixed_case_meta_ext
+      = ext_lower == ".mhd" || (ext != ".mha" && ext_lower == ".mha");
+  if (mixed_case_meta_ext)
+    return { WithExtension(out, ".mhd"), WithExtension(out, ".raw") };
+  // Same for MetaImage dotfiles.
+  const auto fname_lower = Lower(fname.string());
+  const bool mixed_case_meta_dotfile
+      = fname_lower == ".mhd" || (fname != ".mha" && fname_lower == ".mha");
+  if (mixed_case_meta_dotfile)
+    return { SiblingFile(out, ".mhd"), SiblingFile(out, ".raw") };
+
+  // Everything else.  E.g. "x.Nrrd", ".nrrd", ".nhdr" (error but
+  // empty file), ".Nhdr" (not detached), ".mha".
+  return { out };
 }
 
 bool
