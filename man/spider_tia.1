@@ -1,6 +1,6 @@
 .\" SPDX-License-Identifier: GFDL-1.3-or-later
 .\" Copyright (C) 2026 South Australia Medical Imaging
-.Dd 11 May 2026
+.Dd 25 May 2026
 .Dt SPIDER_TIA 1
 .Os
 .Sh NAME
@@ -96,10 +96,8 @@ also supported if the corresponding ImageIO module is included in the
 ITK library against which
 .Nm
 was built.  The file name must have a suffix corresponding to its file
-format.  For a detached header format, the header file must be
-specified.  For example, the suffix can be .nii, .nii.gz, .hdr,
-or .hdr.gz for NIfTI, .mha or .mhd for MetaImage, and .nrrd or .nhdr
-for NRRD.
+format.  For MetaImage and NRRD detached header formats, the name of
+the header file must be specified.
 .Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO

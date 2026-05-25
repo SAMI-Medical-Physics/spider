@@ -238,20 +238,29 @@ OutputFilenames(const std::string& filename)
   // when FILENAME is passed to SetFileName.
   const std::filesystem::path out{ filename };
   const auto ext = out.extension();
+  const auto stem_ext = out.stem().extension();
 
   // Do the most common ones first.
-  if (ext == ".nii" || (ext == ".gz" && out.stem().extension() == ".nii")
-      || ext == ".nrrd" || ext == ".mha")
+  if (ext == ".nii" || (ext == ".gz" && stem_ext == ".nii") || ext == ".nrrd"
+      || ext == ".mha")
     return { out };
 
   // NIfTI detached.
   if (ext == ".hdr")
     return { out, WithExtension(out, ".img") };
-  if (ext == ".gz" && out.stem().extension() == ".hdr") // path/to/x.hdr.gz
+  if (ext == ".img")
+    return { WithExtension(out, ".hdr"), out };
+  if (ext == ".gz" && stem_ext == ".hdr") // path/to/x.hdr.gz
     {
       auto img = out;
       img.replace_extension().replace_extension(".img.gz");
       return { out, img };
+    }
+  if (ext == ".gz" && stem_ext == ".img")
+    {
+      auto hdr = out;
+      hdr.replace_extension().replace_extension(".hdr.gz");
+      return { hdr, out };
     }
 
   // MetaImage or NRRD detached.
