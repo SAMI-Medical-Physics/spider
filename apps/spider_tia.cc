@@ -42,7 +42,7 @@ constexpr char kProgramName[] = "spider_tia";
 void
 Usage()
 {
-  std::fputs("usage: spider_tia [-fVv] [-o output_file]\n"
+  std::fputs("usage: spider_tia [-fVvZ] [-o output_file]\n"
              "                  {{ [-z time_zone] -d directory -i image }}\n",
              stderr);
 }
@@ -51,14 +51,16 @@ struct ParsedArguments
 {
   spider::LogLevel log_level = spider::LogLevel::kWarn;
   bool overwrite = false;
+  bool compress = false;
   std::string out_filename;
   std::vector<std::string> tz_names;
   std::vector<std::string> dicom_dirs;
   std::vector<std::string> image_filenames;
 };
 
-// Parse program arguments: options (-f, -V, -v) and option-arguments
-// (-o output_file, -z time_zone, -d directory, -i image).
+// Parse program arguments: options (-f, -V, -v, -Z) and
+// option-arguments (-o output_file, -z time_zone, -d directory, -i
+// image).
 ParsedArguments
 ParseArguments(int argc, char* argv[])
 {
@@ -99,6 +101,12 @@ ParseArguments(int argc, char* argv[])
           if (opt == 'v')
             {
               out.log_level = spider::LogLevel::kDebug;
+              continue;
+            }
+
+          if (opt == 'Z')
+            {
+              out.compress = true;
               continue;
             }
 
@@ -231,13 +239,13 @@ Lower(std::string s)
 }
 
 std::vector<std::filesystem::path>
-OutputFilenames(const std::string& filename)
+OutputFilenames(const std::string& filename, bool compress)
 {
   // itk::ImageFileWriter may write file(s) other than the name passed
   // to SetFileName.  Return the file names that are actually written
-  // when FILENAME is passed to SetFileName.  This function only
-  // handles filenames that select the NIfTI, NRRD, and MetaImage IO
-  // modules.
+  // when FILENAME is passed to SetFileName.  COMPRESS is whether
+  // UseCompressionOn was called.  This function only handles
+  // filenames that select the NIfTI, NRRD, and MetaImage IO modules.
   const std::filesystem::path out{ filename };
   const auto ext = out.extension();
   const auto stem_ext = out.stem().extension();
@@ -283,7 +291,7 @@ OutputFilenames(const std::string& filename)
 
   // Other NRRD.
   if (ext == ".nhdr")
-    return { out, WithExtension(out, ".raw") };
+    return { out, WithExtension(out, compress ? ".raw.gz" : ".raw") };
   // The dotfile ".nhdr" gives an error but still writes an empty file
   // with that name.  "x.Nhdr" and ".Nhdr" give attached headers.
   const auto ext_lower = Lower(ext.string());
@@ -293,22 +301,23 @@ OutputFilenames(const std::string& filename)
     return { out };
 
   // Other MetaImage.
-  if (ext == ".mhd")
-    return { out, WithExtension(out, ".raw") };
   if (fname == ".mha")
     return { out };
+  const auto meta_data_ext = compress ? ".zraw" : ".raw";
+  if (ext == ".mhd")
+    return { out, WithExtension(out, meta_data_ext) };
   if (fname == ".mhd")
-    return { out, SiblingFile(out, ".raw") };
+    return { out, SiblingFile(out, meta_data_ext) };
   // MetaImage .mha or .mhd containing an upper case character causes
   // .mhd and .raw or .zraw files to be written.
   const bool mixed_case_meta_ext
       = ext_lower == ".mhd" || (ext != ".mha" && ext_lower == ".mha");
   if (mixed_case_meta_ext)
-    return { WithExtension(out, ".mhd"), WithExtension(out, ".raw") };
+    return { WithExtension(out, ".mhd"), WithExtension(out, meta_data_ext) };
   const bool mixed_case_meta_dotfile
       = fname_lower == ".mhd" || (fname != ".mha" && fname_lower == ".mha");
   if (mixed_case_meta_dotfile)
-    return { SiblingFile(out, ".mhd"), SiblingFile(out, ".raw") };
+    return { SiblingFile(out, ".mhd"), SiblingFile(out, meta_data_ext) };
 
   return {};
 }
@@ -547,7 +556,7 @@ main(int argc, char* argv[])
 
   // Do not overwrite output files unless requested.
   std::vector<std::filesystem::path> out_filenames
-      = OutputFilenames(args.out_filename);
+      = OutputFilenames(args.out_filename, args.compress);
   if (!args.overwrite)
     {
       for (const auto& p : out_filenames)
@@ -596,6 +605,9 @@ main(int argc, char* argv[])
   auto image_file_writer = ImageFileWriterType::New();
   image_file_writer->SetFileName(args.out_filename);
   image_file_writer->SetInput(tia_filters.GetFinalFilter()->GetOutput());
+  if (args.compress)
+    // This has no effect if the filename ends in ".nii" or ".hdr".
+    image_file_writer->UseCompressionOn();
   spider::Debug("Executing TIA image pipeline");
   try
     {

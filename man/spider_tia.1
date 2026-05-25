@@ -8,7 +8,7 @@
 .Nd compute a time-integrated activity image
 .Sh SYNOPSIS
 .Nm spider_tia
-.Op Fl fVv
+.Op Fl fVvZ
 .Op Fl o Ar output_file
 .br
 {
@@ -68,6 +68,10 @@ Display the version number and exit.
 Verbose mode.  Causes
 .Nm
 to print debugging messages about its progress.
+.Pp
+.It Fl Z
+Compress the time-integrated activity image if its format is MetaImage
+or NRRD.
 .Pp
 .It Fl o Ar output_file
 Write the time-integrated activity image to
