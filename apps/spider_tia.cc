@@ -262,11 +262,24 @@ OutputFilenames(const std::string& filename)
       hdr.replace_extension().replace_extension(".hdr.gz");
       return { hdr, out };
     }
+  // NIfTI only accepts dotfiles when a directory is included in the
+  // name.
+  const auto fname = out.filename();
+  if (!out.parent_path().empty())
+    {
+      if (fname == ".hdr")
+        return { out, SiblingFile(out, ".img") };
+      if (fname == ".img")
+        return { SiblingFile(out, ".hdr"), out };
+      if (fname == ".hdr.gz")
+        return { out, SiblingFile(out, ".img.gz") };
+      if (fname == ".img.gz")
+        return { SiblingFile(out, ".hdr.gz"), out };
+    }
 
   // MetaImage or NRRD detached.
   if (ext == ".mhd" || ext == ".nhdr")
     return { out, WithExtension(out, ".raw") };
-  const auto fname = out.filename();
   if (fname == ".mhd")
     return { out, SiblingFile(out, ".raw") };
 
