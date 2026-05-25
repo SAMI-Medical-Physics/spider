@@ -235,7 +235,9 @@ OutputFilenames(const std::string& filename)
 {
   // itk::ImageFileWriter may write file(s) other than the name passed
   // to SetFileName.  Return the file names that are actually written
-  // when FILENAME is passed to SetFileName.
+  // when FILENAME is passed to SetFileName.  This function only
+  // handles filenames that select the NIfTI, NRRD, and MetaImage IO
+  // modules.
   const std::filesystem::path out{ filename };
   const auto ext = out.extension();
   const auto stem_ext = out.stem().extension();
@@ -245,7 +247,7 @@ OutputFilenames(const std::string& filename)
       || ext == ".mha")
     return { out };
 
-  // NIfTI detached.
+  // Other NIfTI.
   if (ext == ".hdr")
     return { out, WithExtension(out, ".img") };
   if (ext == ".img")
@@ -267,6 +269,8 @@ OutputFilenames(const std::string& filename)
   const auto fname = out.filename();
   if (!out.parent_path().empty())
     {
+      if (fname == ".nii" || fname == ".nii.gz")
+        return { out };
       if (fname == ".hdr")
         return { out, SiblingFile(out, ".img") };
       if (fname == ".img")
@@ -277,29 +281,36 @@ OutputFilenames(const std::string& filename)
         return { SiblingFile(out, ".hdr.gz"), out };
     }
 
-  // MetaImage or NRRD detached.
-  if (ext == ".mhd" || ext == ".nhdr")
+  // Other NRRD.
+  if (ext == ".nhdr")
     return { out, WithExtension(out, ".raw") };
+  // The dotfile ".nhdr" gives an error but still writes an empty file
+  // with that name.  "x.Nhdr" and ".Nhdr" give attached headers.
+  const auto ext_lower = Lower(ext.string());
+  const auto fname_lower = Lower(fname.string());
+  if (ext_lower == ".nrrd" || fname == ".nrrd" || ext_lower == ".nhdr"
+      || fname_lower == ".nhdr")
+    return { out };
+
+  // Other MetaImage.
+  if (ext == ".mhd")
+    return { out, WithExtension(out, ".raw") };
+  if (fname == ".mha")
+    return { out };
   if (fname == ".mhd")
     return { out, SiblingFile(out, ".raw") };
-
-  // MetaImage extension .mha or .mhd containing an upper case
-  // character causes .mhd and .raw or .zraw files to be written.
-  const auto ext_lower = Lower(ext.string());
+  // MetaImage .mha or .mhd containing an upper case character causes
+  // .mhd and .raw or .zraw files to be written.
   const bool mixed_case_meta_ext
       = ext_lower == ".mhd" || (ext != ".mha" && ext_lower == ".mha");
   if (mixed_case_meta_ext)
     return { WithExtension(out, ".mhd"), WithExtension(out, ".raw") };
-  // Same for MetaImage dotfiles.
-  const auto fname_lower = Lower(fname.string());
   const bool mixed_case_meta_dotfile
       = fname_lower == ".mhd" || (fname != ".mha" && fname_lower == ".mha");
   if (mixed_case_meta_dotfile)
     return { SiblingFile(out, ".mhd"), SiblingFile(out, ".raw") };
 
-  // Everything else.  E.g. "x.Nrrd", ".nrrd", ".nhdr" (error but
-  // empty file), ".Nhdr" (not detached), ".mha".
-  return { out };
+  return {};
 }
 
 bool
