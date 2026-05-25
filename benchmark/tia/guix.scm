@@ -87,7 +87,7 @@
   (package/inherit spider
     (name "spider-benchmark")
     (arguments
-     (substitute-keyword-arguments (package-arguments spider)
+     (substitute-keyword-arguments arguments
        ((#:configure-flags cf)
         #~(append #$cf (list "-DSPIDER_BUILD_BENCHMARKS=ON"
                              "-DSPIDER_DOWNLOAD_BENCHMARK_DATA=OFF")))

@@ -71,11 +71,11 @@ dosimetry for radionuclide therapy patients.")
     (arguments
      (append
       (list #:build-type "Debug")       ;for assertions
-      (substitute-keyword-arguments (package-arguments spider)
+      (substitute-keyword-arguments arguments
         ((#:configure-flags flags #~'())
-         #~(cons* "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror"
-                  #$flags)))))
-    (inputs (modify-inputs (package-inputs spider)
+         #~(cons "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror"
+                 #$flags)))))
+    (inputs (modify-inputs inputs
               (prepend gnuplot
                        itk-snap
                        nss-certs            ;for CMake FetchContent
