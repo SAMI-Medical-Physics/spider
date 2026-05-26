@@ -17,7 +17,7 @@ SPECTCTS_DIR="@SPIDER_BENCHMARK_SPECTCTS_DIR@"
 # This is set by the CMake variable SPIDER_BENCHMARK_TIA_DIR.
 TIA_DIR="@SPIDER_BENCHMARK_TIA_DIR@"
 ETC_DIR="@CMAKE_SOURCE_DIR@/etc"
-BENCHMARK_DIR="@CMAKE_SOURCE_DIR@/benchmark/tia"
+BENCHMARK_DIR="@CMAKE_SOURCE_DIR@/benchmark"
 
 # The SPECTs and TIA image in the benchmark dataset are in the form of
 # DICOM series.  Convert them into 3D NIfTI files.  The "-w 1" option
@@ -66,15 +66,9 @@ dcm2niix -o . -f ct1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
 "@CMAKE_CURRENT_BINARY_DIR@/../slice_compare" snmmi-tia.nii "$SPIDER_TIA" \
     ct1.nii 133 1e11 0.5
 
-"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii |
-    gnuplot "$BENCHMARK_DIR/hist.gp"
-# Free up the output filename for the next run of hist.gp.
-mv hist.svg hist-.svg
-echo "Wrote hist-.svg"
-
-# Exclude voxels that have TIA < 1e10 disintegrations/mL in the
-# benchmark image.
-"@CMAKE_CURRENT_BINARY_DIR@/log10_ratio" "$SPIDER_TIA" snmmi-tia.nii 1e10 |
-    gnuplot "$BENCHMARK_DIR/hist.gp"
-mv hist.svg hist-1e10.svg
-echo "Wrote hist-1e10.svg"
+# Joint histogram.
+JOINT_HIST_FILENAME=tia_joint_hist.svg
+"@CMAKE_CURRENT_BINARY_DIR@/../joint_hist" snmmi-tia.nii "$SPIDER_TIA" |
+    gnuplot -c "$BENCHMARK_DIR/joint_hist.gp" "Benchmark TIA (mL^{-1})" \
+        "Spider TIA (mL^{-1})" "$JOINT_HIST_FILENAME"
+echo "Wrote $JOINT_HIST_FILENAME"

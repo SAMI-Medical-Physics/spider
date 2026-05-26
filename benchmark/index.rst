@@ -44,20 +44,9 @@ The cyan contour is at a TIA of 10\ :sup:`11` disintegrations mL\
    * - *Benchmark TIA*
      - *Spider TIA*
 
-We calculated the per-pixel ratio of TIA values between the Spider and
-benchmark images.
-The distribution of the base-10 logarithm of this ratio is shown in
-the histogram below.
-Note that a value of 0 corresponds to equal voxel TIA values.
+Below is the joint histogram for the benchmark and Spider TIA images.
 
-.. image:: tia/hist-.svg
-   :align: center
-
-If we exclude voxels that have TIA less than 10\ :sup:`10`
-disintegrations mL\ :sup:`-1` (≈ 2.8 MBq h mL\ :sup:`-1`) in the
-benchmark image, the distribution becomes:
-
-.. image:: tia/hist-1e10.svg
+.. image:: tia/tia_joint_hist.svg
    :align: center
 
 .. Placeholder for provenance information.

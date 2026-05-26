@@ -96,7 +96,7 @@
             (replace 'install
               (lambda _
                 (install-file "benchmark/slice_compare" #$output)
-                (install-file "benchmark/tia/log10_ratio" #$output)))))))))
+                (install-file "benchmark/joint_hist" #$output)))))))))
 
 (define spider-tia
   (computed-file "benchmark-patient-4-spider-tia"
@@ -190,25 +190,24 @@
           '("145" ;slice 145 (0-indexed) contains the large lesion in the liver
             "133")) ;slice 133 contains the small lesion in the liver
 
-         ;; hist.gp uses 'cat'.
-         (setenv "PATH" (string-append #$coreutils "/bin"))
-         (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig
-         (map
-          (lambda (threshold)
-            (receive (from to pids)
-                (pipeline
-                 (list (append (list (string-append #$spider-benchmark
-                                                    "/log10_ratio")
-                                     (string-append #$spider-tia "/tia.nii")
-                                     (string-append #$benchmark-tia "/tia.nii"))
-                               (if (string=? threshold "") '() (list threshold)))
-                       (list (string-append #$gnuplot "/bin/gnuplot")
-                             #$(local-file "hist.gp"))))
-              (close to)
-              (close from)
-              (for-each waitpid pids))
-            (copy-file "hist.svg"
-                       (string-append #$output "/hist-" threshold ".svg")))
-          '("" "1e10"))))))
+         ;; Joint histogram.
+         (let ((outfile "tia_joint_hist.svg"))
+           ;; joint_hist.gp uses 'cat'.
+           (setenv "PATH" (string-append #$coreutils "/bin"))
+           (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig
+           (receive (from to pids)
+               (pipeline
+                (list (append (list (string-append #$spider-benchmark
+                                                   "/joint_hist")
+                                    (string-append #$benchmark-tia "/tia.nii")
+                                    (string-append #$spider-tia "/tia.nii")))
+                      (list (string-append #$gnuplot "/bin/gnuplot")
+                            "-c" #$(local-file "../joint_hist.gp")
+                            "Benchmark TIA (mL^{-1})" "Spider TIA (mL^{-1})"
+                            outfile)))
+             (close to)
+             (close from)
+             (for-each waitpid pids))
+           (install-file outfile #$output))))))
 
 tia-comparison

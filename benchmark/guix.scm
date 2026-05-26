@@ -90,7 +90,5 @@ But running the experiments this way is not reproducible."
                                      (string-append #$output "/tia/image2_"
                                                     z ".png")))
                           '("145" "133"))
-                     (symlink (string-append #$tia-comparison "/hist-.svg")
-                              (string-append #$output "/tia/hist-.svg"))
-                     (symlink (string-append #$tia-comparison "/hist-1e10.svg")
-                              (string-append #$output "/tia/hist-1e10.svg")))))
+                     (symlink (string-append #$tia-comparison "/tia_joint_hist.svg")
+                              (string-append #$output "/tia/tia_joint_hist.svg")))))
