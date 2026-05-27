@@ -203,8 +203,8 @@
                                     (string-append #$spider-tia "/tia.nii")))
                       (list (string-append #$gnuplot "/bin/gnuplot")
                             "-c" #$(local-file "../joint_hist.gp")
-                            "Benchmark TIA (mL^{-1})" "Spider TIA (mL^{-1})"
-                            outfile)))
+                            "Benchmark TIA (MBq h mL^{-1})"
+                            "Spider TIA (MBq h mL^{-1})" "3.6e9" outfile)))
              (close to)
              (close from)
              (for-each waitpid pids))

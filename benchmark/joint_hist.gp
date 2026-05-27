@@ -2,11 +2,12 @@
 # Copyright (C) 2026 South Australia Medical Imaging
 
 # Plot a 2D/joint histogram by reading lines from stdin in the format:
-# 'xcentre ycentre xlow xhigh ylow yhigh counts'.
-# Usage: 'PROGRAM | gnuplot -c joint_hist.gp XLABEL YLABEL OUT_FILENAME'.
+# 'xcentre ycentre xlow xhigh ylow yhigh counts'.  The values in the
+# first 6 columns are divided by DIVISOR.  Usage: 'PROGRAM | gnuplot
+# -c joint_hist.gp XLABEL YLABEL DIVISOR OUT_FILENAME'.
 
 set terminal svg
-set output ARG3
+set output ARG4
 unset key
 unset colorbox
 set isotropic
@@ -17,4 +18,6 @@ set palette defined (0 "white", 1 "dark-red")
 set cbrange [0:*]               # data does not include empty bins
 set style fill solid
 set grid front
-plot '<cat' using 1:2:3:4:5:6:(log10(1+$7)) with boxxyerror lc palette z
+div = ARG3
+plot '<cat' using ($1/div):($2/div):($3/div):($4/div):($5/div):($6/div)\
+     :(log10(1+$7)) with boxxyerror lc palette z
