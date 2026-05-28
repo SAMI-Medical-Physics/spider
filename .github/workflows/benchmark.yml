@@ -27,13 +27,26 @@ jobs:
             (q #89FBA276A976A8DE2A69774771A92C8C879E0F24614AAAAE23119608707B3F06#)))
           EOF
       - name: Evaluate benchmarks
-        # Download "guix" channel from Savannah because GitHub runner
-        # fails to fetch it from Codeberg.
+        # Downloading the "guix" channel from Codeberg (or Savannah)
+        # can fail due to network issues.
         run: |
-          guix time-machine -C channels.scm \
-            --url=https://git.savannah.gnu.org/git/guix.git -- describe -f channels |
-            tee ${{ runner.temp }}/channels.scm.lock
-          out=$(guix time-machine -C ${{ runner.temp }}/channels.scm.lock -- build \
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i to download Guix channel from default URL"
+            guix time-machine -C channels.scm -- describe -f channels |
+              tee ${{ runner.temp }}/channels.scm.lock
+            if [ -s ${{ runner.temp }}/channels.scm.lock ]; then
+              break
+            fi
+            echo "Attempt $i to download Guix channel from Savannah"
+            guix time-machine -C channels.scm \
+              --url=https://git.savannah.gnu.org/git/guix.git \
+              -- describe -f channels | tee ${{ runner.temp }}/channels.scm.lock
+            if [ -s ${{ runner.temp }}/channels.scm.lock ]; then
+              break
+            fi
+          done
+          out=$(guix time-machine -C ${{ runner.temp }}/channels.scm.lock \
+            -- build \
             --substitute-urls="https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://guix.bordeaux.inria.fr" \
             -f benchmark/guix.scm)
           mkdir site
