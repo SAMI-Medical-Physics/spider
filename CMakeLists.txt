@@ -9,7 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Determine whether the C++ standard library has C++20 calendar and
 # time zone.  If not, fall back to Howard Hinnant's date and time
-# library.
+# library.  libc++ status:
+# <https://github.com/llvm/llvm-project/issues/99982>.
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("
   #include <chrono>
