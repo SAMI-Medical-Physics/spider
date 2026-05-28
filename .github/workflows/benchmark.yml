@@ -27,11 +27,14 @@ jobs:
             (q #89FBA276A976A8DE2A69774771A92C8C879E0F24614AAAAE23119608707B3F06#)))
           EOF
       - name: Evaluate benchmarks
+        # Download "guix" channel from Savannah because GitHub runner
+        # fails to fetch it from Codeberg.
         run: |
-          guix time-machine -C channels.scm -- describe -f channels \
-            | tee ${{ runner.temp }}/channels.scm.lock
+          guix time-machine -C channels.scm \
+            --url=https://git.savannah.gnu.org/git/guix.git -- describe -f channels |
+            tee ${{ runner.temp }}/channels.scm.lock
           out=$(guix time-machine -C ${{ runner.temp }}/channels.scm.lock -- build \
-            --substitute-urls='https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://guix.bordeaux.inria.fr' \
+            --substitute-urls="https://bordeaux.guix.gnu.org https://ci.guix.gnu.org https://guix.bordeaux.inria.fr" \
             -f benchmark/guix.scm)
           mkdir site
           cp -rL $out/. site
@@ -40,6 +43,8 @@ jobs:
         with:
           path: site/
   deploy:
+    # XXX: This job requires the workflow to be ran from the default
+    # branch (master).
     needs: build
     runs-on: ubuntu-latest
     permissions:
