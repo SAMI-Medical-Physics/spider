@@ -129,7 +129,7 @@ foreach ($d in $directories)
     # defaults file) to ensure the output file is called
     # "spect$i.nii".
     & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d |
-        ForEach-Object {[Console]::Error.WriteLine($_)}
+        ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
@@ -154,7 +154,7 @@ for ($i=2; $i -le $directories.Count; $i++)
         '-out', $outdir
     )
     & $elastix_cmd @elastix_args |
-        ForEach-Object {[Console]::Error.WriteLine($_)}
+        ForEach-Object {[Console]::Error.WriteLine("elastix | $_")}
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
@@ -198,5 +198,6 @@ if ($time_zone)
 
 # Do not rely on the 'bin' directory of the install tree being in
 # PATH.
-& (Join-Path $PSScriptRoot 'spider_tia.exe') @spider_tia_args
+& (Join-Path $PSScriptRoot 'spider_tia.exe') @spider_tia_args 2>&1 |
+    ForEach-Object {[Console]::Error.WriteLine("spider_tia | $_")}
 exit $LASTEXITCODE
