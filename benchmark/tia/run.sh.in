@@ -33,14 +33,14 @@ dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
 # Register SPECTs to first SPECT.  Note the documentation for the
 # benchmark TIA image also describes registering SPECTs to the first
 # SPECT.
-rm -rf output_dir2 output_dir3 output_dir4
-mkdir output_dir2 output_dir3 output_dir4
+rm -rf registered_spect2 registered_spect3 registered_spect4
+mkdir registered_spect2 registered_spect3 registered_spect4
 elastix -f spect1.nii -m spect2.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-    -out output_dir2
+    -out registered_spect2
 elastix -f spect1.nii -m spect3.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-    -out output_dir3
+    -out registered_spect3
 elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-    -out output_dir4
+    -out registered_spect4
 
 # Make Spider's TIA image.
 SPIDER_TIA=spider-tia.nii
@@ -50,9 +50,9 @@ SPIDER_TIA=spider-tia.nii
     -d "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
     -d "$SPECTCTS_DIR/SPECT_Cts/scan4/spect" \
     -i spect1.nii \
-    -i output_dir2/result.0.nii \
-    -i output_dir3/result.0.nii \
-    -i output_dir4/result.0.nii
+    -i registered_spect2/result.0.nii \
+    -i registered_spect3/result.0.nii \
+    -i registered_spect4/result.0.nii
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
 # Generate PNG images of axial slices over registered CT.
