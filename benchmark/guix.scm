@@ -68,8 +68,8 @@ benchmark/guix.scm`` using the following revision of `Guix
 ~a
 
 To run the experiments on Unix-like operating systems without Guix,
-build Spider with ``-DSPIDER_BUILD_BENCHMARKS=ON``, then run
-``benchmark/run.sh`` in the build directory.
+build Spider with ``-DSPIDER_BUILD_BENCHMARKS=ON``, then from the
+build directory run ``cd benchmark && ./run.sh``.
 But running the experiments this way is not reproducible."
                                 #$(this-commit)
                                 (indent-string (pp->string '#$channels) 2))))
