@@ -11,7 +11,7 @@
              (gnu packages maths)
              (gnu packages nss)
              (gnu packages python-xyz)
-             (guix-science packages neuroscience)) ;dcm2niix, elastix
+             (guix-science packages neuroscience)) ;dcm2niix
 
 (define spider
   (package
