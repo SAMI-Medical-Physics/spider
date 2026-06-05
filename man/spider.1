@@ -1,6 +1,6 @@
 .\" SPDX-License-Identifier: GFDL-1.3-or-later
 .\" Copyright (C) 2026 South Australia Medical Imaging
-.Dd 1 April 2026
+.Dd 5 June 2026
 .Dt SPIDER 1
 .Os
 .Sh NAME
@@ -39,6 +39,8 @@ The elastix parameter file to use for SPECT image registration.  See
 .Lk http://elastix.dev
 for details.  The default is the installed
 .Pa share/spider/Parameters_Rigid.txt .
+The values of the parameters WriteResultImage and ResultImageFormat
+are ignored and set to "true" and "nii", respectively.
 .Pp
 .It Fl z Ar time_zone
 For this SPECT's DICOM series, interpret DICOM Date, Time, and Date

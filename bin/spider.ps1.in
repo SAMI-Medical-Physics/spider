@@ -25,17 +25,6 @@ if ($time_zone)
     $time_zone = $time_zone | ForEach-Object { $_ -split ',' }
 }
 
-if (-not $elastix_param)
-{
-    # Use the default elastix parameter file.  Support relocation of
-    # install tree.
-    $default_elastix_param_from_script_dir = '@SPIDER_DATADIR_FROM_BINDIR@' +
-    '/Parameters_Rigid.txt'
-    $elastix_param = [System.IO.Path]::GetFullPath(
-        (Join-Path $PSScriptRoot $default_elastix_param_from_script_dir)
-    )
-}
-
 # Look for the executable in the same directory as this script first,
 # then in PATH.
 $dcm2niix_bundled = (Join-Path $PSScriptRoot 'dcm2niix.exe')
@@ -143,6 +132,46 @@ foreach ($d in $directories)
 }
 
 # Create SPECTs registered to first SPECT.
+if ($elastix_param)
+{
+    if (-not (Test-Path -LiteralPath $elastix_param -PathType Leaf))
+    {
+        [Console]::Error.WriteLine(
+            'spider: elastix parameter file: not a file: "{0}"', $elastix_param
+        )
+        exit 1
+    }
+    # Ensure the deformed moving image is written to disk and the
+    # filename has ".nii" extension, as assumed below.
+    $temp_file = [System.IO.Path]::ChangeExtension(
+        (New-TemporaryFile).FullName, '.txt'
+    )
+    Get-Content -LiteralPath $elastix_param |
+      ForEach-Object {
+          $_ -replace '^(\s*\(WriteResultImage ")[^"]*("\))', '$1true$2' `
+            -replace '^(\s*\(ResultImageFormat ")[^"]*("\))', '$1nii$2'
+      } |
+        Set-Content -Path $temp_file
+    # WriteResultImage can be absent because the default value is
+    # "true", but the default value of ResultImageFormat is "mhd".
+    if (-not (Select-String -Path $temp_file `
+      -Pattern '^\s*\(ResultImageFormat ' -Quiet))
+    {
+        Add-Content -Path $temp_file -Value ("`n" + '(ResultImageFormat "nii")')
+    }
+    $elastix_param = $temp_file
+}
+else
+{
+    # Use the default elastix parameter file.  Support relocation of
+    # install tree.
+    $default_elastix_param_from_script_dir = '@SPIDER_DATADIR_FROM_BINDIR@' +
+    '/Parameters_Rigid.txt'
+    $elastix_param = [System.IO.Path]::GetFullPath(
+        (Join-Path $PSScriptRoot $default_elastix_param_from_script_dir)
+    )
+}
+
 for ($i=2; $i -le $directories.Count; $i++)
 {
     $outdir = "registered_spect$i"

@@ -11,7 +11,9 @@ set -eu
 awk_cmd=awk
 dcm2niix_cmd=dcm2niix
 elastix_cmd=elastix
+grep_cmd=grep
 mkdir_cmd=mkdir
+mktemp_cmd=mktemp
 rm_cmd=rm
 sed_cmd=sed
 
@@ -83,6 +85,28 @@ for d in "$@"; do
 done
 
 # Create SPECTs registered to first SPECT.
+if [ "$elastix_param" != "@SPIDER_DATADIR@/Parameters_Rigid.txt" ]; then
+    if [ ! -f "$elastix_param" ]; then
+        printf '%s: elastix parameter file: not a regular file: "%s"\n' \
+            "$PROGRAM_NAME" "$elastix_param" >&2
+        exit 1
+    fi
+    # Ensure the deformed moving image is written to disk and the
+    # filename has ".nii" extension, as assumed below.
+    temp_elastix_param=$("$mktemp_cmd" /tmp/spider.XXXXXXXXXX.txt)
+    "$sed_cmd" \
+        -e 's/^\([[:blank:]]*(WriteResultImage "\)[^"]*\(")\)/\1true\2/' \
+        -e 's/^\([[:blank:]]*(ResultImageFormat "\)[^"]*\(")\)/\1nii\2/' \
+        "$elastix_param" >"$temp_elastix_param"
+    # WriteResultImage can be absent because the default value is
+    # "true", but the default value of ResultImageFormat is "mhd".
+    if ! "$grep_cmd" -q '^[[:blank:]]*(ResultImageFormat' \
+        "$temp_elastix_param"; then
+        printf '\n(ResultImageFormat "nii")\n' >>"$temp_elastix_param"
+    fi
+    elastix_param="$temp_elastix_param"
+fi
+
 n_spects=$#
 i=2
 while [ "$i" -le "$n_spects" ]; do

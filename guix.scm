@@ -45,7 +45,8 @@
                    (string-append command "_cmd="
                                   (search-input-file
                                    inputs (string-append "bin/" command))))))
-              '("awk" "dcm2niix" "elastix" "mkdir" "rm" "sed")))))))
+              '("awk" "dcm2niix" "elastix" "grep" "mkdir" "mktemp" "rm"
+                "sed")))))))
    (inputs (list dcm2niix elastix insight-toolkit))
    (native-inputs
     (list (origin
