@@ -1,0 +1,51 @@
+name: windows
+on:
+  # To run the workflow from the Actions tab.
+  workflow_dispatch:
+jobs:
+  build:
+    name: Build Spider on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      # We will build Spider with SPIDER_BUNDLE_EXTERNAL_EXECUTABLES
+      # set to ON.
+      - name: Fetch dcm2niix
+        # The default shell is PowerShell.
+        run: |
+          $uri = 'https://github.com/rordenlab/dcm2niix/releases/latest/download/dcm2niix_win.zip'
+          Invoke-WebRequest -Uri $uri -OutFile '../dcm2niix.zip'
+          Expand-Archive -Path '../dcm2niix.zip' -DestinationPath '../dcm2niix'
+      - name: Fetch elastix
+        run: |
+          $uri = 'https://github.com/SuperElastix/elastix/releases/download/5.3.1/elastix-5.3.1-windows.zip'
+          Invoke-WebRequest -Uri $uri -OutFile '../elastix.zip'
+          Expand-Archive -Path '../elastix.zip' -DestinationPath '../elastix'
+      - name: Install build dependencies
+        run: vcpkg install itk googletest
+      - name: Configure
+        run: |
+          $env:PATH += "$PWD\..\dcm2niix\"
+          $env:PATH += "$PWD\..\elastix\"
+          cmake -S . -B build -DBUILD_TESTING=ON `
+            -DSPIDER_BUNDLE_EXTERNAL_EXECUTABLES=ON `
+            -DCMAKE_INSTALL_PREFIX="$PWD/../spider-install" `
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+      - name: Build
+        run: cmake --build build --verbose
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Install
+        run: cmake --install build
+      - name: Create archive
+        run: Compress-Archive -Path "$PWD/../spider-install/*" `
+          -DestinationPath spider-windows.zip
+      - name: Checksum
+        run: Get-FileHash spider-windows.zip
+      - name: Upload archive
+        uses: actions/upload-artifact@v7
+        with:
+          path: spider-windows.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 7
