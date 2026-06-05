@@ -69,9 +69,10 @@ i=1
 for d in "$@"; do
     ensure_filename_available "spect$i.nii"
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
-    # even though no NIfTI file is produced.  Delete any previous
-    # output file so we can detect when this happens via a missing
-    # output file.
+    # even though no NIfTI file is produced (see:
+    # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
+    # any previous output file so we can detect when this happens via
+    # a missing output file.
     "$rm_cmd" -f "spect$i.nii"
     # "-w 1" overwrites output files.  Use "-g i" (ignore user
     # defaults file) to ensure the output file is called
