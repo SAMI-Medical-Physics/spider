@@ -72,8 +72,21 @@ if(MSVC)
     )
 
     install(RUNTIME_DEPENDENCY_SET spider_external_exe_dlls
-      PRE_EXCLUDE_REGEXES "api-ms-.*" "ext-ms-.*"
-      POST_EXCLUDE_REGEXES ".*WINDOWS[\\/]system32.*"
+      PRE_EXCLUDE_REGEXES
+      "api-ms-"
+      "ext-ms-"
+      # Windows system DLL dependencies that are not resolved on the
+      # GitHub-hosted runner image Windows Server 2025.  On Windows,
+      # DLL dependency names are converted to lowercase for matching
+      # filters.
+      "^azureattestmanager\\.dll$"
+      "^azureattestnormal\\.dll$"
+      "^hvsifiletrust\\.dll$"
+      "^pdmutilities\\.dll$"
+      "^wtdsensor\\.dll$"
+      "^wpaxholder\\.dll$"
+      "^wtdccm\\.dll$"
+      POST_EXCLUDE_REGEXES "system32"
     )
   endif()
 else()

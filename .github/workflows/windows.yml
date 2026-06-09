@@ -13,35 +13,110 @@ jobs:
       - name: Fetch dcm2niix
         # The default shell is PowerShell.
         run: |
-          $uri = 'https://github.com/rordenlab/dcm2niix/releases/latest/download/dcm2niix_win.zip'
+          $uri = 'https://github.com/rordenlab/dcm2niix/releases/download/v1.0.20260416/dcm2niix_win.zip'
           Invoke-WebRequest -Uri $uri -OutFile '../dcm2niix.zip'
+          $sha256_expected = '969bca4fc41d5f82658acef9d0ed9cbfbd4114ec8e8668906910241fcbb2c048'
+          $sha256_actual = (Get-FileHash '../dcm2niix.zip' -Algorithm SHA256).Hash
+          if ($sha256_actual -ne $sha256_expected)
+          {
+            throw (
+              "sha256 hash mismatch for dcm2niix`n" +
+              "  expected hash: $sha256_expected`n" +
+              "  actual hash:   $sha256_actual"
+            )
+          }
           Expand-Archive -Path '../dcm2niix.zip' -DestinationPath '../dcm2niix'
       - name: Fetch elastix
         run: |
           $uri = 'https://github.com/SuperElastix/elastix/releases/download/5.3.1/elastix-5.3.1-windows.zip'
           Invoke-WebRequest -Uri $uri -OutFile '../elastix.zip'
+          $sha256_expected = '746fb1b37d6b713a132b0149fcc3b24e06fd20e9d2ea0fe2d9aa9fa7f4e35dad'
+          $sha256_actual = (Get-FileHash '../elastix.zip' -Algorithm SHA256).Hash
+          if ($sha256_actual -ne $sha256_expected)
+          {
+            throw (
+              "sha256 hash mismatch for elastix`n" +
+              "  expected hash: $sha256_expected`n" +
+              "  actual hash:   $sha256_actual"
+            )
+          }
           Expand-Archive -Path '../elastix.zip' -DestinationPath '../elastix'
       - name: Install build dependencies
-        run: vcpkg install itk googletest
+        run: vcpkg install itk gtest
       - name: Configure
         run: |
-          $env:PATH += "$PWD\..\dcm2niix\"
-          $env:PATH += "$PWD\..\elastix\"
+          $env:PATH += ";$PWD\..\dcm2niix\"
+          $env:PATH += ";$PWD\..\elastix\"
           cmake -S . -B build -DBUILD_TESTING=ON `
             -DSPIDER_BUNDLE_EXTERNAL_EXECUTABLES=ON `
             -DCMAKE_INSTALL_PREFIX="$PWD/../spider-install" `
             -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
       - name: Build
-        run: cmake --build build --verbose
+        run: cmake --build build --config Release --verbose
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --build-config Release --output-on-failure
       - name: Install
-        run: cmake --install build
+        run: cmake --install build --config Release
+      - name: Install licenses
+        run: |
+          $dest = '../spider-install/share/doc/spider'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item 'COPYING' $dest
+
+          git clone --depth 1 https://github.com/insightsoftwareconsortium/itk `
+            ../itk-checkout
+          $dest = '../spider-install/share/doc/itk'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../itk-checkout/LICENSE','../itk-checkout/NOTICE' $dest
+
+          git clone --depth 1 https://github.com/google/double-conversion `
+            ../double-conversion-checkout
+          $dest = '../spider-install/share/doc/double-conversion'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../double-conversion-checkout/LICENSE' $dest
+
+          git clone --depth 1 https://git.code.sf.net/p/gdcm/gdcm `
+            ../gdcm-checkout
+          $dest = '../spider-install/share/doc/gdcm'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../gdcm-checkout/Copyright.txt' $dest
+
+          # For gdcmcharls.dll.
+          $dest = '../spider-install/share/doc/charls'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../gdcm-checkout/Utilities/gdcmcharls/License.txt' $dest
+
+          # For gdcmjpeg{8,12,16}.dll.
+          $dest = '../spider-install/share/doc/libjpeg'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../gdcm-checkout/Utilities/gdcmjpeg/COPYRIGHT.dcmtk' $dest
+
+          git clone --depth 1 https://github.com/libexpat/libexpat `
+            ../expat-checkout
+          $dest = '../spider-install/share/doc/expat'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../expat-checkout/COPYING' $dest
+
+          git clone --depth 1 https://github.com/uclouvain/openjpeg `
+            ../openjpeg-checkout
+          $dest = '../spider-install/share/doc/openjpeg'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../openjpeg-checkout/LICENSE' $dest
+
+          git clone --depth 1 --branch v1.0.20260416 `
+            https://github.com/rordenlab/dcm2niix ../dcm2niix-checkout
+          $dest = '../spider-install/share/doc/dcm2niix'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../dcm2niix-checkout/license.txt' $dest
+
+          $dest = '../spider-install/share/doc/elastix'
+          New-Item -ItemType Directory -Path $dest
+          Copy-Item '../elastix/LICENSE','../elastix/NOTICE' $dest
       - name: Create archive
         run: Compress-Archive -Path "$PWD/../spider-install/*" `
           -DestinationPath spider-windows.zip
-      - name: Checksum
-        run: Get-FileHash spider-windows.zip
+      - name: Compute hash
+        run: Get-FileHash spider-windows.zip -Algorithm SHA256
       - name: Upload archive
         uses: actions/upload-artifact@v7
         with:
