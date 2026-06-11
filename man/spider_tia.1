@@ -58,8 +58,28 @@ options.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl d Ar directory
+The directory containing the DICOM series of the SPECT scan.
+.Pp
 .It Fl f
 Overwrite output files.
+.Pp
+.It Fl i Ar image
+The file name of the three-dimensional SPECT image.  This file may be
+in NIfTI format, compressed or not.  MetaImage and NRRD formats are
+also supported if the corresponding ImageIO module is included in the
+ITK library against which
+.Nm
+was built.  The file name must have a suffix corresponding to its file
+format.  For MetaImage and NRRD detached header formats, the name of
+the header file must be specified.
+.Pp
+.It Fl o Ar output_file
+Write the time-integrated activity image to
+.Ar output_file .
+The parent directory must already exist.  See the
+.Fl i
+option for supported file formats and file name suffix requirements.
 .Pp
 .It Fl V
 Display the version number and exit.
@@ -73,13 +93,6 @@ to print debugging messages about its progress.
 Compress the time-integrated activity image if its format is MetaImage
 or NRRD.
 .Pp
-.It Fl o Ar output_file
-Write the time-integrated activity image to
-.Ar output_file .
-The parent directory must already exist.  See the
-.Fl i
-option for supported file formats and file name suffix requirements.
-.Pp
 .It Fl z Ar time_zone
 For this SPECT's DICOM series, interpret DICOM Date, Time, and Date
 Time values that lack an explicit time zone in
@@ -89,19 +102,6 @@ If this option is specified only once, this time zone is used for all
 SPECTs.  If this option is specified more than once, it must be
 specified once for each SPECT.  If omitted, the local time zone is
 used for all SPECTs.
-.Pp
-.It Fl d Ar directory
-The directory containing the DICOM series of the SPECT scan.
-.Pp
-.It Fl i Ar image
-The file name of the three-dimensional SPECT image.  This file may be
-in NIfTI format, compressed or not.  MetaImage and NRRD formats are
-also supported if the corresponding ImageIO module is included in the
-ITK library against which
-.Nm
-was built.  The file name must have a suffix corresponding to its file
-format.  For MetaImage and NRRD detached header formats, the name of
-the header file must be specified.
 .Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO

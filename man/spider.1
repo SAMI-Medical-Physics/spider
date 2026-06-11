@@ -28,12 +28,6 @@ a file named tia.nii in the current directory.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
-.It Fl f
-Overwrite output files.
-.Pp
-.It Fl V
-Display the version number and exit.
-.Pp
 .It Fl e Ar elastix_param
 The elastix parameter file to use for SPECT image registration.  See
 .Lk http://elastix.dev
@@ -41,6 +35,12 @@ for details.  The default is the installed
 .Pa share/spider/Parameters_Rigid.txt .
 The values of the parameters WriteResultImage and ResultImageFormat
 are ignored and set to "true" and "nii", respectively.
+.Pp
+.It Fl f
+Overwrite output files.
+.Pp
+.It Fl V
+Display the version number and exit.
 .Pp
 .It Fl z Ar time_zone
 For this SPECT's DICOM series, interpret DICOM Date, Time, and Date
