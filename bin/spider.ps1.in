@@ -108,6 +108,9 @@ function ensure_filename_available
 $i = 1
 foreach ($d in $directories)
 {
+    [Console]::Error.WriteLine(
+        'Converting SPECT {0} DICOM series to 3D image: spect{0}.nii', $i
+    )
     ensure_filename_available "spect$i.nii"
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
@@ -191,6 +194,9 @@ else
 for ($i=2; $i -le $directories.Count; $i++)
 {
     $outdir = "registered_spect$i"
+    [Console]::Error.WriteLine(
+        'Registering SPECT {0} to SPECT 1: {1}/result.0.nii', $i, $outdir
+    )
     ensure_filename_available (Join-Path $outdir 'result.0.nii')
     New-Item -ItemType Directory -Path $outdir -Force | Out-Null
     $elastix_args = @(
@@ -206,6 +212,9 @@ for ($i=2; $i -le $directories.Count; $i++)
     {
         exit $LASTEXITCODE
     }
+    Select-String -Path "$outdir/TransformParameters.0.txt" `
+      -Pattern '^\(TransformParameters' |
+      ForEach-Object {[Console]::Error.WriteLine($_.Line)}
 }
 
 # Make TIA image.  Build arguments for spider_tia.
@@ -246,6 +255,7 @@ if ($time_zone)
     }
 }
 
+[Console]::Error.WriteLine('Computing time-integrated activity image: tia.nii')
 # Do not rely on the 'bin' directory of the install tree being in
 # PATH.
 & (Join-Path $PSScriptRoot 'spider_tia.exe') @spider_tia_args 2>&1 |

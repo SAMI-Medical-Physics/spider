@@ -71,6 +71,8 @@ shift $((OPTIND - 1))
 # Convert each SPECT DICOM series to a 3D NIfTI image.
 i=1
 for d in "$@"; do
+    printf 'Converting SPECT %i DICOM series to 3D image: %s\n' \
+        "$i" "spect$i.nii" >&2
     ensure_filename_available "spect$i.nii"
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
@@ -123,10 +125,14 @@ n_spects=$#
 i=2
 while [ "$i" -le "$n_spects" ]; do
     outdir="registered_spect$i"
+    printf 'Registering SPECT %i to SPECT 1: %s\n' \
+        "$i" "$outdir/result.0.nii" >&2
     ensure_filename_available "$outdir/result.0.nii"
     "$mkdir_cmd" -p "$outdir"
     "$elastix_cmd" -f spect1.nii -m "spect$i.nii" -out "$outdir" \
         -p "$elastix_param" -loglevel $elastix_log_level >&2
+    "$grep_cmd" '^(TransformParameters' \
+        "$outdir/TransformParameters.0.txt" >&2 || true
     i=$((i + 1))
 done
 
@@ -184,4 +190,5 @@ if [ -n "$tz_list" ]; then
     IFS=$old_ifs
 fi
 
+printf 'Computing time-integrated activity image: %s\n' tia.nii >&2
 "@SPIDER_BINDIR@/spider_tia" "$@"
