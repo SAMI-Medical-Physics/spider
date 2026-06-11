@@ -55,8 +55,8 @@ function print_version
     $elastix_version = (& $elastix_cmd --version) -split '\s' |
       Select-Object -Last 1
     [Console]::Out.WriteLine(
-        "Spider $spider_version, dcm2niix $dcm2niix_version, " +
-        "elastix $elastix_version"
+        'Spider {0}, dcm2niix {1}, elastix {2}',
+        $spider_version, $dcm2niix_version, $elastix_version
     )
     exit 0
 }
@@ -80,7 +80,7 @@ function usage
 if ($directories.Count -lt 2)
 {
     [Console]::Error.WriteLine(
-        "spider: you must specify at least 2 directory arguments"
+        'spider: you must specify at least 2 directory arguments'
     )
     usage
 }
@@ -98,7 +98,7 @@ function ensure_filename_available
     if (-not $force)
     {
         [Console]::Error.WriteLine(
-            "spider: file already exists: `"$filename`""
+            'spider: file already exists: "{0}"', $filename
         )
         exit 1
     }
