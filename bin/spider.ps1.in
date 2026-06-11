@@ -10,6 +10,7 @@ param(
     # Variables are case-insensitive in PowerShell.  Rename options to
     # avoid surprises.
     [switch] $version,
+    [switch] $verbose,
     [Alias('e')]
     [string] $elastix_param,
     [Alias('z')]
@@ -68,9 +69,8 @@ if ($version)
 function usage
 {
     [Console]::Error.WriteLine(
-        'usage: spider [-f] [-version] [-e elastix_param] ' +
-        '[-z time_zone[,time_zone ...]]
-              directory1 directory2 ...'
+        'usage: spider [-f] [-version] [-verbose] [-e elastix_param]
+              [-z time_zone[,time_zone ...]] directory1 directory2 ...'
     )
     exit 2
 }
@@ -118,8 +118,15 @@ foreach ($d in $directories)
     # "-w 1" overwrites output files.  Use "-g i" (ignore user
     # defaults file) to ensure the output file is called
     # "spect$i.nii".
-    & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d |
-        ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
+    if ($verbose)
+    {
+        & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d |
+            ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
+    }
+    else
+    {
+        & $dcm2niix_cmd -o . -f "spect$i" -w 1 -g i $d | Out-Null
+    }
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
@@ -172,6 +179,15 @@ else
     )
 }
 
+if ($verbose)
+{
+    $elastix_log_level=info
+}
+else
+{
+    $elastix_log_level=error
+}
+
 for ($i=2; $i -le $directories.Count; $i++)
 {
     $outdir = "registered_spect$i"
@@ -180,8 +196,9 @@ for ($i=2; $i -le $directories.Count; $i++)
     $elastix_args = @(
         '-f', 'spect1.nii'
         '-m', "spect$i.nii"
-        '-p', $elastix_param
         '-out', $outdir
+        '-p', $elastix_param
+        '-loglevel', $elastix_log_level
     )
     & $elastix_cmd @elastix_args |
         ForEach-Object {[Console]::Error.WriteLine("elastix | $_")}
@@ -200,8 +217,11 @@ if ($force)
     $spider_tia_args += '-f'
 }
 
-# Verbose mode.
-$spider_tia_args += '-v'
+# Propagate verbose mode.
+if ($verbose)
+{
+    $spider_tia_args += '-v'
+}
 
 # Add directory and image arguments.
 for ($i = 0; $i -lt $directories.Count; $i++)

@@ -20,12 +20,13 @@ sed_cmd=sed
 PROGRAM_NAME=${0##*/}
 
 usage() {
-    printf 'usage: %s [-fV] [-e elastix_param] [-z time_zone] directory1 directory2 ...\n' \
+    printf 'usage: %s [-fVv] [-e elastix_param] [-z time_zone] directory1 directory2 ...\n' \
         "$PROGRAM_NAME" >&2
     exit 2
 }
 
 overwrite=0
+verbose=0
 elastix_param="@SPIDER_DATADIR@/Parameters_Rigid.txt"
 tz_list=""
 
@@ -39,7 +40,7 @@ ensure_filename_available() {
     fi
 }
 
-while getopts "fVe:z:" opt; do
+while getopts "fVve:z:" opt; do
     case "$opt" in
     f) overwrite=1 ;;
     V)
@@ -50,6 +51,7 @@ while getopts "fVe:z:" opt; do
             "$spider_version" "$dcm2niix_version" "$elastix_version"
         exit 0
         ;;
+    v) verbose=1 ;;
     e) elastix_param=$OPTARG ;;
     z) tz_list=${tz_list}${tz_list:+'
 '}$OPTARG ;;
@@ -79,7 +81,11 @@ for d in "$@"; do
     # "-w 1" overwrites output files.  Use "-g i" (ignore user
     # defaults file) to ensure the output file is called
     # "spect$i.nii".
-    "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >&2
+    if [ "$verbose" -eq 1 ]; then
+        "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >&2
+    else
+        "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >/dev/null
+    fi
     test -e "spect$i.nii"
     i=$((i + 1))
 done
@@ -107,15 +113,20 @@ if [ "$elastix_param" != "@SPIDER_DATADIR@/Parameters_Rigid.txt" ]; then
     elastix_param="$temp_elastix_param"
 fi
 
+if [ "$verbose" -eq 1 ]; then
+    elastix_log_level=info
+else
+    elastix_log_level=error
+fi
+
 n_spects=$#
 i=2
 while [ "$i" -le "$n_spects" ]; do
     outdir="registered_spect$i"
     ensure_filename_available "$outdir/result.0.nii"
     "$mkdir_cmd" -p "$outdir"
-    "$elastix_cmd" -f spect1.nii -m "spect$i.nii" \
-        -p "$elastix_param" \
-        -out "$outdir" >&2
+    "$elastix_cmd" -f spect1.nii -m "spect$i.nii" -out "$outdir" \
+        -p "$elastix_param" -loglevel $elastix_log_level >&2
     i=$((i + 1))
 done
 
@@ -135,8 +146,10 @@ if [ "$overwrite" -eq 1 ]; then
     set -- "$@" -f
 fi
 
-# Verbose mode.
-set -- "$@" -v
+# Propagate verbose mode.
+if [ "$verbose" -eq 1 ]; then
+    set -- "$@" -v
+fi
 
 # Add directory arguments.
 if [ -n "$dicom_dirs" ]; then
