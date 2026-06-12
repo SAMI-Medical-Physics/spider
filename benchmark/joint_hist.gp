@@ -6,6 +6,7 @@
 # first 6 columns are divided by DIVISOR.  Usage: 'PROGRAM | gnuplot
 # -c joint_hist.gp XLABEL YLABEL DIVISOR OUT_FILENAME'.
 
+set encoding utf8               # used by benchmark/tia/run.sh.in
 set terminal svg
 set output ARG4
 unset key
