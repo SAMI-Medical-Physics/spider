@@ -71,7 +71,8 @@ dosimetry for radionuclide therapy patients.")
   (package/inherit spider
     (arguments
      (append
-      (list #:build-type "Debug")       ;for assertions
+      (list #:build-type "Debug"
+            #:strip-binaries? #f)
       (substitute-keyword-arguments arguments
         ((#:configure-flags flags #~'())
          #~(cons "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror"
