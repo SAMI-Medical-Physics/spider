@@ -11,10 +11,10 @@
 
 set -eu
 
-# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_SPECTCTS_DIR.
-SPECTCTS_DIR="@SPIDER_BENCHMARK_SNMMI_SPECTCTS_DIR@"
-# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_TIA_DIR.
-TIA_DIR="@SPIDER_BENCHMARK_SNMMI_TIA_DIR@"
+# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_PT4_SPECTCTS_DIR.
+SPECTCTS_DIR="@SPIDER_BENCHMARK_SNMMI_PT4_SPECTCTS_DIR@"
+# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_PT4_TIA_DIR.
+TIA_DIR="@SPIDER_BENCHMARK_SNMMI_PT4_TIA_DIR@"
 
 # Make Spider's TIA image: tia.nii.  Requires the external programs
 # dcm2niix and elastix.  Note the documentation for the benchmark TIA

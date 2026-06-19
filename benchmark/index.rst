@@ -37,16 +37,16 @@ The cyan contour is at a TIA of 10\ :sup:`11` disintegrations mL\
    :class: borderless
    :align: center
 
-   * - .. image:: snmmi/image1_145.png
-     - .. image:: snmmi/image2_145.png
-   * - .. image:: snmmi/image1_133.png
-     - .. image:: snmmi/image2_133.png
+   * - .. image:: snmmi/pt4/image1_145.png
+     - .. image:: snmmi/pt4/image2_145.png
+   * - .. image:: snmmi/pt4/image1_133.png
+     - .. image:: snmmi/pt4/image2_133.png
    * - *Benchmark TIA*
      - *Spider TIA*
 
 Below is the joint histogram for the benchmark and Spider TIA images.
 
-.. image:: snmmi/tia_joint_hist.svg
+.. image:: snmmi/pt4/tia_joint_hist.svg
    :align: center
 
 .. Placeholder for provenance information.
