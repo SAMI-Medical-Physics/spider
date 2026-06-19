@@ -18,7 +18,7 @@
 
 ;;; Code:
 
-(define spect/cts.zip
+(define spect/cts-snmmi.zip
   (origin
     (method url-fetch)
     (uri (string-append "https://zenodo.org/records/17271433"
@@ -30,25 +30,25 @@
 (define unzip
   (specification->package "unzip"))
 
-(define spect/cts
-  (computed-file "benchmark-patient-4-spect-cts"
+(define spect/cts-snmmi
+  (computed-file "spect-cts-snmmi"
                  (with-imported-modules '((guix build utils)) ;for invoke
                    #~(begin
                        (use-modules (guix build utils))
                        (mkdir #$output)
                        (invoke (string-append #$unzip "/bin/unzip")
-                               #$spect/cts.zip "-d" #$output)))))
+                               #$spect/cts-snmmi.zip "-d" #$output)))))
 
-(define (spect-dicom-dir n)
-  #~(string-append #$spect/cts "/patient_4/SPECT_Cts/scan"
+(define (spect-dicom-dir-snmmi n)
+  #~(string-append #$spect/cts-snmmi "/patient_4/SPECT_Cts/scan"
                    #$(number->string n) "/spect"))
 
 (define dcm2niix
   (specification->package "dcm2niix"))
 
-(define (spect n)
+(define (spect-snmmi n)
   ;; 3D NIfTI image and BIDS sidecar of SPECT scan number N.
-  (computed-file (string-append "benchmark-patient-4-spect" (number->string n))
+  (computed-file (string-append "spect" (number->string n) "-snmmi")
                  (with-imported-modules '((guix build utils)) ;for invoke
                    #~(begin
                        (use-modules (guix build utils))
@@ -56,25 +56,25 @@
                        (invoke (string-append #$dcm2niix "/bin/dcm2niix")
                                "-o" #$output
                                "-f" "spect"
-                               #$(spect-dicom-dir n))))))
+                               #$(spect-dicom-dir-snmmi n))))))
 
 (define elastix
   (specification->package "elastix"))
 
-(define (registered-spect n)
+(define (registered-spect-snmmi n)
   ;; 'result.0.nii' is the Nth SPECT registered to the first SPECT.
   ;; Note the documentation for the benchmark TIA image also describes
   ;; registering SPECTs to the first SPECT.
-  (computed-file (string-append "benchmark-patient-4-spect-"
-                                (number->string n)
-                                "-registered")
+  (computed-file (string-append "registered-spect" (number->string n) "-snmmi")
                  (with-imported-modules '((guix build utils)) ;for invoke
                    #~(begin
                        (use-modules (guix build utils))
                        (mkdir #$output)
                        (invoke (string-append #$elastix "/bin/elastix")
-                               "-f" (string-append #$(spect 1) "/spect.nii")
-                               "-m" (string-append #$(spect n) "/spect.nii")
+                               "-f" (string-append #$(spect-snmmi 1)
+                                                   "/spect.nii")
+                               "-m" (string-append #$(spect-snmmi n)
+                                                   "/spect.nii")
                                "-p"
                                #$(local-file "../../etc/Parameters_Rigid.txt")
                                "-out" #$output)))))
@@ -99,31 +99,34 @@
                 (install-file "benchmark/slice_compare" #$output)
                 (install-file "benchmark/joint_hist" #$output)))))))))
 
-(define spider-tia
-  (computed-file "benchmark-patient-4-spider-tia"
+(define spider-tia-snmmi
+  (computed-file "spider-tia-snmmi"
                  ;; For invoke and install-file.
                  (with-imported-modules '((guix build utils))
                    #~(begin (use-modules (guix build utils))
                             (invoke (string-append #$spider "/bin/spider_tia")
                                     "-v" "-z" "America/Detroit"
-                                    "-d" #$(spect-dicom-dir 1)
-                                    "-d" #$(spect-dicom-dir 2)
-                                    "-d" #$(spect-dicom-dir 3)
-                                    "-d" #$(spect-dicom-dir 4)
-                                    "-i" (string-append #$(spect 1)
+                                    "-d" #$(spect-dicom-dir-snmmi 1)
+                                    "-d" #$(spect-dicom-dir-snmmi 2)
+                                    "-d" #$(spect-dicom-dir-snmmi 3)
+                                    "-d" #$(spect-dicom-dir-snmmi 4)
+                                    "-i" (string-append #$(spect-snmmi 1)
                                                         "/spect.nii")
-                                    "-i" (string-append #$(registered-spect 2)
-                                                        "/result.0.nii")
-                                    "-i" (string-append #$(registered-spect 3)
-                                                        "/result.0.nii")
-                                    "-i" (string-append #$(registered-spect 4)
-                                                        "/result.0.nii"))
+                                    "-i"
+                                    (string-append #$(registered-spect-snmmi 2)
+                                                   "/result.0.nii")
+                                    "-i"
+                                    (string-append #$(registered-spect-snmmi 3)
+                                                   "/result.0.nii")
+                                    "-i"
+                                    (string-append #$(registered-spect-snmmi 4)
+                                                   "/result.0.nii"))
                             (install-file "tia.nii" #$output)))))
 
 
 ;;; TIA image included in the benchmark dataset.
 
-(define benchmark-tia.zip
+(define snmmi-tia.zip
   (origin
     (method url-fetch)
     (uri (string-append "https://zenodo.org/records/17680076"
@@ -132,13 +135,13 @@
     (sha256
      (base32 "01b4z28w41ws13dvlffw41zz5b23i0q8an38zxqarszx10fqg49s"))))
 
-(define benchmark-tia
-  (computed-file "benchmark-patient-4-benchmark-tia"
+(define snmmi-tia
+  (computed-file "snmmi-tia"
                  (with-imported-modules '((guix build utils))
                    #~(begin
                        (use-modules (guix build utils))
                        (invoke (string-append #$unzip "/bin/unzip")
-                               #$benchmark-tia.zip)
+                               #$snmmi-tia.zip)
                        (invoke (string-append #$dcm2niix "/bin/dcm2niix")
                                "-o" "."
                                "-f" "tia"
@@ -148,13 +151,13 @@
 
 ;;; Compare TIA images from Spider and the benchmark dataset.
 
-(define (ct-dicom-dir n)
-  #~(string-append #$spect/cts "/patient_4/SPECT_Cts/scan"
+(define (ct-dicom-dir-snmmi n)
+  #~(string-append #$spect/cts-snmmi "/patient_4/SPECT_Cts/scan"
                    #$(number->string n) "/ct"))
 
-(define (ct n)
+(define (ct-snmmi n)
   ;; 3D NIfTI image and BIDS sidecar of CT scan number N.
-  (computed-file (string-append "benchmark-patient-4-ct" (number->string n))
+  (computed-file (string-append "ct" (number->string n) "-snmmi")
                  (with-imported-modules '((guix build utils)) ;for invoke
                    #~(begin
                        (use-modules (guix build utils))
@@ -162,7 +165,7 @@
                        (invoke (string-append #$dcm2niix "/bin/dcm2niix")
                                "-o" #$output
                                "-f" "ct"
-                               #$(ct-dicom-dir n))))))
+                               #$(ct-dicom-dir-snmmi n))))))
 
 (define gnuplot
   (specification->package "gnuplot"))
@@ -170,9 +173,9 @@
 (define coreutils
   (specification->package "coreutils"))
 
-(define tia-comparison
+(define tia-comparison-snmmi
   (computed-file
-   "benchmark-patient-4-tia-comparison"
+   "tia-comparison-snmmi"
    (with-imported-modules '((guix build utils)) ;for invoke, install-file
      #~(begin
          (use-modules (guix build utils)
@@ -182,9 +185,9 @@
          (map
           (lambda (z)
             (invoke (string-append #$spider-benchmark "/slice_compare")
-                    (string-append #$benchmark-tia "/tia.nii")
-                    (string-append #$spider-tia "/tia.nii")
-                    (string-append #$(ct 1) "/ct.nii")
+                    (string-append #$snmmi-tia "/tia.nii")
+                    (string-append #$spider-tia-snmmi "/tia.nii")
+                    (string-append #$(ct-snmmi 1) "/ct.nii")
                     ;; Display contours at a TIA of 10^11 disintegrations/mL
                     ;; (approx. 28 MBq.h/mL).
                     z "1e11" "0.5")
@@ -202,8 +205,9 @@
                (pipeline
                 (list (append (list (string-append #$spider-benchmark
                                                    "/joint_hist")
-                                    (string-append #$benchmark-tia "/tia.nii")
-                                    (string-append #$spider-tia "/tia.nii")))
+                                    (string-append #$snmmi-tia "/tia.nii")
+                                    (string-append #$spider-tia-snmmi
+                                                   "/tia.nii")))
                       (list (string-append #$gnuplot "/bin/gnuplot")
                             "-c" #$(local-file "../joint_hist.gp")
                             "Benchmark TIA (MBq h mL^{-1})"
@@ -216,4 +220,4 @@
              (for-each waitpid pids))
            (install-file outfile #$output))))))
 
-tia-comparison
+tia-comparison-snmmi

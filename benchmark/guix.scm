@@ -15,8 +15,8 @@
              (guix describe)            ;for current-channels
              (guix gexp))
 
-;; For tia-comparison.
-(include "tia/guix.scm")
+;; For tia-comparison-snmmi.
+(include "snmmi/guix.scm")
 
 (define channels
   `(list ,@(map channel->code (current-channels))))
@@ -79,17 +79,19 @@ But running the experiments this way is not reproducible."
         (invoke (string-append #$python-docutils "/bin/rst2html5")
                 "index.rst"
                 (string-append #$output "/index.html"))
-        (mkdir-p (string-append #$output "/tia"))
+        (mkdir-p (string-append #$output "/snmmi"))
         (map (lambda (z)
-               (symlink (string-append #$tia-comparison "/image1_" z ".png")
+               (symlink (string-append #$tia-comparison-snmmi
+                                       "/image1_" z ".png")
                         (string-append #$output
-                                       "/tia/image1_" z ".png"))
-               (symlink (string-append #$tia-comparison "/image2_" z ".png")
+                                       "/snmmi/image1_" z ".png"))
+               (symlink (string-append #$tia-comparison-snmmi
+                                       "/image2_" z ".png")
                         (string-append #$output
-                                       "/tia/image2_" z ".png")))
+                                       "/snmmi/image2_" z ".png")))
              '("145" "133"))
-        (symlink (string-append #$tia-comparison "/tia_joint_hist.svg")
+        (symlink (string-append #$tia-comparison-snmmi "/tia_joint_hist.svg")
                  (string-append #$output
-                                "/tia/tia_joint_hist.svg")))))
+                                "/snmmi/tia_joint_hist.svg")))))
 
 (computed-file "site" build)

@@ -15,8 +15,8 @@ Introduction
 We evaluate the performance of the `Spider dosimetry pipeline
 <spider-repository_>`_ by applying it to publicly available datasets.
 
-Time-integrated activity image
-------------------------------
+SNMMI Lu-177 Dosimetry Challenge 2021
+-------------------------------------
 
 Spider was used to compute a time-integrated activity (TIA) image from
 the SPECT/CT scans of patient 4 in the `SNMMI Lu-177 Dosimetry
@@ -37,16 +37,16 @@ The cyan contour is at a TIA of 10\ :sup:`11` disintegrations mL\
    :class: borderless
    :align: center
 
-   * - .. image:: tia/image1_145.png
-     - .. image:: tia/image2_145.png
-   * - .. image:: tia/image1_133.png
-     - .. image:: tia/image2_133.png
+   * - .. image:: snmmi/image1_145.png
+     - .. image:: snmmi/image2_145.png
+   * - .. image:: snmmi/image1_133.png
+     - .. image:: snmmi/image2_133.png
    * - *Benchmark TIA*
      - *Spider TIA*
 
 Below is the joint histogram for the benchmark and Spider TIA images.
 
-.. image:: tia/tia_joint_hist.svg
+.. image:: snmmi/tia_joint_hist.svg
    :align: center
 
 .. Placeholder for provenance information.

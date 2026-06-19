@@ -1,4 +1,0 @@
-configure_file(run.sh.in run.sh @ONLY)
-
-file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/run.sh"
-  PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
