@@ -2,26 +2,36 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 2025, 2026 South Australia Medical Imaging
 
-# Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
+# Pass the dataset from patient 6 in the SNMMI Lu-177 Dosimetry
 # Challenge 2021
 # (<https://deepblue.lib.umich.edu/data/collections/hm50ts030>)
 # through the Spider pipeline.  This script is built by passing CMake
 # the flag '-DSPIDER_BUILD_BENCHMARKS=ON'.  Running it requires the
-# external programs dcm2niix, elastix, and gnuplot.
+# external programs dcm2niix, dcmodify (from dcmtk), elastix, and
+# gnuplot.
 
 set -eu
 
-# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_PT4_SPECTCTS_DIR.
-SPECTCTS_DIR="@SPIDER_BENCHMARK_SNMMI_PT4_SPECTCTS_DIR@"
-# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_PT4_TIA_DIR.
-TIA_DIR="@SPIDER_BENCHMARK_SNMMI_PT4_TIA_DIR@"
+# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_PT6_SPECTCTS_DIR.
+SPECTCTS_DIR="@SPIDER_BENCHMARK_SNMMI_PT6_SPECTCTS_DIR@"
+# This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_PT6_TIA_DIR.
+TIA_DIR="@SPIDER_BENCHMARK_SNMMI_PT6_TIA_DIR@"
+
+# One slice of the 2nd SPECT has modality 'NM' while the rest have
+# 'PT', which causes dcm2niix to write 2 images.
+spect2_dir=/tmp/spider-benchmark-snmmi-pt6-spect2
+mkdir -p "$spect2_dir"
+rm -f "$spect2_dir"/*
+cp "$SPECTCTS_DIR"/SPECT_Cts/scan2/spect/* "$spect2_dir"
+dcmodify -nb -m "(0008,0060)=PT" \
+    "$spect2_dir/2.16.840.1.114362.1.11987842.22403444876.565511897.618.970.dcm"
 
 # Make Spider's TIA image: tia.nii.  Requires the external programs
 # dcm2niix and elastix.  Note the documentation for the benchmark TIA
 # image describes registering SPECTs to the first SPECT.
 "@CMAKE_BINARY_DIR@/bin/spider" -f -z America/Detroit \
     "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
+    "$spect2_dir" \
     "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
     "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
 
@@ -39,16 +49,24 @@ dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
 # Make the first CT image: ct1.nii.
 dcm2niix -o . -f ct1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
 
-# Slice 145 (0-indexed) contains Lesion 1 (liver large).  Display
+# Slice 170 (0-indexed) contains Lesion 1 (right lobe).  Display
 # contours at a TIA of 10^11 disintegrations/mL (approx. 28 MBq.h/mL).
 # Display the CT background using a window width of 400 and window
 # level of 50.
 "@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
-    ct1.nii 145 1e11 0.5 400 50
+    ct1.nii 170 1e11 0.5 400 50
 
-# Slice 133 contains Lesion 2 (liver small).
+# Slice 154 contains Lesion 2 (left lobe).
 "@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
-    ct1.nii 133 1e11 0.5 400 50
+    ct1.nii 154 1e11 0.5 400 50
+
+# Slice 132 contains Lesion 3 (lymph node).
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
+    ct1.nii 132 1e11 0.5 400 50
+
+# Slice 114 contains Lesion 4 (chest wall).
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
+    ct1.nii 114 1e11 0.5 400 50
 
 # Joint histogram.  TIA images have units of disintegrations/mL;
 # display MBq.h/mL in joint histogram.

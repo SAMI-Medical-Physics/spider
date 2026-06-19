@@ -18,20 +18,25 @@ We evaluate the performance of the `Spider dosimetry pipeline
 SNMMI Lu-177 Dosimetry Challenge 2021
 -------------------------------------
 
-Spider was used to compute a time-integrated activity (TIA) image from
-the SPECT/CT scans of patient 4 in the `SNMMI Lu-177 Dosimetry
+Spider was used to compute time-integrated activity (TIA) images from
+the SPECT/CT scans of patients 4 and 6 in the `SNMMI Lu-177 Dosimetry
 Challenge 2021 dataset
 <https://deepblue.lib.umich.edu/data/collections/hm50ts030?locale=en>`_.
-This benchmark dataset also includes a TIA image that, according to
-the dataset's documentation, was computed using the proprietary MIM
-MRT Dosimetry package.
+This benchmark dataset also includes reference TIA images that,
+according to the dataset's documentation, were computed using the
+proprietary MIM MRT Dosimetry package.
 
-The TIA image from Spider was compared with the TIA image from the
-benchmark dataset.
-Below are two axial slices from the benchmark TIA image (left) and
-Spider's TIA image (right) over registered CT.
-The cyan contour is at a TIA of 10\ :sup:`11` disintegrations mL\
+For each patient, the TIA image computed by Spider was compared with
+the reference TIA image from the benchmark dataset.
+Below, corresponding axial slices of the reference TIA image (left)
+and Spider's TIA image (right) are shown over registered CT.
+Cyan contours are drawn at a TIA of 10\ :sup:`11` disintegrations mL\
 :sup:`-1` (≈ 28 MBq h mL\ :sup:`-1`).
+Joint histograms of the reference and Spider TIA images are also
+shown.
+
+Patient 4
+^^^^^^^^^
 
 .. list-table::
    :class: borderless
@@ -41,12 +46,31 @@ The cyan contour is at a TIA of 10\ :sup:`11` disintegrations mL\
      - .. image:: snmmi/pt4/image2_145.png
    * - .. image:: snmmi/pt4/image1_133.png
      - .. image:: snmmi/pt4/image2_133.png
-   * - *Benchmark TIA*
+   * - *Reference TIA*
      - *Spider TIA*
 
-Below is the joint histogram for the benchmark and Spider TIA images.
-
 .. image:: snmmi/pt4/tia_joint_hist.svg
+   :align: center
+
+Patient 6
+^^^^^^^^^
+
+.. list-table::
+   :class: borderless
+   :align: center
+
+   * - .. image:: snmmi/pt6/image1_170.png
+     - .. image:: snmmi/pt6/image2_170.png
+   * - .. image:: snmmi/pt6/image1_154.png
+     - .. image:: snmmi/pt6/image2_154.png
+   * - .. image:: snmmi/pt6/image1_132.png
+     - .. image:: snmmi/pt6/image2_132.png
+   * - .. image:: snmmi/pt6/image1_114.png
+     - .. image:: snmmi/pt6/image2_114.png
+   * - *Reference TIA*
+     - *Spider TIA*
+
+.. image:: snmmi/pt6/tia_joint_hist.svg
    :align: center
 
 .. Placeholder for provenance information.

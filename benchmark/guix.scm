@@ -18,6 +18,9 @@
 ;; For tia-comparison-snmmi-pt4.
 (include "snmmi/pt4/guix.scm")
 
+;; For tia-comparison-snmmi-pt6.
+(include "snmmi/pt6/guix.scm")
+
 (define channels
   `(list ,@(map channel->code (current-channels))))
 
@@ -79,6 +82,8 @@ But running the experiments this way is not reproducible."
         (invoke (string-append #$python-docutils "/bin/rst2html5")
                 "index.rst"
                 (string-append #$output "/index.html"))
+
+        ;; SNMMI Challenge - Patient 4.
         (mkdir-p (string-append #$output "/snmmi/pt4"))
         (map (lambda (z)
                (symlink (string-append #$tia-comparison-snmmi-pt4
@@ -93,6 +98,23 @@ But running the experiments this way is not reproducible."
         (symlink (string-append #$tia-comparison-snmmi-pt4
                                 "/tia_joint_hist.svg")
                  (string-append #$output
-                                "/snmmi/pt4/tia_joint_hist.svg")))))
+                                "/snmmi/pt4/tia_joint_hist.svg"))
+
+        ;; SNMMI Challenge - Patient 6.
+        (mkdir-p (string-append #$output "/snmmi/pt6"))
+        (map (lambda (z)
+               (symlink (string-append #$tia-comparison-snmmi-pt6
+                                       "/image1_" z ".png")
+                        (string-append #$output
+                                       "/snmmi/pt6/image1_" z ".png"))
+               (symlink (string-append #$tia-comparison-snmmi-pt6
+                                       "/image2_" z ".png")
+                        (string-append #$output
+                                       "/snmmi/pt6/image2_" z ".png")))
+             '("170" "154" "132" "114"))
+        (symlink (string-append #$tia-comparison-snmmi-pt6
+                                "/tia_joint_hist.svg")
+                 (string-append #$output
+                                "/snmmi/pt6/tia_joint_hist.svg")))))
 
 (computed-file "site" build)
