@@ -125,8 +125,9 @@
                     (string-append #$spider-tia-snmmi "/tia.nii")
                     (string-append #$(ct-snmmi 1) "/ct.nii")
                     ;; Display contours at a TIA of 10^11 disintegrations/mL
-                    ;; (approx. 28 MBq.h/mL).
-                    z "1e11" "0.5")
+                    ;; (approx. 28 MBq.h/mL).  Display the CT background using a
+                    ;; window width of 400 and window level of 50.
+                    z "1e11" "0.5" "400" "50")
             (install-file (string-append "image1_" z ".png") #$output)
             (install-file (string-append "image2_" z ".png") #$output))
           '("145"         ;slice 145 (0-indexed) contains Lesion 1 (liver large)

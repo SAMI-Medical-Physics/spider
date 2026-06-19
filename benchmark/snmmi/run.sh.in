@@ -41,12 +41,14 @@ dcm2niix -o . -f ct1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
 
 # Slice 145 (0-indexed) contains Lesion 1 (liver large).  Display
 # contours at a TIA of 10^11 disintegrations/mL (approx. 28 MBq.h/mL).
+# Display the CT background using a window width of 400 and window
+# level of 50.
 "@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
-    ct1.nii 145 1e11 0.5
+    ct1.nii 145 1e11 0.5 400 50
 
 # Slice 133 contains Lesion 2 (liver small).
 "@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
-    ct1.nii 133 1e11 0.5
+    ct1.nii 133 1e11 0.5 400 50
 
 # Joint histogram.  TIA images have units of disintegrations/mL;
 # display MBq.h/mL in joint histogram.

@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 South Australia Medical Imaging
 
-// Usage: ./slice_compare image1 image2 background z contour alpha
+// Usage: ./slice_compare image1 image2 background z contour alpha \
+//                        window_width window_level
 //
 // For each of the 3D scalar images IMAGE1 and IMAGE2, output a PNG
 // image of the axial slice at index Z overlaid in colour on the
@@ -11,7 +12,9 @@
 // contour is drawn on the colour-mapped overlay for IMAGE1 where
 // IMAGE1 intensity is CONTOUR, and likewise for IMAGE2.  ALPHA (0-1)
 // is the opacity of the colour-mapped overlay used for alpha
-// compositing.
+// compositing.  If WINDOW_WIDTH is non-zero, a window of width
+// WINDOW_WIDTH and level WINDOW_LEVEL is applied to the background
+// slice for display.
 
 #include <algorithm> // std::min, std::max
 #include <cmath>     // std::round
@@ -22,6 +25,7 @@
 #include <itkBinaryContourImageFilter.h>
 #include <itkBinaryFunctorImageFilter.h>
 #include <itkBinaryThresholdImageFilter.h>
+#include <itkClampImageFilter.h>
 #include <itkExtractImageFilter.h>
 #include <itkFlipImageFilter.h>
 #include <itkImage.h>
@@ -154,7 +158,7 @@ ThresholdContour(const itk::Image<float, 2>* slice, float y)
                                   .contour_filter = contour_filter };
 }
 
-struct ResampleExtractRescaleFilters
+struct ResampleExtractClampRescaleFilters
 {
   using Image3DType = itk::Image<float, 3>;
   using ResampleFilterType
@@ -166,15 +170,20 @@ struct ResampleExtractRescaleFilters
       = itk::ExtractImageFilter<Image3DType, Image2DFloatType>;
   ExtractFilterType::Pointer extract_filter;
 
+  using ClampFilterType
+      = itk::ClampImageFilter<Image2DFloatType, Image2DFloatType>;
+  ClampFilterType::Pointer clamp_filter;
+
   using RescaleFilterType
       = itk::RescaleIntensityImageFilter<Image2DFloatType, Image2DFloatType>;
   RescaleFilterType::Pointer rescale_filter;
 };
 
-ResampleExtractRescaleFilters
-ResampleExtractRescale(const itk::Image<float, 3>* background,
+ResampleExtractClampRescaleFilters
+ResampleExtractClampRescale(const itk::Image<float, 3>* background,
 
-                       const itk::Image<float, 3>* img, int z)
+                            const itk::Image<float, 3>* img, int z,
+                            float window_width, float window_level)
 {
   // Resample BACKGROUND on IMG.
   using Image3DType = itk::Image<float, 3>;
@@ -203,17 +212,29 @@ ResampleExtractRescale(const itk::Image<float, 3>* background,
   extract_filter->SetExtractionRegion(extract_region);
   extract_filter->SetDirectionCollapseToSubmatrix();
 
-  // Rescale slice to 0-255 in preparation for alpha blending.
+  // Apply the window, if any, to the background slice, then rescale
+  // to 0.0f-255.0f in preparation for alpha blending.
+  using ClampFilterType
+      = itk::ClampImageFilter<Image2DFloatType, Image2DFloatType>;
+  auto clamp_filter = ClampFilterType::New();
+  clamp_filter->SetInput(extract_filter->GetOutput());
+  clamp_filter->SetBounds(window_level - window_width / 2.0,
+                          window_level + window_width / 2.0);
+
   using RescaleFilterType
       = itk::RescaleIntensityImageFilter<Image2DFloatType, Image2DFloatType>;
   auto rescale_filter = RescaleFilterType::New();
-  rescale_filter->SetInput(extract_filter->GetOutput());
+  rescale_filter->SetInput((window_width == 0.0f) ? extract_filter->GetOutput()
+                                                  : clamp_filter->GetOutput());
   rescale_filter->SetOutputMinimum(0.0f);
   rescale_filter->SetOutputMaximum(255.0f);
 
-  return ResampleExtractRescaleFilters{ .resample_filter = resample_filter,
-                                        .extract_filter = extract_filter,
-                                        .rescale_filter = rescale_filter };
+  return ResampleExtractClampRescaleFilters{ .resample_filter
+                                             = resample_filter,
+                                             .extract_filter = extract_filter,
+                                             .clamp_filter = clamp_filter,
+                                             .rescale_filter
+                                             = rescale_filter };
 }
 
 class DrawContourFunctor
@@ -318,10 +339,11 @@ DrawBlendFlipWrite(const itk::Image<itk::RGBPixel<unsigned char>, 2>* img,
 int
 main(int argc, char* argv[])
 {
-  if (argc < 7)
+  if (argc < 9)
     {
       std::cerr << "usage: " << argv[0]
-                << " image1 image2 background z contour alpha\n";
+                << " image1 image2 background z contour alpha window_width "
+                   "window_level\n";
       return EXIT_FAILURE;
     }
 
@@ -340,6 +362,14 @@ main(int argc, char* argv[])
       std::cerr << "Invalid alpha: " << alpha << " (must be from 0 to 1)\n";
       return EXIT_FAILURE;
     }
+  const float window_width{ std::stof(argv[7]) };
+  if (window_width < 0.0f)
+    {
+      std::cerr << "Invalid window_width: " << window_width
+                << " (must be >= 0)\n";
+      return EXIT_FAILURE;
+    }
+  const float window_level{ std::stof(argv[8]) };
 
   // Read image1 and image2.
   const ImageMinMax image1_input = ReadImageMinMax(image1_filename);
@@ -364,12 +394,14 @@ main(int argc, char* argv[])
   using ImageFileReaderType = itk::ImageFileReader<Image3DType>;
   auto background_file_reader = ImageFileReaderType::New();
   background_file_reader->SetFileName(background_filename);
-  const ResampleExtractRescaleFilters background1_filters
-      = ResampleExtractRescale(background_file_reader->GetOutput(),
-                               image1_input.image, z);
-  const ResampleExtractRescaleFilters background2_filters
-      = ResampleExtractRescale(background_file_reader->GetOutput(),
-                               image2_input.image, z);
+  const ResampleExtractClampRescaleFilters background1_filters
+      = ResampleExtractClampRescale(background_file_reader->GetOutput(),
+                                    image1_input.image, z, window_width,
+                                    window_level);
+  const ResampleExtractClampRescaleFilters background2_filters
+      = ResampleExtractClampRescale(background_file_reader->GetOutput(),
+                                    image2_input.image, z, window_width,
+                                    window_level);
 
   // Setup composition of image, contour, and background and execute
   // the pipeline.
