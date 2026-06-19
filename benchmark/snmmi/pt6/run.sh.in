@@ -7,8 +7,7 @@
 # (<https://deepblue.lib.umich.edu/data/collections/hm50ts030>)
 # through the Spider pipeline.  This script is built by passing CMake
 # the flag '-DSPIDER_BUILD_BENCHMARKS=ON'.  Running it requires the
-# external programs dcm2niix, dcmodify (from dcmtk), elastix, and
-# gnuplot.
+# external programs dcm2niix, elastix, and gnuplot.
 
 set -eu
 
@@ -23,7 +22,7 @@ spect2_dir=/tmp/spider-benchmark-snmmi-pt6-spect2
 mkdir -p "$spect2_dir"
 rm -f "$spect2_dir"/*
 cp "$SPECTCTS_DIR"/SPECT_Cts/scan2/spect/* "$spect2_dir"
-dcmodify -nb -m "(0008,0060)=PT" \
+"@CMAKE_CURRENT_BINARY_DIR@/set_modality_pt" \
     "$spect2_dir/2.16.840.1.114362.1.11987842.22403444876.565511897.618.970.dcm"
 
 # Make Spider's TIA image: tia.nii.  Requires the external programs

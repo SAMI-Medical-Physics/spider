@@ -30,8 +30,8 @@
 (define unzip
   (specification->package "unzip"))
 
-(define dcmtk
-  (specification->package "dcmtk"))
+;; For run-spider and spider-benchmark.
+(include "../../utils.scm")
 
 (define spect/cts-snmmi-pt6
   (computed-file "spect-cts-snmmi-pt6"
@@ -43,8 +43,8 @@
                        ;; One slice of the 2nd SPECT has modality 'NM' while the
                        ;; rest have 'PT', which causes dcm2niix to write 2
                        ;; images.
-                       (invoke (string-append #$dcmtk "/bin/dcmodify")
-                               "-nb" "-m" "(0008,0060)=PT"
+                       (invoke (string-append #$spider-benchmark
+                                              "/set_modality_pt")
                                (string-append "patient_6/SPECT_Cts/scan2/spect/"
                                               "2.16.840.1.114362.1.11987842."
                                               "22403444876.565511897.618.970."
@@ -55,9 +55,6 @@
 (define (spect-dicom-dir-snmmi-pt6 n)
   #~(string-append #$spect/cts-snmmi-pt6 "/patient_6/SPECT_Cts/scan"
                    #$(number->string n) "/spect"))
-
-;; For run-spider and spider-benchmark.
-(include "../../utils.scm")
 
 (define spider-tia-snmmi-pt6
   ;; The documentation for the benchmark TIA image describes

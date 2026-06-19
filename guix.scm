@@ -78,8 +78,7 @@ dosimetry for radionuclide therapy patients.")
          #~(cons "-DCMAKE_CXX_FLAGS=-Wall -Wextra -Wpedantic -Werror"
                  #$flags)))))
     (inputs (modify-inputs inputs
-              (prepend dcmtk            ;for dcmodify
-                       gnuplot
+              (prepend gnuplot
                        itk-snap
                        nss-certs            ;for CMake FetchContent
                        python-docutils))))) ;for rst2html5

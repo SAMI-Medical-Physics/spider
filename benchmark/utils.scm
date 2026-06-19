@@ -93,4 +93,6 @@
             (replace 'install
               (lambda _
                 (install-file "benchmark/slice_compare" #$output)
-                (install-file "benchmark/joint_hist" #$output)))))))))
+                (install-file "benchmark/joint_hist" #$output)
+                (install-file "benchmark/snmmi/pt6/set_modality_pt"
+                              #$output)))))))))

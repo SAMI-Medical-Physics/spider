@@ -48,6 +48,14 @@ if(NOT SPIDER_BENCHMARK_SNMMI_PT6_SPECTCTS_DIR OR NOT SPIDER_BENCHMARK_SNMMI_PT6
   )
 endif()
 
+add_executable(set_modality_pt
+  set_modality_pt.cc
+)
+target_link_libraries(set_modality_pt
+  PRIVATE
+  gdcmMSFF
+)
+
 configure_file(run.sh.in run.sh @ONLY)
 
 file(CHMOD "${CMAKE_CURRENT_BINARY_DIR}/run.sh"
