@@ -5,10 +5,9 @@
 # Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
 # Challenge 2021
 # (<https://deepblue.lib.umich.edu/data/collections/hm50ts030>)
-# through Spider's time-integrated activity (TIA) pipeline.  This
-# script is built by passing CMake the flag
-# '-DSPIDER_BUILD_BENCHMARKS=ON'.  Running it requires the external
-# programs dcm2niix, elastix, and gnuplot.
+# through the Spider pipeline.  This script is built by passing CMake
+# the flag '-DSPIDER_BUILD_BENCHMARKS=ON'.  Running it requires the
+# external programs dcm2niix, elastix, and gnuplot.
 
 set -eu
 
@@ -16,60 +15,43 @@ set -eu
 SPECTCTS_DIR="@SPIDER_BENCHMARK_SNMMI_SPECTCTS_DIR@"
 # This is set by the CMake variable SPIDER_BENCHMARK_SNMMI_TIA_DIR.
 TIA_DIR="@SPIDER_BENCHMARK_SNMMI_TIA_DIR@"
-ETC_DIR="@CMAKE_SOURCE_DIR@/etc"
 
-# The SPECTs and TIA image in the benchmark dataset are in the form of
-# DICOM series.  Convert them into 3D NIfTI files.  The "-w 1" option
-# overwrites output files.  "-g i" (ignore user defaults file) is used
-# to ensure the output file has a ".nii" extension, since the file
-# name is referenced subsequently.
-dcm2niix -o . -f spect1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/spect"
-dcm2niix -o . -f spect2 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan2/spect"
-dcm2niix -o . -f spect3 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan3/spect"
-dcm2niix -o . -f spect4 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
-dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
-
-# Register SPECTs to first SPECT.  Note the documentation for the
-# benchmark TIA image also describes registering SPECTs to the first
-# SPECT.
-rm -rf registered_spect2 registered_spect3 registered_spect4
-mkdir registered_spect2 registered_spect3 registered_spect4
-elastix -f spect1.nii -m spect2.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-    -out registered_spect2
-elastix -f spect1.nii -m spect3.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-    -out registered_spect3
-elastix -f spect1.nii -m spect4.nii -p "$ETC_DIR/Parameters_Rigid.txt" \
-    -out registered_spect4
-
-# Make Spider's TIA image.
-SPIDER_TIA=spider-tia.nii
-"@CMAKE_BINARY_DIR@/bin/spider_tia" -fv -o "$SPIDER_TIA" -z America/Detroit \
-    -d "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
-    -d "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
-    -d "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
-    -d "$SPECTCTS_DIR/SPECT_Cts/scan4/spect" \
-    -i spect1.nii \
-    -i registered_spect2/result.0.nii \
-    -i registered_spect3/result.0.nii \
-    -i registered_spect4/result.0.nii
+# Make Spider's TIA image: tia.nii.  Requires the external programs
+# dcm2niix and elastix.  Note the documentation for the benchmark TIA
+# image describes registering SPECTs to the first SPECT.
+"@CMAKE_BINARY_DIR@/bin/spider" -f -z America/Detroit \
+    "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
+    "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
+    "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
+    "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
+
+# The TIA image in the benchmark dataset is in the form of a DICOM
+# series.  Convert it into a 3D NIfTI file named snmmi-tia.nii.  The
+# "-w 1" option overwrites output files.  "-g i" (ignore user defaults
+# file) is used to ensure the output file has a ".nii" extension,
+# since the file name is referenced subsequently.
+dcm2niix -o . -f snmmi-tia -w 1 -g i "$TIA_DIR/TIA"
+
 # Generate PNG images of axial slices over registered CT.
+
+# Make the first CT image: ct1.nii.
 dcm2niix -o . -f ct1 -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
 
 # Slice 145 (0-indexed) contains Lesion 1 (liver large).  Display
 # contours at a TIA of 10^11 disintegrations/mL (approx. 28 MBq.h/mL).
-"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii "$SPIDER_TIA" \
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
     ct1.nii 145 1e11 0.5
 
 # Slice 133 contains Lesion 2 (liver small).
-"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii "$SPIDER_TIA" \
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii tia.nii \
     ct1.nii 133 1e11 0.5
 
 # Joint histogram.  TIA images have units of disintegrations/mL;
 # display MBq.h/mL in joint histogram.
 JOINT_HIST_FILENAME=tia_joint_hist.svg
-"@CMAKE_BINARY_DIR@/benchmark/joint_hist" snmmi-tia.nii "$SPIDER_TIA" |
+"@CMAKE_BINARY_DIR@/benchmark/joint_hist" snmmi-tia.nii tia.nii |
     gnuplot -c "@CMAKE_SOURCE_DIR@/benchmark/joint_hist.gp" \
         "Benchmark TIA (MBq h mL^{-1})" "Spider TIA (MBq h mL^{-1})" 3.6e9 \
         "$JOINT_HIST_FILENAME"

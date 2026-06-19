@@ -8,14 +8,14 @@
              (gnu packages compression))
 
 ;;; Commentary:
-
-;; Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
-;; Challenge 2021
-;; (<https://deepblue.lib.umich.edu/data/collections/hm50ts030>)
-;; through Spider's time-integrated activity (TIA) pipeline in an
-;; isolated, self-contained, and reproducible build environment with
-;; bullet-proof caching (work re-use) using GNU Guix.
-
+;;;
+;;; Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
+;;; Challenge 2021
+;;; (<https://deepblue.lib.umich.edu/data/collections/hm50ts030>)
+;;; through the Spider pipeline in an isolated, self-contained, and
+;;; reproducible build environment with bullet-proof caching (work
+;;; re-use) using GNU Guix.
+;;;
 ;;; Code:
 
 (define spect/cts-snmmi.zip
@@ -43,85 +43,18 @@
   #~(string-append #$spect/cts-snmmi "/patient_4/SPECT_Cts/scan"
                    #$(number->string n) "/spect"))
 
-(define dcm2niix
-  (specification->package "dcm2niix"))
-
-(define (spect-snmmi n)
-  ;; 3D NIfTI image and BIDS sidecar of SPECT scan number N.
-  (computed-file (string-append "spect" (number->string n) "-snmmi")
-                 (with-imported-modules '((guix build utils)) ;for invoke
-                   #~(begin
-                       (use-modules (guix build utils))
-                       (mkdir #$output)
-                       (invoke (string-append #$dcm2niix "/bin/dcm2niix")
-                               "-o" #$output
-                               "-f" "spect"
-                               #$(spect-dicom-dir-snmmi n))))))
-
-(define elastix
-  (specification->package "elastix"))
-
-(define (registered-spect-snmmi n)
-  ;; 'result.0.nii' is the Nth SPECT registered to the first SPECT.
-  ;; Note the documentation for the benchmark TIA image also describes
-  ;; registering SPECTs to the first SPECT.
-  (computed-file (string-append "registered-spect" (number->string n) "-snmmi")
-                 (with-imported-modules '((guix build utils)) ;for invoke
-                   #~(begin
-                       (use-modules (guix build utils))
-                       (mkdir #$output)
-                       (invoke (string-append #$elastix "/bin/elastix")
-                               "-f" (string-append #$(spect-snmmi 1)
-                                                   "/spect.nii")
-                               "-m" (string-append #$(spect-snmmi n)
-                                                   "/spect.nii")
-                               "-p"
-                               #$(local-file "../../etc/Parameters_Rigid.txt")
-                               "-out" #$output)))))
-
-;; Include the top-level file, which provides spider.
-(include "../../guix.scm")
-
-;; Variant of spider that builds, potentially tests, and installs
-;; benchmark targets.
-(define spider-benchmark
-  (package/inherit spider
-    (name "spider-benchmark")
-    (arguments
-     (substitute-keyword-arguments arguments
-       ((#:configure-flags cf)
-        #~(append #$cf (list "-DSPIDER_BUILD_BENCHMARKS=ON"
-                             "-DSPIDER_DOWNLOAD_BENCHMARK_DATA=OFF")))
-       ((#:phases phases #~%standard-phases)
-        #~(modify-phases #$phases
-            (replace 'install
-              (lambda _
-                (install-file "benchmark/slice_compare" #$output)
-                (install-file "benchmark/joint_hist" #$output)))))))))
+;; For run-spider and spider-benchmark.
+(include "../utils.scm")
 
 (define spider-tia-snmmi
-  (computed-file "spider-tia-snmmi"
-                 ;; For invoke and install-file.
-                 (with-imported-modules '((guix build utils))
-                   #~(begin (use-modules (guix build utils))
-                            (invoke (string-append #$spider "/bin/spider_tia")
-                                    "-v" "-z" "America/Detroit"
-                                    "-d" #$(spect-dicom-dir-snmmi 1)
-                                    "-d" #$(spect-dicom-dir-snmmi 2)
-                                    "-d" #$(spect-dicom-dir-snmmi 3)
-                                    "-d" #$(spect-dicom-dir-snmmi 4)
-                                    "-i" (string-append #$(spect-snmmi 1)
-                                                        "/spect.nii")
-                                    "-i"
-                                    (string-append #$(registered-spect-snmmi 2)
-                                                   "/result.0.nii")
-                                    "-i"
-                                    (string-append #$(registered-spect-snmmi 3)
-                                                   "/result.0.nii")
-                                    "-i"
-                                    (string-append #$(registered-spect-snmmi 4)
-                                                   "/result.0.nii"))
-                            (install-file "tia.nii" #$output)))))
+  ;; The documentation for the benchmark TIA image describes
+  ;; registering SPECTs to the first SPECT.
+  (run-spider (list (spect-dicom-dir-snmmi 1)
+                    (spect-dicom-dir-snmmi 2)
+                    (spect-dicom-dir-snmmi 3)
+                    (spect-dicom-dir-snmmi 4))
+              #:verbose? #t
+              #:time-zone (list "America/Detroit")))
 
 
 ;;; TIA image included in the benchmark dataset.
@@ -134,6 +67,9 @@
     (file-name "zenodo-17680076-patient_4.zip")
     (sha256
      (base32 "01b4z28w41ws13dvlffw41zz5b23i0q8an38zxqarszx10fqg49s"))))
+
+(define dcm2niix
+  (specification->package "dcm2niix"))
 
 (define snmmi-tia
   (computed-file "snmmi-tia"

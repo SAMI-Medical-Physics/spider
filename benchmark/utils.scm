@@ -77,3 +77,20 @@
           (install-file "tia.nii" #$output))))
 
   (computed-file "tia" build))
+
+;; Variant of spider that builds, potentially tests, and installs
+;; benchmark targets.
+(define spider-benchmark
+  (package/inherit spider
+    (name "spider-benchmark")
+    (arguments
+     (substitute-keyword-arguments arguments
+       ((#:configure-flags cf)
+        #~(append #$cf (list "-DSPIDER_BUILD_BENCHMARKS=ON"
+                             "-DSPIDER_DOWNLOAD_BENCHMARK_DATA=OFF")))
+       ((#:phases phases #~%standard-phases)
+        #~(modify-phases #$phases
+            (replace 'install
+              (lambda _
+                (install-file "benchmark/slice_compare" #$output)
+                (install-file "benchmark/joint_hist" #$output)))))))))
