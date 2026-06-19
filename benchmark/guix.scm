@@ -34,28 +34,28 @@
 (define python-docutils
   (specification->package "python-docutils"))
 
-(computed-file "site"
-               (with-imported-modules '((guix build utils))
-                 #~(begin
-                     (use-modules (guix build utils)
-                                  (ice-9 pretty-print)
-                                  (srfi srfi-13))  ; string-split, string-join
-                     (define (pp->string x)
-                       (with-output-to-string
-                         (lambda () (pretty-print x))))
+(define build
+  (with-imported-modules '((guix build utils))
+    #~(begin
+        (use-modules (guix build utils)
+                     (ice-9 pretty-print)
+                     (srfi srfi-13))  ; string-split, string-join
+        (define (pp->string x)
+          (with-output-to-string
+            (lambda () (pretty-print x))))
 
-                     (define (indent-string s n)
-                       (define prefix (make-string n #\space))
-                       (string-join
-                        (map (lambda (line) (string-append prefix line))
-                             (string-split s #\newline))
-                        "\n"))
+        (define (indent-string s n)
+          (define prefix (make-string n #\space))
+          (string-join
+           (map (lambda (line) (string-append prefix line))
+                (string-split s #\newline))
+           "\n"))
 
-                     (copy-file #$(local-file "index.rst") "index.rst")
-                     (make-file-writable "index.rst")
-                     (substitute* "index.rst"
-                       ((".. Placeholder for provenance information.")
-                        (format #f "\
+        (copy-file #$(local-file "index.rst") "index.rst")
+        (make-file-writable "index.rst")
+        (substitute* "index.rst"
+          ((".. Placeholder for provenance information.")
+           (format #f "\
 Provenance
 ----------
 
@@ -71,24 +71,25 @@ To run the experiments on Unix-like operating systems without Guix,
 build Spider with ``-DSPIDER_BUILD_BENCHMARKS=ON``, then from the
 build directory run ``cd benchmark && ./run.sh``.
 But running the experiments this way is not reproducible."
-                                #$(this-commit)
-                                (indent-string (pp->string '#$channels) 2))))
+                   #$(this-commit)
+                   (indent-string (pp->string '#$channels) 2))))
 
-                     (mkdir-p #$output)
-                     ;; (install-file "index.rst" #$output) ;for debugging
-                     (invoke (string-append #$python-docutils "/bin/rst2html5")
-                             "index.rst"
-                             (string-append #$output "/index.html"))
-                     (mkdir-p (string-append #$output "/tia"))
-                     (map (lambda (z)
-                            (symlink (string-append #$tia-comparison "/image1_"
-                                                    z ".png")
-                                     (string-append #$output "/tia/image1_"
-                                                    z ".png"))
-                            (symlink (string-append #$tia-comparison "/image2_"
-                                                    z ".png")
-                                     (string-append #$output "/tia/image2_"
-                                                    z ".png")))
-                          '("145" "133"))
-                     (symlink (string-append #$tia-comparison "/tia_joint_hist.svg")
-                              (string-append #$output "/tia/tia_joint_hist.svg")))))
+        (mkdir-p #$output)
+        ;; (install-file "index.rst" #$output) ;for debugging
+        (invoke (string-append #$python-docutils "/bin/rst2html5")
+                "index.rst"
+                (string-append #$output "/index.html"))
+        (mkdir-p (string-append #$output "/tia"))
+        (map (lambda (z)
+               (symlink (string-append #$tia-comparison "/image1_" z ".png")
+                        (string-append #$output
+                                       "/tia/image1_" z ".png"))
+               (symlink (string-append #$tia-comparison "/image2_" z ".png")
+                        (string-append #$output
+                                       "/tia/image2_" z ".png")))
+             '("145" "133"))
+        (symlink (string-append #$tia-comparison "/tia_joint_hist.svg")
+                 (string-append #$output
+                                "/tia/tia_joint_hist.svg")))))
+
+(computed-file "site" build)

@@ -75,7 +75,8 @@
                        (invoke (string-append #$elastix "/bin/elastix")
                                "-f" (string-append #$(spect 1) "/spect.nii")
                                "-m" (string-append #$(spect n) "/spect.nii")
-                               "-p" #$(local-file "../../etc/Parameters_Rigid.txt")
+                               "-p"
+                               #$(local-file "../../etc/Parameters_Rigid.txt")
                                "-out" #$output)))))
 
 ;; Include the top-level file, which provides spider.
@@ -184,11 +185,13 @@
                     (string-append #$benchmark-tia "/tia.nii")
                     (string-append #$spider-tia "/tia.nii")
                     (string-append #$(ct 1) "/ct.nii")
+                    ;; Display contours at a TIA of 10^11 disintegrations/mL
+                    ;; (approx. 28 MBq.h/mL).
                     z "1e11" "0.5")
             (install-file (string-append "image1_" z ".png") #$output)
             (install-file (string-append "image2_" z ".png") #$output))
-          '("145" ;slice 145 (0-indexed) contains the large lesion in the liver
-            "133")) ;slice 133 contains the small lesion in the liver
+          '("145"         ;slice 145 (0-indexed) contains Lesion 1 (liver large)
+            "133"))       ;slice 133 contains Lesion 2 (liver small)
 
          ;; Joint histogram.
          (let ((outfile "tia_joint_hist.svg"))
@@ -204,7 +207,10 @@
                       (list (string-append #$gnuplot "/bin/gnuplot")
                             "-c" #$(local-file "../joint_hist.gp")
                             "Benchmark TIA (MBq h mL^{-1})"
-                            "Spider TIA (MBq h mL^{-1})" "3.6e9" outfile)))
+                            "Spider TIA (MBq h mL^{-1})"
+                            ;; TIA images have units of disintegrations/mL;
+                            ;; display MBq.h/mL in joint histogram.
+                            "3.6e9" outfile)))
              (close to)
              (close from)
              (for-each waitpid pids))
