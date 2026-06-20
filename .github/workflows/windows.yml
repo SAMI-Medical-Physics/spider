@@ -57,6 +57,17 @@ jobs:
         run: ctest --test-dir build --build-config Release --output-on-failure
       - name: Install
         run: cmake --install build --config Release
+      # Use groff via MSYS2 to produce PDF manuals.
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          install: groff
+      - name: Produce PDF manuals
+        shell: msys2 {0}
+        working-directory: ../spider-install/share/man/man1
+        run: |
+          groff -mandoc -Tpdf spider.1 > spider.1.pdf
+          groff -mandoc -Tpdf spider_tia.1 > spider_tia.1.pdf
       - name: Install licenses
         run: |
           $dest = '../spider-install/share/doc/spider'
