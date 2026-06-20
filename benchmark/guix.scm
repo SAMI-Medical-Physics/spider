@@ -2,12 +2,13 @@
 ;;; Copyright (C) 2026 South Australia Medical Imaging
 
 ;;; Commentary:
-
-;; Evaluate the performance of the Spider dosimetry pipeline by
-;; applying it to publicly available datasets.  The benchmarks are ran
-;; in an isolated, self-contained, and reproducible build environment
-;; with bullet-proof caching (work re-use) using GNU Guix.
-
+;;;
+;;; Evaluate the performance of the Spider dosimetry pipeline by
+;;; applying it to publicly available datasets.  The benchmarks are
+;;; ran in an isolated, self-contained, and reproducible build
+;;; environment with bullet-proof caching (work re-use) using GNU
+;;; Guix.
+;;;
 ;;; Code:
 
 (use-modules (git)

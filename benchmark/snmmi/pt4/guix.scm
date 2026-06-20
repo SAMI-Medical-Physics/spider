@@ -1,12 +1,6 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 ;;; Copyright (C) 2025, 2026 South Australia Medical Imaging
 
-(use-modules (guix gexp)
-             (guix packages)
-             (gnu packages)
-             (gnu packages base)
-             (gnu packages compression))
-
 ;;; Commentary:
 ;;;
 ;;; Pass the dataset from patient 4 in the SNMMI Lu-177 Dosimetry
@@ -17,6 +11,12 @@
 ;;; re-use) using GNU Guix.
 ;;;
 ;;; Code:
+
+(use-modules (guix gexp)
+             (guix packages)
+             (gnu packages)
+             (gnu packages base)
+             (gnu packages compression))
 
 (define spect/cts-snmmi-pt4.zip
   (origin
