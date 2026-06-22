@@ -53,8 +53,8 @@
                        (copy-recursively "." #$output)))))
 
 (define (spect-dicom-dir-snmmi-pt6 n)
-  #~(string-append #$spect/cts-snmmi-pt6 "/patient_6/SPECT_Cts/scan"
-                   #$(number->string n) "/spect"))
+  (file-append spect/cts-snmmi-pt6 "/patient_6/SPECT_Cts/scan"
+               (number->string n) "/spect"))
 
 (define spider-tia-snmmi-pt6
   ;; The documentation for the benchmark TIA image describes
@@ -98,8 +98,8 @@
 ;;; Compare TIA images from Spider and the benchmark dataset.
 
 (define (ct-dicom-dir-snmmi-pt6 n)
-  #~(string-append #$spect/cts-snmmi-pt6 "/patient_6/SPECT_Cts/scan"
-                   #$(number->string n) "/ct"))
+  (file-append spect/cts-snmmi-pt6 "/patient_6/SPECT_Cts/scan"
+               (number->string n) "/ct"))
 
 (define (ct-snmmi-pt6 n)
   ;; 3D NIfTI image and BIDS sidecar of CT scan number N.

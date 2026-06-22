@@ -40,8 +40,8 @@
                                #$spect/cts-snmmi-pt4.zip "-d" #$output)))))
 
 (define (spect-dicom-dir-snmmi-pt4 n)
-  #~(string-append #$spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
-                   #$(number->string n) "/spect"))
+  (file-append spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
+               (number->string n) "/spect"))
 
 ;; For run-spider and spider-benchmark.
 (include "../../utils.scm")
@@ -88,8 +88,8 @@
 ;;; Compare TIA images from Spider and the benchmark dataset.
 
 (define (ct-dicom-dir-snmmi-pt4 n)
-  #~(string-append #$spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
-                   #$(number->string n) "/ct"))
+  (file-append spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
+               (number->string n) "/ct"))
 
 (define (ct-snmmi-pt4 n)
   ;; 3D NIfTI image and BIDS sidecar of CT scan number N.
