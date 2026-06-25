@@ -30,30 +30,49 @@
 (define unzip
   (specification->package "unzip"))
 
-;; For run-spider and spider-benchmark.
-(include "../../utils.scm")
-
 (define spect/cts-snmmi-pt6
+  ;; The extracted SPECT and CT DICOM series, except for the 2nd
+  ;; SPECT, which can be found in 'spect-2-dicom-dir-snmmi-pt6'.
   (computed-file "spect-cts-snmmi-pt6"
                  (with-imported-modules '((guix build utils)) ;for invoke
                    #~(begin
                        (use-modules (guix build utils))
+                       (mkdir #$output)
                        (invoke (string-append #$unzip "/bin/unzip")
-                               #$spect/cts-snmmi-pt6.zip)
-                       ;; One slice of the 2nd SPECT has modality 'NM' while the
-                       ;; rest have 'PT', which causes dcm2niix to write 2
-                       ;; images.
-                       (invoke (string-append #$spider-benchmark
-                                              "/set_modality_pt")
-                               (string-append "patient_6/SPECT_Cts/scan2/spect/"
-                                              "2.16.840.1.114362.1.11987842."
-                                              "22403444876.565511897.618.970."
-                                              "dcm"))
-                       (mkdir-p #$output)
-                       (copy-recursively "." #$output)))))
+                               #$spect/cts-snmmi-pt6.zip
+                               "-d" #$output
+                               "-x" "patient_6/SPECT_Cts/scan2/spect/*")))))
+
+;; For spider-benchmark and run-spider.
+(include "../../utils.scm")
+
+(define spect-2-dicom-dir-snmmi-pt6
+  ;; One slice of the 2nd SPECT has modality 'NM' while the rest have
+  ;; 'PT'.  Change that slice to 'PT' so that dcm2niix does not write
+  ;; 2 images.
+  (computed-file "spect-2-dicom-dir-snmmi-pt6"
+                 ;; For invoke and make-file-writable.
+                 (with-imported-modules '((guix build utils))
+                   #~(begin
+                       (use-modules (guix build utils))
+                       (let ((f (string-append #$output
+                                               "/patient_6/SPECT_Cts/scan2/"
+                                               "spect/2.16.840.1.114362.1."
+                                               "11987842.22403444876."
+                                               "565511897.618.970.dcm")))
+                         (mkdir #$output)
+                         (invoke (string-append #$unzip "/bin/unzip")
+                                 #$spect/cts-snmmi-pt6.zip
+                                 "patient_6/SPECT_Cts/scan2/spect/*"
+                                 "-d" #$output)
+                         (make-file-writable f)
+                         (invoke (string-append #$spider-benchmark
+                                                "/set_modality_pt")
+                                 f))))))
 
 (define (spect-dicom-dir-snmmi-pt6 n)
-  (file-append spect/cts-snmmi-pt6 "/patient_6/SPECT_Cts/scan"
+  (file-append (if (= n 2) spect-2-dicom-dir-snmmi-pt6 spect/cts-snmmi-pt6)
+               "/patient_6/SPECT_Cts/scan"
                (number->string n) "/spect"))
 
 (define spider-tia-snmmi-pt6
