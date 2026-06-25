@@ -2,6 +2,10 @@ add_library(spider_logging
   STATIC
   logging.cc
 )
+target_include_directories(spider_logging
+  PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+)
 if(MINGW AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_link_libraries(spider_logging
     PRIVATE
