@@ -13,6 +13,15 @@ if(MINGW AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   )
 endif()
 
+add_library(spider_output_filenames
+  STATIC
+  output_filenames.cc
+)
+target_include_directories(spider_output_filenames
+  PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 add_library(spider_spect
   STATIC
   spect.cc
