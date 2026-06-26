@@ -53,7 +53,7 @@ TEST(TiaPipelineTest, NoDecay)
     {
       image_filename = this_test_dir / ("image_" + std::to_string(i) + ".nii");
       EXPECT_EQ(std::filesystem::exists(image_filename), false);
-      itk::WriteImage(images[i], image_filename.string(), true); // compression
+      itk::WriteImage(images[i], image_filename.string());
       image_filenames.push_back(image_filename.string());
     }
 
@@ -134,7 +134,7 @@ TEST(TiaPipelineTest, Decay)
     {
       image_filename = this_test_dir / ("image" + std::to_string(i) + ".nii");
       EXPECT_EQ(std::filesystem::exists(image_filename), false);
-      itk::WriteImage(images[i], image_filename.string(), true); // compression
+      itk::WriteImage(images[i], image_filename.string());
       image_filenames.push_back(image_filename.string());
     }
 
