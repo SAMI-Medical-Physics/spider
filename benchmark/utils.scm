@@ -22,7 +22,7 @@
     (specification->package "dcm2niix"))
 
   (define (run-dcm2niix dir)
-    (computed-file "dcm2niix-output"
+    (computed-file "spider-dcm2niix-output"
                    (with-imported-modules '((guix build utils)) ;for invoke
                      #~(begin
                          (use-modules (guix build utils))
@@ -34,7 +34,7 @@
     (specification->package "elastix"))
 
   (define (run-elastix fixed moving)
-    (computed-file "elastix-output"
+    (computed-file "spider-elastix-output"
                    (with-imported-modules '((guix build utils)) ;for invoke
                      #~(begin
                          (use-modules (guix build utils))
@@ -76,7 +76,7 @@
                                      (list #$@registered-images))))
           (install-file "tia.nii" #$output))))
 
-  (computed-file "tia" build))
+  (computed-file "spider-tia-image" build))
 
 ;; Variant of spider that builds, potentially tests, and installs
 ;; benchmark targets.
