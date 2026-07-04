@@ -81,6 +81,7 @@ dosimetry for radionuclide therapy patients.")
               (prepend gnuplot
                        itk-snap
                        nss-certs            ;for CMake FetchContent
+                       pigz                 ;for dcm2niix
                        python-docutils))))) ;for rst2html5
 
 spider

@@ -72,23 +72,23 @@ shift $((OPTIND - 1))
 i=1
 for d in "$@"; do
     printf 'Converting SPECT %i DICOM series to 3D image: %s\n' \
-        "$i" "spect$i.nii" >&2
-    ensure_filename_available "spect$i.nii"
+        "$i" "spect$i.nii.gz" >&2
+    ensure_filename_available "spect$i.nii.gz"
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
     # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
     # any previous output file so we can detect when this happens via
     # a missing output file.
-    "$rm_cmd" -f "spect$i.nii"
-    # "-w 1" overwrites output files.  Use "-g i" (ignore user
-    # defaults file) to ensure the output file is called
-    # "spect$i.nii".
+    "$rm_cmd" -f "spect$i.nii.gz"
+    # "-z y" writes a compressed file.  "-w 1" overwrites output
+    # files.  Use "-g i" (ignore user defaults file) to ensure the
+    # output file is called "spect$i.nii.gz".
     if [ "$verbose" -eq 1 ]; then
-        "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >&2
+        "$dcm2niix_cmd" -o . -f "spect$i" -z y -w 1 -g i "$d" >&2
     else
-        "$dcm2niix_cmd" -o . -f "spect$i" -w 1 -g i "$d" >/dev/null
+        "$dcm2niix_cmd" -o . -f "spect$i" -z y -w 1 -g i "$d" >/dev/null
     fi
-    test -e "spect$i.nii"
+    test -e "spect$i.nii.gz"
     i=$((i + 1))
 done
 
@@ -129,7 +129,7 @@ while [ "$i" -le "$n_spects" ]; do
         "$i" "$outdir/result.0.nii" >&2
     ensure_filename_available "$outdir/result.0.nii"
     "$mkdir_cmd" -p "$outdir"
-    "$elastix_cmd" -f spect1.nii -m "spect$i.nii" -out "$outdir" \
+    "$elastix_cmd" -f spect1.nii.gz -m "spect$i.nii.gz" -out "$outdir" \
         -p "$elastix_param" -loglevel $elastix_log_level >&2
     "$grep_cmd" '^(TransformParameters' \
         "$outdir/TransformParameters.0.txt" >&2 || true
@@ -170,7 +170,7 @@ if [ -n "$dicom_dirs" ]; then
 fi
 
 # Add image arguments.
-set -- "$@" -i "spect1.nii"
+set -- "$@" -i "spect1.nii.gz"
 i=2
 while [ "$i" -le "$n_spects" ]; do
     set -- "$@" -i "registered_spect$i/result.0.nii"
