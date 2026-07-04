@@ -10,6 +10,10 @@ target_link_libraries(spider_clamp
 )
 target_compile_definitions(spider_clamp
   PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+# For running Spider pipeline scripts from the build tree.
+set_target_properties(spider_clamp PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 
 add_executable(
   spider_tia

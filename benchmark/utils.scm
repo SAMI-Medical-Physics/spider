@@ -38,7 +38,7 @@
   (define elastix
     (specification->package "elastix"))
 
-  (define (run-elastix fixed moving)
+  (define (run-elastix fixed moving verbose?)
     (computed-file "spider-elastix-output"
                    (with-imported-modules '((guix build utils)) ;for invoke
                      #~(begin
@@ -49,7 +49,22 @@
                                  "-m" #$moving
                                  "-p"
                                  #$(local-file "../etc/Parameters_Rigid.txt")
-                                 "-out" #$output)))))
+                                 "-out" #$output)
+                         ;; Set negative pixel values to zero to reduce .nii.gz
+                         ;; size (for the SNMMI challenge datasets, from 38-45
+                         ;; MiB to 26-29 MiB).
+                         (apply invoke (string-append #$spider
+                                                      "/bin/spider_clamp")
+                                (append (if #$verbose?
+                                            (list "-v")
+                                            '())
+                                        (list (string-append #$output
+                                                             "/result.0.nii")
+                                              (string-append #$output
+                                                             "/result.0.nii"
+                                                             ".gz"))))
+                         (delete-file (string-append #$output
+                                                     "/result.0.nii"))))))
 
   (define spect-dirs
     (map run-dcm2niix dirs))
@@ -61,13 +76,13 @@
 
   (define elastix-output-dirs
     (map (lambda (moving)
-           (run-elastix (car spect-images) moving))
+           (run-elastix (car spect-images) moving verbose?))
          (cdr spect-images)))
 
   (define registered-images
     (cons (car spect-images)
           (map (lambda (dir)
-                 (file-append dir "/result.0.nii"))
+                 (file-append dir "/result.0.nii.gz"))
                elastix-output-dirs)))
 
   (define build-tia-image

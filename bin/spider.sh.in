@@ -121,18 +121,32 @@ else
     elastix_log_level=error
 fi
 
+# Pass through overwrite and verbose mode to spider_clamp.
+spider_clamp_opts=
+if [ "$overwrite" -eq 1 ]; then
+    spider_clamp_opts="$spider_clamp_opts -f"
+fi
+if [ "$verbose" -eq 1 ]; then
+    spider_clamp_opts="$spider_clamp_opts -v"
+fi
+
 n_spects=$#
 i=2
 while [ "$i" -le "$n_spects" ]; do
     outdir="registered_spect$i"
     printf 'Registering SPECT %i to SPECT 1: %s\n' \
-        "$i" "$outdir/result.0.nii" >&2
+        "$i" "$outdir/result.0.nii.gz" >&2
     ensure_filename_available "$outdir/result.0.nii"
     "$mkdir_cmd" -p "$outdir"
     "$elastix_cmd" -f spect1.nii.gz -m "spect$i.nii.gz" -out "$outdir" \
         -p "$elastix_param" -loglevel $elastix_log_level >&2
     "$grep_cmd" '^(TransformParameters' \
         "$outdir/TransformParameters.0.txt" >&2 || true
+    # Set negative pixel values to zero to reduce .nii.gz size (for
+    # the SNMMI challenge datasets, from 38-45 MiB to 26-29 MiB).
+    "@SPIDER_BINDIR@/spider_clamp" $spider_clamp_opts \
+        "$outdir/result.0.nii" "$outdir/result.0.nii.gz"
+    "$rm_cmd" "$outdir/result.0.nii"
     i=$((i + 1))
 done
 
@@ -173,7 +187,7 @@ fi
 set -- "$@" -i "spect1.nii.gz"
 i=2
 while [ "$i" -le "$n_spects" ]; do
-    set -- "$@" -i "registered_spect$i/result.0.nii"
+    set -- "$@" -i "registered_spect$i/result.0.nii.gz"
     i=$((i + 1))
 done
 

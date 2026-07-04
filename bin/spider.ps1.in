@@ -191,11 +191,22 @@ else
     $elastix_log_level=error
 }
 
+# Pass through overwrite and verbose mode to spider_clamp.
+$spider_clamp_opts = @()
+if ($force)
+{
+    $spider_clamp_opts += '-f'
+}
+if ($verbose)
+{
+    $spider_clamp_opts += '-v'
+}
+
 for ($i=2; $i -le $directories.Count; $i++)
 {
     $outdir = "registered_spect$i"
     [Console]::Error.WriteLine(
-        'Registering SPECT {0} to SPECT 1: {1}/result.0.nii', $i, $outdir
+        'Registering SPECT {0} to SPECT 1: {1}/result.0.nii.gz', $i, $outdir
     )
     ensure_filename_available (Join-Path $outdir 'result.0.nii')
     New-Item -ItemType Directory -Path $outdir -Force | Out-Null
@@ -215,6 +226,18 @@ for ($i=2; $i -le $directories.Count; $i++)
     Select-String -Path "$outdir/TransformParameters.0.txt" `
       -Pattern '^\(TransformParameters' |
       ForEach-Object {[Console]::Error.WriteLine($_.Line)}
+    # Set negative pixel values to zero to reduce .nii.gz size (for
+    # the SNMMI challenge datasets, from 38-45 MiB to 26-29 MiB).
+    # Do not rely on the 'bin' directory of the install tree being in
+    # PATH.
+    & (Join-Path $PSScriptRoot 'spider_clamp.exe') @spider_clamp_opts `
+      (Join-Path $outdir 'result.0.nii') (Join-Path $outdir 'result.0.nii.gz') `
+      2>&1 | ForEach-Object {[Console]::Error.WriteLine("spider_clamp | $_")}
+    if ($LASTEXITCODE -ne 0)
+    {
+        exit $LASTEXITCODE
+    }
+    Remove-Item (Join-Path $outdir 'result.0.nii') -ErrorAction Ignore
 }
 
 # Make TIA image.  Build arguments for spider_tia.
@@ -242,7 +265,7 @@ for ($i = 0; $i -lt $directories.Count; $i++)
     }
     else
     {
-        $spider_tia_args += (Join-Path "registered_spect$($i+1)" 'result.0.nii')
+        $spider_tia_args += (Join-Path "registered_spect$($i+1)" 'result.0.nii.gz')
     }
 }
 
