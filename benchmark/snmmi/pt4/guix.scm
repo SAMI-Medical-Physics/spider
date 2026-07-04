@@ -122,7 +122,7 @@
           (lambda (z)
             (invoke (string-append #$spider-benchmark "/slice_compare")
                     (string-append #$snmmi-tia-pt4 "/tia.nii")
-                    (string-append #$spider-output-snmmi-pt4 "/tia.nii")
+                    (string-append #$spider-output-snmmi-pt4 "/tia.nii.gz")
                     (string-append #$(ct-snmmi-pt4 1) "/ct.nii")
                     ;; Display contours at a TIA of 10^11 disintegrations/mL
                     ;; (approx. 28 MBq.h/mL).  Display the CT background using a
@@ -144,7 +144,7 @@
                                                    "/joint_hist")
                                     (string-append #$snmmi-tia-pt4 "/tia.nii")
                                     (string-append #$spider-output-snmmi-pt4
-                                                   "/tia.nii")))
+                                                   "/tia.nii.gz")))
                       (list (string-append #$gnuplot "/bin/gnuplot")
                             "-c" #$(local-file "../../joint_hist.gp")
                             "Reference TIA (MBq h mL^{-1})"

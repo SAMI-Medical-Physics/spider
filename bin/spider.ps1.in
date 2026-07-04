@@ -255,7 +255,13 @@ if ($time_zone)
     }
 }
 
-[Console]::Error.WriteLine('Computing time-integrated activity image: tia.nii')
+# Use compression.
+$tia_filename='tia.nii.gz'
+$spider_tia_args += '-o', $tia_filename
+
+[Console]::Error.WriteLine(
+    'Computing time-integrated activity image: {0}', $tia_filename
+)
 # Do not rely on the 'bin' directory of the install tree being in
 # PATH.
 & (Join-Path $PSScriptRoot 'spider_tia.exe') @spider_tia_args 2>&1 |

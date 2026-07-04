@@ -190,5 +190,9 @@ if [ -n "$tz_list" ]; then
     IFS=$old_ifs
 fi
 
-printf 'Computing time-integrated activity image: %s\n' tia.nii >&2
+# Use compression.
+tia_filename=tia.nii.gz
+set -- "$@" -o "$tia_filename"
+
+printf 'Computing time-integrated activity image: %s\n' "$tia_filename" >&2
 "@SPIDER_BINDIR@/spider_tia" "$@"

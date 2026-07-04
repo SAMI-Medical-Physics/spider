@@ -66,14 +66,16 @@
                elastix-output-dirs)))
 
   (define build-tia-image
-    (with-imported-modules '((guix build utils)) ;for invoke, install-file
+    (with-imported-modules '((guix build utils)) ;for invoke
       #~(begin
           (use-modules (guix build utils)
                        (srfi srfi-1))   ;for append-map
+          (mkdir #$output)
           (apply invoke (string-append #$spider "/bin/spider_tia")
                  (append (if #$verbose?
                              (list "-v")
                              '())
+                         (list "-o" (string-append #$output "/tia.nii.gz"))
                          (append-map (lambda (tz)
                                        (list "-z" tz))
                                      (list #$@time-zone))
@@ -82,8 +84,7 @@
                                      (list #$@dirs))
                          (append-map (lambda (image)
                                        (list "-i" image))
-                                     (list #$@registered-images))))
-          (install-file "tia.nii" #$output))))
+                                     (list #$@registered-images)))))))
 
   (define tia-image
     (computed-file "spider-tia-image" build-tia-image))
@@ -102,8 +103,8 @@
                   (iota (length (list #$@elastix-output-dirs)) 2)
                   (list #$@elastix-output-dirs))
 
-        (symlink (string-append #$tia-image "/tia.nii")
-                 (string-append #$output "/tia.nii"))))
+        (symlink (string-append #$tia-image "/tia.nii.gz")
+                 (string-append #$output "/tia.nii.gz"))))
 
   (computed-file "spider-output" build))
 
