@@ -1,0 +1,52 @@
+.\" SPDX-License-Identifier: GFDL-1.3-or-later
+.\" Copyright (C) 2026 South Australia Medical Imaging
+.Dd 4 July 2026
+.Dt SPIDER_CLAMP 1
+.Os
+.Sh NAME
+.Nm spider_clamp
+.Nd set negative pixel values to zero
+.Sh SYNOPSIS
+.Nm spider_clamp
+.Op Fl fVvZ
+.Ar input_file output_file
+.Sh DESCRIPTION
+.Nm
+reads a three-dimensional image from
+.Ar input_file ,
+sets negative pixel values to zero, and writes the result to
+.Ar output_file .
+.Pp
+The input and output image files may be in NIfTI format, compressed or
+not.  MetaImage and NRRD formats are also supported if the
+corresponding ImageIO module is included in the ITK library against
+which
+.Nm
+was built.
+.Ar input_file
+and
+.Ar output_file
+must each have a file name suffix corresponding to their respective
+file formats.  For MetaImage and NRRD detached header formats, the
+name of the header file must be specified.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl f
+Overwrite output files.
+.Pp
+.It Fl V
+Display the version number and exit.
+.Pp
+.It Fl v
+Verbose mode.  Causes
+.Nm
+to print debugging messages about its progress.
+.Pp
+.It Fl Z
+Compress the output image file if its format is MetaImage or NRRD.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr spider 1
