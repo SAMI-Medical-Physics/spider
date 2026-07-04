@@ -75,7 +75,7 @@
                "/patient_6/SPECT_Cts/scan"
                (number->string n) "/spect"))
 
-(define spider-tia-snmmi-pt6
+(define spider-output-snmmi-pt6
   ;; The documentation for the benchmark TIA image describes
   ;; registering SPECTs to the first SPECT.
   (run-spider (list (spect-dicom-dir-snmmi-pt6 1)
@@ -151,7 +151,7 @@
           (lambda (z)
             (invoke (string-append #$spider-benchmark "/slice_compare")
                     (string-append #$snmmi-tia-pt6 "/tia.nii")
-                    (string-append #$spider-tia-snmmi-pt6 "/tia.nii")
+                    (string-append #$spider-output-snmmi-pt6 "/tia.nii")
                     (string-append #$(ct-snmmi-pt6 1) "/ct.nii")
                     ;; Display contours at a TIA of 10^11 disintegrations/mL
                     ;; (approx. 28 MBq.h/mL).  Display the CT background using a
@@ -174,7 +174,7 @@
                 (list (append (list (string-append #$spider-benchmark
                                                    "/joint_hist")
                                     (string-append #$snmmi-tia-pt6 "/tia.nii")
-                                    (string-append #$spider-tia-snmmi-pt6
+                                    (string-append #$spider-output-snmmi-pt6
                                                    "/tia.nii")))
                       (list (string-append #$gnuplot "/bin/gnuplot")
                             "-c" #$(local-file "../../joint_hist.gp")

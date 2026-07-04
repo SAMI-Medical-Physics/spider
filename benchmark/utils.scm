@@ -17,7 +17,7 @@
 (define* (run-spider dirs #:key verbose? (time-zone '()))
   ;; A bare bones implementation of the Spider program using
   ;; G-expressions.  DIRS is a list of file-like objects, in Guix
-  ;; parlance.  The output includes tia.nii.
+  ;; parlance.
   (define dcm2niix
     (specification->package "dcm2niix"))
 
@@ -46,17 +46,26 @@
                                  #$(local-file "../etc/Parameters_Rigid.txt")
                                  "-out" #$output)))))
 
-  (define registered-images
-    (let ((image1 (file-append (run-dcm2niix (car dirs)) "/image.nii")))
-      (cons image1
-            (map (lambda (dir)
-                   (file-append
-                    (run-elastix image1
-                                 (file-append (run-dcm2niix dir) "/image.nii"))
-                    "/result.0.nii"))
-                 (cdr dirs)))))
+  (define spect-dirs
+    (map run-dcm2niix dirs))
 
-  (define build
+  (define spect-images
+    (map (lambda (dir)
+           (file-append dir "/image.nii"))
+         spect-dirs))
+
+  (define elastix-output-dirs
+    (map (lambda (moving)
+           (run-elastix (car spect-images) moving))
+         (cdr spect-images)))
+
+  (define registered-images
+    (cons (car spect-images)
+          (map (lambda (dir)
+                 (file-append dir "/result.0.nii"))
+               elastix-output-dirs)))
+
+  (define build-tia-image
     (with-imported-modules '((guix build utils)) ;for invoke, install-file
       #~(begin
           (use-modules (guix build utils)
@@ -76,7 +85,27 @@
                                      (list #$@registered-images))))
           (install-file "tia.nii" #$output))))
 
-  (computed-file "spider-tia-image" build))
+  (define tia-image
+    (computed-file "spider-tia-image" build-tia-image))
+
+  (define build
+    #~(begin
+        (mkdir #$output)
+        (for-each (lambda (i dir)
+                    (symlink dir (format #f "~a/spect~a" #$output i)))
+                  (iota (length (list #$@spect-dirs)) 1)
+                  (list #$@spect-dirs))
+
+        (for-each (lambda (i dir)
+                    (symlink dir
+                             (format #f "~a/registered_spect~a" #$output i)))
+                  (iota (length (list #$@elastix-output-dirs)) 2)
+                  (list #$@elastix-output-dirs))
+
+        (symlink (string-append #$tia-image "/tia.nii")
+                 (string-append #$output "/tia.nii"))))
+
+  (computed-file "spider-output" build))
 
 ;; Variant of spider that builds, potentially tests, and installs
 ;; benchmark targets.
