@@ -11,6 +11,21 @@
              (gnu packages)
              (guix gexp))
 
+(define (run-dcm2niix dir)
+  ;; Convert DICOM files in DIR to compressed NIfTI image(s) and BIDS
+  ;; sidecar(s).  The filename base is "out".
+  (let ((dcm2niix (specification->package "dcm2niix"))
+        (pigz (specification->package "pigz")))
+    (computed-file "spider-dcm2niix-output"
+                   (with-imported-modules '((guix build utils)) ;for invoke
+                     #~(begin
+                         (use-modules (guix build utils))
+                         ;; Make dcm2niix write compressed images faster.
+                         (setenv "PATH" (string-append #$pigz "/bin"))
+                         (mkdir #$output)
+                         (invoke (string-append #$dcm2niix "/bin/dcm2niix")
+                                 "-o" #$output "-f" "out" "-z" "y" #$dir))))))
+
 ;; For spider.
 (include "../guix.scm")
 
@@ -20,23 +35,6 @@
   ;; parlance.  When SPLIT-BUILD? is true, it is faster to rebuild
   ;; run-spider with the same DIRS after changes to the spider
   ;; package, at the cost of additional store space.
-  (define dcm2niix
-    (specification->package "dcm2niix"))
-
-  (define pigz
-    (specification->package "pigz"))
-
-  (define (run-dcm2niix dir)
-    (computed-file "spider-dcm2niix-output"
-                   (with-imported-modules '((guix build utils)) ;for invoke
-                     #~(begin
-                         (use-modules (guix build utils))
-                         ;; Make dcm2niix write compressed images faster.
-                         (setenv "PATH" (string-append #$pigz "/bin"))
-                         (mkdir #$output)
-                         (invoke (string-append #$dcm2niix "/bin/dcm2niix")
-                                 "-o" #$output "-f" "image" "-z" "y" #$dir)))))
-
   (define elastix
     (specification->package "elastix"))
 
@@ -113,7 +111,7 @@
 
   (define spect-images
     (map (lambda (dir)
-           (file-append dir "/image.nii.gz"))
+           (file-append dir "/out.nii.gz"))
          spect-dirs))
 
   (define registered-spect-dirs
