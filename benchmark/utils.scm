@@ -14,10 +14,12 @@
 ;; For spider.
 (include "../guix.scm")
 
-(define* (run-spider dirs #:key verbose? (time-zone '()))
+(define* (run-spider dirs #:key verbose? (time-zone '()) split-build?)
   ;; A bare bones implementation of the Spider program using
   ;; G-expressions.  DIRS is a list of file-like objects, in Guix
-  ;; parlance.
+  ;; parlance.  When SPLIT-BUILD? is true, it is faster to rebuild
+  ;; run-spider with the same DIRS after changes to the spider
+  ;; package, at the cost of additional store space.
   (define dcm2niix
     (specification->package "dcm2niix"))
 
@@ -66,6 +68,43 @@
                          (delete-file (string-append #$output
                                                      "/result.0.nii"))))))
 
+  (define (run-elastix fixed moving)
+    (computed-file "spider-elastix-output"
+                   (with-imported-modules '((guix build utils)) ;for invoke
+                     #~(begin
+                         (use-modules (guix build utils))
+                         (mkdir #$output)
+                         (invoke (string-append #$elastix "/bin/elastix")
+                                 "-f" #$fixed
+                                 "-m" #$moving
+                                 "-p"
+                                 #$(local-file "../etc/Parameters_Rigid.txt")
+                                 "-out" #$output)))))
+
+  (define (clamp-elastix-output elastix-output verbose?)
+    (computed-file "spider-elastix-output-clamped-split"
+                   (with-imported-modules '((guix build utils)) ;for invoke
+                     #~(begin
+                         (use-modules (guix build utils))
+                         (mkdir #$output)
+                         (apply invoke (string-append #$spider
+                                                      "/bin/spider_clamp")
+                                (append (if #$verbose?
+                                            (list "-v")
+                                            '())
+                                        (list (string-append #$elastix-output
+                                                             "/result.0.nii")
+                                              (string-append #$output
+                                                             "/result.0.nii"
+                                                             ".gz"))))
+                         (for-each (lambda (file)
+                                     (let ((f (basename file)))
+                                       (unless (equal? f "result.0.nii")
+                                         (symlink file
+                                                  (format #f "~a/~a" #$output
+                                                          f)))))
+                                   (find-files #$elastix-output))))))
+
   (define spect-dirs
     (map run-dcm2niix dirs))
 
@@ -75,9 +114,12 @@
          spect-dirs))
 
   (define registered-spect-dirs
-    (map (lambda (moving)
-           (run-elastix-and-clamp (car spect-images) moving verbose?))
-         (cdr spect-images)))
+    (let ((fixed (car spect-images)))
+      (map (lambda (moving)
+             (if split-build?
+                 (clamp-elastix-output (run-elastix fixed moving) verbose?)
+                 (run-elastix-and-clamp fixed moving verbose?)))
+           (cdr spect-images))))
 
   (define registered-images
     (cons (car spect-images)

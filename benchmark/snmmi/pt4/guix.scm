@@ -54,7 +54,8 @@
                     (spect-dicom-dir-snmmi-pt4 3)
                     (spect-dicom-dir-snmmi-pt4 4))
               #:verbose? #t
-              #:time-zone (list "America/Detroit")))
+              #:time-zone (list "America/Detroit")
+              #:split-build? #t))
 
 
 ;;; TIA image included in the benchmark dataset.
