@@ -42,16 +42,16 @@
 
   (define (run-elastix-and-clamp fixed moving verbose?)
     (computed-file "spider-elastix-output-clamped"
-                   (with-imported-modules '((guix build utils)) ;for invoke
+                   ;; For invoke and install-file.
+                   (with-imported-modules '((guix build utils))
                      #~(begin
                          (use-modules (guix build utils))
-                         (mkdir #$output)
                          (invoke (string-append #$elastix "/bin/elastix")
                                  "-f" #$fixed
                                  "-m" #$moving
                                  "-p"
                                  #$(local-file "../etc/Parameters_Rigid.txt")
-                                 "-out" #$output)
+                                 "-out" ".")
                          ;; Set negative pixel values to zero to reduce .nii.gz
                          ;; size (for the SNMMI challenge datasets, from 38-45
                          ;; MiB to 26-29 MiB).
@@ -60,26 +60,29 @@
                                 (append (if #$verbose?
                                             (list "-v")
                                             '())
-                                        (list (string-append #$output
-                                                             "/result.0.nii")
-                                              (string-append #$output
-                                                             "/result.0.nii"
-                                                             ".gz"))))
-                         (delete-file (string-append #$output
-                                                     "/result.0.nii"))))))
+                                        (list "result.0.nii"
+                                              "result.0.nii.gz")))
+                         ;; Exclude elastix log file and IterationInfo files for
+                         ;; reproducibility.
+                         (install-file "result.0.nii.gz" #$output)
+                         (install-file "TransformParameters.0.txt" #$output)))))
 
   (define (run-elastix fixed moving)
     (computed-file "spider-elastix-output"
-                   (with-imported-modules '((guix build utils)) ;for invoke
+                   ;; For invoke and install-file.
+                   (with-imported-modules '((guix build utils))
                      #~(begin
                          (use-modules (guix build utils))
-                         (mkdir #$output)
                          (invoke (string-append #$elastix "/bin/elastix")
                                  "-f" #$fixed
                                  "-m" #$moving
                                  "-p"
                                  #$(local-file "../etc/Parameters_Rigid.txt")
-                                 "-out" #$output)))))
+                                 "-out" ".")
+                         ;; Exclude log file and IterationInfo files for
+                         ;; reproducibility.
+                         (install-file "result.0.nii" #$output)
+                         (install-file "TransformParameters.0.txt" #$output)))))
 
   (define (clamp-elastix-output elastix-output verbose?)
     (computed-file "spider-elastix-output-clamped-split"
