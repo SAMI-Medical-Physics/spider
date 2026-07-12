@@ -71,6 +71,9 @@
 (define dcm2niix
   (specification->package "dcm2niix"))
 
+(define pigz
+  (specification->package "pigz"))
+
 (define snmmi-tia-pt4
   (computed-file "snmmi-tia-pt4"
                  (with-imported-modules '((guix build utils))
@@ -78,11 +81,14 @@
                        (use-modules (guix build utils))
                        (invoke (string-append #$unzip "/bin/unzip")
                                #$snmmi-tia-pt4.zip)
+                       (mkdir #$output)
+                       ;; Make dcm2niix write compressed images faster.
+                       (setenv "PATH" (string-append #$pigz "/bin"))
                        (invoke (string-append #$dcm2niix "/bin/dcm2niix")
-                               "-o" "."
+                               "-o" #$output
                                "-f" "tia"
-                               "patient_4/TIA")
-                       (install-file "tia.nii" #$output)))))
+                               "-z" "y"
+                               "patient_4/TIA")))))
 
 
 ;;; Compare TIA images from Spider and the benchmark dataset.
@@ -98,9 +104,12 @@
                    #~(begin
                        (use-modules (guix build utils))
                        (mkdir #$output)
+                       ;; Make dcm2niix write compressed images faster.
+                       (setenv "PATH" (string-append #$pigz "/bin"))
                        (invoke (string-append #$dcm2niix "/bin/dcm2niix")
                                "-o" #$output
                                "-f" "ct"
+                               "-z" "y"
                                #$(ct-dicom-dir-snmmi-pt4 n))))))
 
 (define gnuplot
@@ -121,9 +130,9 @@
          (map
           (lambda (z)
             (invoke (string-append #$spider-benchmark "/slice_compare")
-                    (string-append #$snmmi-tia-pt4 "/tia.nii")
+                    (string-append #$snmmi-tia-pt4 "/tia.nii.gz")
                     (string-append #$spider-output-snmmi-pt4 "/tia.nii.gz")
-                    (string-append #$(ct-snmmi-pt4 1) "/ct.nii")
+                    (string-append #$(ct-snmmi-pt4 1) "/ct.nii.gz")
                     ;; Display contours at a TIA of 10^11 disintegrations/mL
                     ;; (approx. 28 MBq.h/mL).  Display the CT background using a
                     ;; window width of 400 and window level of 50.
@@ -142,7 +151,8 @@
                (pipeline
                 (list (append (list (string-append #$spider-benchmark
                                                    "/joint_hist")
-                                    (string-append #$snmmi-tia-pt4 "/tia.nii")
+                                    (string-append #$snmmi-tia-pt4
+                                                   "/tia.nii.gz")
                                     (string-append #$spider-output-snmmi-pt4
                                                    "/tia.nii.gz")))
                       (list (string-append #$gnuplot "/bin/gnuplot")
