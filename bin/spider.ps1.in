@@ -51,7 +51,7 @@ else
 function print_version
 {
     $spider_version = '@PROJECT_VERSION@'
-    $dcm2niix_version = (& $dcm2niix_cmd -v)[1]
+    $dcm2niix_version = (& $dcm2niix_cmd -v)[1] -replace '^v', ''
     $elastix_version = (& $elastix_cmd --version) -split '\s' |
       Select-Object -Last 1
     [Console]::Out.WriteLine(
