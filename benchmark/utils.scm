@@ -38,8 +38,8 @@
   (define elastix
     (specification->package "elastix"))
 
-  (define (run-elastix fixed moving verbose?)
-    (computed-file "spider-elastix-output"
+  (define (run-elastix-and-clamp fixed moving verbose?)
+    (computed-file "spider-elastix-output-clamped"
                    (with-imported-modules '((guix build utils)) ;for invoke
                      #~(begin
                          (use-modules (guix build utils))
@@ -74,16 +74,16 @@
            (file-append dir "/image.nii.gz"))
          spect-dirs))
 
-  (define elastix-output-dirs
+  (define registered-spect-dirs
     (map (lambda (moving)
-           (run-elastix (car spect-images) moving verbose?))
+           (run-elastix-and-clamp (car spect-images) moving verbose?))
          (cdr spect-images)))
 
   (define registered-images
     (cons (car spect-images)
           (map (lambda (dir)
                  (file-append dir "/result.0.nii.gz"))
-               elastix-output-dirs)))
+               registered-spect-dirs)))
 
   (define build-tia-image
     (with-imported-modules '((guix build utils)) ;for invoke
@@ -120,8 +120,8 @@
         (for-each (lambda (i dir)
                     (symlink dir
                              (format #f "~a/registered_spect~a" #$output i)))
-                  (iota (length (list #$@elastix-output-dirs)) 2)
-                  (list #$@elastix-output-dirs))
+                  (iota (length (list #$@registered-spect-dirs)) 2)
+                  (list #$@registered-spect-dirs))
 
         (symlink (string-append #$tia-image "/tia.nii.gz")
                  (string-append #$output "/tia.nii.gz"))))
