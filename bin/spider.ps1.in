@@ -108,33 +108,36 @@ function ensure_filename_available
 $i = 1
 foreach ($d in $directories)
 {
+    $outdir = "spect$i"
     [Console]::Error.WriteLine(
-        'Converting SPECT {0} DICOM series to 3D image: spect{0}.nii.gz', $i
+        'Converting SPECT {0} DICOM series to 3D image: {1}/spect{0}.nii.gz',
+        $i, $outdir
     )
-    ensure_filename_available "spect$i.nii.gz"
+    ensure_filename_available (Join-Path $outdir "spect$i.nii.gz")
+    New-Item -ItemType Directory -Path $outdir -Force | Out-Null
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
     # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
     # any previous output file so we can detect when this happens via
     # a missing output file.
-    Remove-Item "spect$i.nii.gz" -ErrorAction Ignore
+    Remove-Item (Join-Path $outdir "spect$i.nii.gz") -ErrorAction Ignore
     # "-z y" writes a compressed file.  "-w 1" overwrites output
     # files.  Use "-g i" (ignore user defaults file) to ensure the
     # output file is called "spect$i.nii.gz".
     if ($verbose)
     {
-        & $dcm2niix_cmd -o . -f "spect$i" -z y -w 1 -g i $d |
+        & $dcm2niix_cmd -o $outdir -f "spect$i" -z y -w 1 -g i $d |
             ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
     }
     else
     {
-        & $dcm2niix_cmd -o . -f "spect$i" -z y -w 1 -g i $d | Out-Null
+        & $dcm2niix_cmd -o $outdir -f "spect$i" -z y -w 1 -g i $d | Out-Null
     }
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
     }
-    if (-not (Test-Path "spect$i.nii.gz"))
+    if (-not (Test-Path (Join-Path $outdir "spect$i.nii.gz")))
     {
         exit 1
     }
@@ -211,8 +214,8 @@ for ($i=2; $i -le $directories.Count; $i++)
     ensure_filename_available (Join-Path $outdir 'result.0.nii')
     New-Item -ItemType Directory -Path $outdir -Force | Out-Null
     $elastix_args = @(
-        '-f', 'spect1.nii.gz'
-        '-m', "spect$i.nii.gz"
+        '-f', (Join-Path 'spect1' 'spect1.nii.gz')
+        '-m', (Join-Path "spect$i" "spect$i.nii.gz")
         '-out', $outdir
         '-p', $elastix_param
         '-loglevel', $elastix_log_level
@@ -261,7 +264,7 @@ for ($i = 0; $i -lt $directories.Count; $i++)
     $spider_tia_args += '-d', $directories[$i], '-i'
     if ($i -eq 0)
     {
-        $spider_tia_args += 'spect1.nii.gz'
+        $spider_tia_args += (Join-Path 'spect1' 'spect1.nii.gz')
     }
     else
     {
