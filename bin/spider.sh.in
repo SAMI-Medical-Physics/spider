@@ -142,8 +142,13 @@ while [ "$i" -le "$n_spects" ]; do
     "$mkdir_cmd" -p "$outdir"
     "$elastix_cmd" -f spect1/spect1.nii.gz -m "spect$i/spect$i.nii.gz" \
         -out "$outdir" -p "$elastix_param" -loglevel $elastix_log_level >&2
-    "$grep_cmd" '^(TransformParameters' \
-        "$outdir/TransformParameters.0.txt" >&2 || true
+    transform_parameters=$(
+        "$grep_cmd" '^(TransformParameters' \
+            "$outdir/TransformParameters.0.txt" || true
+    )
+    if [ -n "$transform_parameters" ]; then
+        printf 'SPECT %i transform: %s\n' "$i" "$transform_parameters" >&2
+    fi
     # Set negative pixel values to zero to reduce .nii.gz size (for
     # the SNMMI challenge datasets, from 38-45 MiB to 26-29 MiB).
     "@SPIDER_BINDIR@/spider_clamp" $spider_clamp_opts \

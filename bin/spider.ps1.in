@@ -228,7 +228,9 @@ for ($i=2; $i -le $directories.Count; $i++)
     }
     Select-String -Path "$outdir/TransformParameters.0.txt" `
       -Pattern '^\(TransformParameters' |
-      ForEach-Object {[Console]::Error.WriteLine($_.Line)}
+      ForEach-Object {
+        [Console]::Error.WriteLine('SPECT {0} transform: {1}', $i, $_.Line)
+      }
     # Set negative pixel values to zero to reduce .nii.gz size (for
     # the SNMMI challenge datasets, from 38-45 MiB to 26-29 MiB).
     # Do not rely on the 'bin' directory of the install tree being in
