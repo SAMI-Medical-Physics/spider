@@ -537,8 +537,8 @@ GetPatientId(const gdcm::DataSet& ds)
   return std::make_optional<std::string>(a.GetValue());
 }
 
-std::optional<std::string>
-GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
+RadiopharmaceuticalInfo
+GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds)
 {
   const gdcm::Tag tag_sq(0x0054, 0x0016);
   if (!ds.FindDataElement(tag_sq))
@@ -547,6 +547,7 @@ GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
           "missing DICOM attribute: RadiopharmaceuticalInformationSequence");
       return {};
     }
+
   gdcm::SmartPointer<gdcm::SequenceOfItems> sq
       = ds.GetDataElement(tag_sq).GetValueAsSQ();
   if (!sq || !sq->GetNumberOfItems())
@@ -555,16 +556,35 @@ GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
               "present but either empty or not encoded as SQ");
       return {};
     }
+
+  RadiopharmaceuticalInfo out{};
   const gdcm::DataSet& nds = sq->GetItem(1).GetNestedDataSet();
-  const gdcm::Tag tag(0x0018, 0x1078);
-  if (!nds.FindDataElement(tag))
+
+  // Radiopharmaceutical Start DateTime.
+  if (const gdcm::Tag tag(0x0018, 0x1078); nds.FindDataElement(tag))
+    {
+      gdcm::Attribute<0x0018, 0x1078> a;
+      a.SetFromDataElement(nds.GetDataElement(tag));
+      out.radiopharmaceutical_start_date_time = a.GetValue();
+    }
+  else
     {
       Warning("missing DICOM attribute: RadiopharmaceuticalStartDateTime");
-      return {};
     }
-  gdcm::Attribute<0x0018, 0x1078> a;
-  a.SetFromDataElement(nds.GetDataElement(tag));
-  return std::make_optional<std::string>(a.GetValue());
+
+  // Radionuclide Half Life.
+  if (const gdcm::Tag tag(0x0018, 0x1075); nds.FindDataElement(tag))
+    {
+      gdcm::Attribute<0x0018, 0x1075> a;
+      a.SetFromDataElement(nds.GetDataElement(tag));
+      out.radionuclide_half_life = a.GetValue();
+    }
+  else
+    {
+      Warning("missing DICOM attribute: RadionuclideHalfLife");
+    }
+
+  return out;
 }
 
 std::optional<std::string>
@@ -658,43 +678,15 @@ GetDecayCorrection(const gdcm::DataSet& ds)
   return std::make_optional<std::string>(a.GetValue());
 }
 
-std::optional<double>
-GetRadionuclideHalfLife(const gdcm::DataSet& ds)
-{
-  const gdcm::Tag tag_sq(0x0054, 0x0016);
-  if (!ds.FindDataElement(tag_sq))
-    {
-      Warning(
-          "missing DICOM attribute: RadiopharmaceuticalInformationSequence");
-      return {};
-    }
-  gdcm::SmartPointer<gdcm::SequenceOfItems> sq
-      = ds.GetDataElement(tag_sq).GetValueAsSQ();
-  if (!sq || !sq->GetNumberOfItems())
-    {
-      Warning("DICOM attribute RadiopharmaceuticalInformationSequence is "
-              "present but either empty or not encoded as SQ");
-      return {};
-    }
-  const gdcm::DataSet& nds = sq->GetItem(1).GetNestedDataSet();
-  const gdcm::Tag tag(0x0018, 0x1075);
-  if (!nds.FindDataElement(tag))
-    {
-      Warning("missing DICOM attribute: RadionuclideHalfLife");
-      return {};
-    }
-  gdcm::Attribute<0x0018, 0x1075> a;
-  a.SetFromDataElement(nds.GetDataElement(tag));
-  return a.GetValue();
-}
-
 Spect
 ReadSpectFromDataset(const gdcm::DataSet& ds)
 {
+  const RadiopharmaceuticalInfo radiopharm_info
+      = GetRadiopharmaceuticalInfo(ds);
   return Spect{ .patient_name = GetPatientName(ds),
                 .patient_id = GetPatientId(ds),
                 .radiopharmaceutical_start_date_time
-                = GetRadiopharmaceuticalStartDateTime(ds),
+                = radiopharm_info.radiopharmaceutical_start_date_time,
                 .acquisition_date = GetAcquisitionDate(ds),
                 .acquisition_time = GetAcquisitionTime(ds),
                 .series_date = GetSeriesDate(ds),
@@ -702,7 +694,8 @@ ReadSpectFromDataset(const gdcm::DataSet& ds)
                 .frame_reference_time = GetFrameReferenceTime(ds),
                 .timezone_offset_from_utc = GetTimezoneOffsetFromUtc(ds),
                 .decay_correction = GetDecayCorrection(ds),
-                .radionuclide_half_life = GetRadionuclideHalfLife(ds) };
+                .radionuclide_half_life
+                = radiopharm_info.radionuclide_half_life };
 }
 
 std::expected<Spect, ReadSpectFromDirectoryError>

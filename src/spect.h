@@ -446,8 +446,20 @@ GetPatientName(const gdcm::DataSet& ds);
 std::optional<std::string>
 GetPatientId(const gdcm::DataSet& ds);
 
-std::optional<std::string>
-GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds);
+// Selected DICOM attributes in Radiopharmaceutical Information
+// Sequence.
+struct RadiopharmaceuticalInfo
+{
+  std::optional<double> radionuclide_half_life; // seconds
+  std::optional<std::string> radiopharmaceutical_start_date_time;
+};
+
+// The return value encodes whether each DICOM attribute in struct
+// RadiopharmaceuticalInfo is present in the dataset DS, but not
+// whether the Radiopharmaceutical Information Sequence is present in
+// DS.
+RadiopharmaceuticalInfo
+GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds);
 
 std::optional<std::string>
 GetAcquisitionDate(const gdcm::DataSet& ds);
@@ -469,9 +481,6 @@ GetTimezoneOffsetFromUtc(const gdcm::DataSet& ds);
 
 std::optional<std::string>
 GetDecayCorrection(const gdcm::DataSet& ds);
-
-std::optional<double>
-GetRadionuclideHalfLife(const gdcm::DataSet& ds);
 
 // Read a Spect from the DICOM attributes in dataset DS.
 Spect

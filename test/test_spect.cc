@@ -106,6 +106,12 @@ TEST(GetPatientNameTest, RealDataset)
   EXPECT_EQ(spider::GetPatientName(ds), "C11Phantom");
 }
 
+TEST(GetPatientNameTest, AttributeAbsent)
+{
+  gdcm::DataSet ds;
+  EXPECT_FALSE(spider::GetPatientName(ds).has_value());
+}
+
 TEST(GetPatientIdTest, Example)
 {
   std::string patient_id = "123456";
@@ -125,21 +131,41 @@ TEST(GetPatientIdTest, RealDataset)
   EXPECT_EQ(spider::GetPatientId(ds), "C11Phantom");
 }
 
-TEST(GetRadiopharmaceuticalStartDateTimeTest, Example)
+TEST(GetRadiopharmaceuticalInfoTest, HalfLife)
+{
+  double half_life = 574300.0;
+  gdcm::DataSet ds;
+  SetRadionuclideHalfLife(half_life, ds);
+  spider::RadiopharmaceuticalInfo info
+      = spider::GetRadiopharmaceuticalInfo(ds);
+
+  EXPECT_EQ(info.radionuclide_half_life, half_life);
+  EXPECT_FALSE(info.radiopharmaceutical_start_date_time.has_value());
+}
+
+TEST(GetRadiopharmaceuticalInfoTest, StartDateTime)
 {
   std::string date_time = "19930822134652";
   gdcm::DataSet ds;
   SetRadiopharmaceuticalStartDateTime(date_time, ds);
-  EXPECT_EQ(spider::GetRadiopharmaceuticalStartDateTime(ds), date_time);
+  spider::RadiopharmaceuticalInfo info
+      = spider::GetRadiopharmaceuticalInfo(ds);
+
+  EXPECT_EQ(info.radiopharmaceutical_start_date_time, date_time);
+  EXPECT_FALSE(info.radionuclide_half_life.has_value());
 }
 
-TEST(GetRadiopharmaceuticalStartDateTimeTest, RealDataset)
+TEST(GetRadiopharmaceuticalInfoTest, RealDataset)
 {
   gdcm::Reader r;
   r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  EXPECT_EQ(spider::GetRadiopharmaceuticalStartDateTime(ds),
+  spider::RadiopharmaceuticalInfo info
+      = spider::GetRadiopharmaceuticalInfo(ds);
+
+  EXPECT_EQ(info.radionuclide_half_life, 1223.0);
+  EXPECT_EQ(info.radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
 }
 
@@ -274,29 +300,6 @@ TEST(GetDecayCorrectionTest, RealDataset)
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetDecayCorrection(ds), "START ");
-}
-
-TEST(GetRadionuclideHalfLifeTest, AttributePresent)
-{
-  double half_life = 574300.0;
-  gdcm::DataSet ds;
-  SetRadionuclideHalfLife(half_life, ds);
-  EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), half_life);
-}
-
-TEST(GetRadionuclideHalfLifeTest, AttributeAbsent)
-{
-  gdcm::DataSet ds;
-  EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), std::nullopt);
-}
-
-TEST(GetRadionuclideHalfLifeTest, RealDataset)
-{
-  gdcm::Reader r;
-  r.SetFileName(kTestDataFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), 1223.0);
 }
 
 TEST(ReadSpectFromDatasetTest, RealDataset)
