@@ -27,6 +27,8 @@ template <> struct formatter<spider::Spect>
     auto out = format_to(ctx.out(), "{{");
     if (s.patient_name.has_value())
       format_to(out, "patient_name={}, ", s.patient_name.value());
+    if (s.patient_id.has_value())
+      format_to(out, "patient_id={}, ", s.patient_id.value());
     if (s.radiopharmaceutical_start_date_time.has_value())
       format_to(out, "radiopharmaceutical_start_date_time={}, ",
                 s.radiopharmaceutical_start_date_time.value());

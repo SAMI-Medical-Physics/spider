@@ -233,6 +233,7 @@ ParseDicomDecayCorrection(const std::string_view v)
 struct Spect
 {
   std::optional<std::string> patient_name;
+  std::optional<std::string> patient_id;
   std::optional<std::string> radiopharmaceutical_start_date_time;
   std::optional<std::string> acquisition_date;
   std::optional<std::string> acquisition_time;
@@ -441,6 +442,9 @@ UsesTimeZone(const Spect& s);
 
 std::optional<std::string>
 GetPatientName(const gdcm::DataSet& ds);
+
+std::optional<std::string>
+GetPatientId(const gdcm::DataSet& ds);
 
 std::optional<std::string>
 GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds);

@@ -525,6 +525,19 @@ GetPatientName(const gdcm::DataSet& ds)
 }
 
 std::optional<std::string>
+GetPatientId(const gdcm::DataSet& ds)
+{
+  if (!ds.FindDataElement(gdcm::Tag(0x0010, 0x0020)))
+    {
+      Warning("missing DICOM attribute: PatientID");
+      return {};
+    }
+  gdcm::Attribute<0x0010, 0x0020> a;
+  a.SetFromDataSet(ds);
+  return std::make_optional<std::string>(a.GetValue());
+}
+
+std::optional<std::string>
 GetRadiopharmaceuticalStartDateTime(const gdcm::DataSet& ds)
 {
   const gdcm::Tag tag_sq(0x0054, 0x0016);
@@ -679,6 +692,7 @@ Spect
 ReadSpectFromDataset(const gdcm::DataSet& ds)
 {
   return Spect{ .patient_name = GetPatientName(ds),
+                .patient_id = GetPatientId(ds),
                 .radiopharmaceutical_start_date_time
                 = GetRadiopharmaceuticalStartDateTime(ds),
                 .acquisition_date = GetAcquisitionDate(ds),

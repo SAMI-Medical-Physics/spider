@@ -106,6 +106,25 @@ TEST(GetPatientNameTest, RealDataset)
   EXPECT_EQ(spider::GetPatientName(ds), "C11Phantom");
 }
 
+TEST(GetPatientIdTest, Example)
+{
+  std::string patient_id = "123456";
+  gdcm::Attribute<0x0010, 0x0020> at; // PatientId
+  at.SetValue(patient_id);
+  gdcm::DataSet ds;
+  ds.Insert(at.GetAsDataElement());
+  EXPECT_EQ(spider::GetPatientId(ds), patient_id);
+}
+
+TEST(GetPatientIdTest, RealDataset)
+{
+  gdcm::Reader r;
+  r.SetFileName(kTestDataFilename);
+  ASSERT_TRUE(r.Read());
+  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
+  EXPECT_EQ(spider::GetPatientId(ds), "C11Phantom");
+}
+
 TEST(GetRadiopharmaceuticalStartDateTimeTest, Example)
 {
   std::string date_time = "19930822134652";
@@ -289,6 +308,7 @@ TEST(ReadSpectFromDatasetTest, RealDataset)
   spider::Spect spect = spider::ReadSpectFromDataset(ds);
 
   EXPECT_EQ(spect.patient_name, "C11Phantom");
+  EXPECT_EQ(spect.patient_id, "C11Phantom");
   EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
   EXPECT_EQ(spect.acquisition_date, "20181105");
@@ -307,6 +327,7 @@ TEST(ReadSpectFromDirectoryTest, RealDataset)
   ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
   EXPECT_EQ(spect.value().patient_name, "C11Phantom");
+  EXPECT_EQ(spect.value().patient_id, "C11Phantom");
   EXPECT_EQ(spect.value().radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
   EXPECT_EQ(spect.value().acquisition_date, "20181105");
