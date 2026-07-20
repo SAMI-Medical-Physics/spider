@@ -26,7 +26,8 @@ namespace
 {
 
 void
-SetRadiopharmaceuticalStartDateTime(std::string date_time, gdcm::DataSet& ds)
+SetRadiopharmaceuticalStartDateTime(const std::string& date_time,
+                                    gdcm::DataSet& ds)
 {
   // Create or replace the DICOM attribute
   // RadiopharmaceuticalInformationSequence in dataset DS with a
