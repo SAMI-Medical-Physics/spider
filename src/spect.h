@@ -225,8 +225,10 @@ ParseDicomDecayCorrection(const std::string_view v)
 // the factor required to decay-correct the image to acquisition start
 // (ComputeDecayFactor).
 
-// Selected DICOM attributes from a SPECT study.  They are defined for
-// datasets of the PositronEmissionTomographyImageStorage SOP Class.
+// Selected DICOM attributes that may be present in a DICOM series of
+// the PositronEmissionTomographyImageStorage SOP Class.  These
+// attributes are expected to have the same value in all SOP Instances
+// (DICOM files) of the series.
 struct Spect
 {
   std::optional<std::string> patient_name;
