@@ -540,17 +540,17 @@ GetPatientId(const gdcm::DataSet& ds)
 RadiopharmaceuticalInfo
 GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds)
 {
-  const gdcm::Tag tag_sq(0x0054, 0x0016);
-  if (!ds.FindDataElement(tag_sq))
+  const gdcm::Tag tag_ris(0x0054, 0x0016);
+  if (!ds.FindDataElement(tag_ris))
     {
       Warning(
           "missing DICOM attribute: RadiopharmaceuticalInformationSequence");
       return {};
     }
 
-  gdcm::SmartPointer<gdcm::SequenceOfItems> sq
-      = ds.GetDataElement(tag_sq).GetValueAsSQ();
-  if (!sq || !sq->GetNumberOfItems())
+  gdcm::SmartPointer<gdcm::SequenceOfItems> sq_ris
+      = ds.GetDataElement(tag_ris).GetValueAsSQ();
+  if (!sq_ris || !sq_ris->GetNumberOfItems())
     {
       Warning("DICOM attribute RadiopharmaceuticalInformationSequence is "
               "present but either empty or not encoded as SQ");
@@ -558,13 +558,13 @@ GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds)
     }
 
   RadiopharmaceuticalInfo out{};
-  const gdcm::DataSet& nds = sq->GetItem(1).GetNestedDataSet();
+  const gdcm::DataSet& ds_ris = sq_ris->GetItem(1).GetNestedDataSet();
 
   // Radiopharmaceutical Start DateTime.
-  if (const gdcm::Tag tag(0x0018, 0x1078); nds.FindDataElement(tag))
+  if (const gdcm::Tag tag(0x0018, 0x1078); ds_ris.FindDataElement(tag))
     {
       gdcm::Attribute<0x0018, 0x1078> a;
-      a.SetFromDataElement(nds.GetDataElement(tag));
+      a.SetFromDataElement(ds_ris.GetDataElement(tag));
       out.radiopharmaceutical_start_date_time = a.GetValue();
     }
   else
@@ -573,15 +573,47 @@ GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds)
     }
 
   // Radionuclide Half Life.
-  if (const gdcm::Tag tag(0x0018, 0x1075); nds.FindDataElement(tag))
+  if (const gdcm::Tag tag(0x0018, 0x1075); ds_ris.FindDataElement(tag))
     {
       gdcm::Attribute<0x0018, 0x1075> a;
-      a.SetFromDataElement(nds.GetDataElement(tag));
+      a.SetFromDataElement(ds_ris.GetDataElement(tag));
       out.radionuclide_half_life = a.GetValue();
     }
   else
     {
       Warning("missing DICOM attribute: RadionuclideHalfLife");
+    }
+
+  // Radionuclide Code Sequence.
+  if (const gdcm::Tag tag_rcs(0x0054, 0x0300); ds_ris.FindDataElement(tag_rcs))
+    {
+      if (gdcm::SmartPointer<gdcm::SequenceOfItems> sq_rcs
+          = ds_ris.GetDataElement(tag_rcs).GetValueAsSQ();
+          sq_rcs && sq_rcs->GetNumberOfItems())
+        {
+          const gdcm::DataSet& ds_rcs = sq_rcs->GetItem(1).GetNestedDataSet();
+          // Code Meaning.
+          if (const gdcm::Tag tag(0x0008, 0x0104); ds_rcs.FindDataElement(tag))
+            {
+              gdcm::Attribute<0x0008, 0x0104> a;
+              a.SetFromDataElement(ds_rcs.GetDataElement(tag));
+              out.radionuclide = a.GetValue();
+            }
+          else
+            {
+              Warning("missing DICOM attribute: CodeMeaning in "
+                      "RadionuclideCodeSequence");
+            }
+        }
+      else
+        {
+          Warning("DICOM attribute RadionuclideCodeSequence is present but "
+                  "either empty or not encoded as SQ");
+        }
+    }
+  else
+    {
+      Warning("missing DICOM attribute: RadionuclideCodeSequence");
     }
 
   return out;
@@ -687,6 +719,7 @@ ReadSpectFromDataset(const gdcm::DataSet& ds)
                 .patient_id = GetPatientId(ds),
                 .radiopharmaceutical_start_date_time
                 = radiopharm_info.radiopharmaceutical_start_date_time,
+                .radionuclide = radiopharm_info.radionuclide,
                 .acquisition_date = GetAcquisitionDate(ds),
                 .acquisition_time = GetAcquisitionTime(ds),
                 .series_date = GetSeriesDate(ds),

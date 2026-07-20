@@ -235,6 +235,8 @@ struct Spect
   std::optional<std::string> patient_name;
   std::optional<std::string> patient_id;
   std::optional<std::string> radiopharmaceutical_start_date_time;
+  // Code Meaning in the Radionuclide Code Sequence.
+  std::optional<std::string> radionuclide;
   std::optional<std::string> acquisition_date;
   std::optional<std::string> acquisition_time;
   std::optional<std::string> series_date;
@@ -447,11 +449,14 @@ std::optional<std::string>
 GetPatientId(const gdcm::DataSet& ds);
 
 // Selected DICOM attributes in Radiopharmaceutical Information
-// Sequence.
+// Sequence (stored flat, not reflecting the DICOM sequence
+// hierarchy).
 struct RadiopharmaceuticalInfo
 {
   std::optional<double> radionuclide_half_life; // seconds
   std::optional<std::string> radiopharmaceutical_start_date_time;
+  // Code Meaning in the Radionuclide Code Sequence.
+  std::optional<std::string> radionuclide;
 };
 
 // The return value encodes whether each DICOM attribute in struct

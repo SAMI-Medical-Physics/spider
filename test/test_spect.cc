@@ -75,6 +75,40 @@ SetRadionuclideHalfLife(double half_life, gdcm::DataSet& ds)
   ds.Insert(seq_de);
 }
 
+void
+SetRadionuclide(const std::string& radionuclide, gdcm::DataSet& ds)
+{
+  // Create or replace the DICOM attribute
+  // RadiopharmaceuticalInformationSequence in dataset DS with a
+  // single-item sequence containing only the attribute
+  // RadionuclideCodeSequence, itself a single-item sequence
+  // containing only the attribute CodeMeaning, set to RADIONUCLIDE.
+  gdcm::Attribute<0x0008, 0x0104> code_meaning;
+  code_meaning.SetValue(radionuclide);
+
+  gdcm::Item item_rcs;
+  item_rcs.GetNestedDataSet().Insert(code_meaning.GetAsDataElement());
+  gdcm::SmartPointer<gdcm::SequenceOfItems> seq_rcs
+      = new gdcm::SequenceOfItems;
+  seq_rcs->AddItem(item_rcs);
+  gdcm::Tag tag_rcs(0x0054, 0x0300); // RadionuclideCodeSequence
+  gdcm::DataElement de_rcs(tag_rcs);
+  de_rcs.SetVR(gdcm::VR::SQ);
+  de_rcs.SetValue(*seq_rcs);
+
+  gdcm::Item item_ris;
+  item_ris.GetNestedDataSet().Insert(de_rcs);
+  gdcm::SmartPointer<gdcm::SequenceOfItems> seq_ris
+      = new gdcm::SequenceOfItems;
+  seq_ris->AddItem(item_ris);
+  gdcm::Tag tag_ris(0x0054, 0x0016); // RadiopharmaceuticalInformationSequence
+  gdcm::DataElement de_ris(tag_ris);
+  de_ris.SetVR(gdcm::VR::SQ);
+  de_ris.SetValue(*seq_ris);
+
+  ds.Insert(de_ris);
+}
+
 // Directory containing a test DICOM series of SOP Class Positron
 // Emission Tomography Image Storage.
 constexpr char kTestDataDirectory[] = SPIDER_TEST_DATA_DIR "/PETAC/";
@@ -141,6 +175,7 @@ TEST(GetRadiopharmaceuticalInfoTest, HalfLife)
 
   EXPECT_EQ(info.radionuclide_half_life, half_life);
   EXPECT_FALSE(info.radiopharmaceutical_start_date_time.has_value());
+  EXPECT_FALSE(info.radionuclide.has_value());
 }
 
 TEST(GetRadiopharmaceuticalInfoTest, StartDateTime)
@@ -153,6 +188,20 @@ TEST(GetRadiopharmaceuticalInfoTest, StartDateTime)
 
   EXPECT_EQ(info.radiopharmaceutical_start_date_time, date_time);
   EXPECT_FALSE(info.radionuclide_half_life.has_value());
+  EXPECT_FALSE(info.radionuclide.has_value());
+}
+
+TEST(GetRadiopharmaceuticalInfoTest, Radionuclide)
+{
+  std::string radionuclide = "177 Lutetium";
+  gdcm::DataSet ds;
+  SetRadionuclide(radionuclide, ds);
+  spider::RadiopharmaceuticalInfo info
+      = spider::GetRadiopharmaceuticalInfo(ds);
+
+  EXPECT_EQ(info.radionuclide, radionuclide);
+  EXPECT_FALSE(info.radionuclide_half_life.has_value());
+  EXPECT_FALSE(info.radiopharmaceutical_start_date_time.has_value());
 }
 
 TEST(GetRadiopharmaceuticalInfoTest, RealDataset)
@@ -167,6 +216,7 @@ TEST(GetRadiopharmaceuticalInfoTest, RealDataset)
   EXPECT_EQ(info.radionuclide_half_life, 1223.0);
   EXPECT_EQ(info.radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
+  EXPECT_EQ(info.radionuclide, "^11^Carbon");
 }
 
 TEST(GetAcquisitionDateTest, Example)
@@ -314,6 +364,7 @@ TEST(ReadSpectFromDatasetTest, RealDataset)
   EXPECT_EQ(spect.patient_id, "C11Phantom");
   EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
+  EXPECT_EQ(spect.radionuclide, "^11^Carbon");
   EXPECT_EQ(spect.acquisition_date, "20181105");
   EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
   EXPECT_EQ(spect.series_date, "20181105");
@@ -333,6 +384,7 @@ TEST(ReadSpectFromDirectoryTest, RealDataset)
   EXPECT_EQ(spect.value().patient_id, "C11Phantom");
   EXPECT_EQ(spect.value().radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
+  EXPECT_EQ(spect.value().radionuclide, "^11^Carbon");
   EXPECT_EQ(spect.value().acquisition_date, "20181105");
   EXPECT_EQ(spect.value().acquisition_time, "122601.000000 ");
   EXPECT_EQ(spect.value().series_date, "20181105");

@@ -32,6 +32,8 @@ template <> struct formatter<spider::Spect>
     if (s.radiopharmaceutical_start_date_time.has_value())
       format_to(out, "radiopharmaceutical_start_date_time={}, ",
                 s.radiopharmaceutical_start_date_time.value());
+    if (s.radionuclide.has_value())
+      format_to(out, "radionuclide={}, ", s.radionuclide.value());
     if (s.acquisition_date.has_value())
       format_to(out, "acquisition_date={}, ", s.acquisition_date.value());
     if (s.acquisition_time.has_value())
