@@ -9,18 +9,21 @@
 #include <cstddef> // std::size_t
 #include <cstdlib> // std::exit, EXIT_FAILURE
 #include <expected>
-#include <optional>
+#include <filesystem>
+#include <fstream>  // std::ifstream, std::ios::binary
+#include <optional> // std::nullopt
 #include <string>
 #include <string_view>
-#include <system_error> // std::errc
+#include <system_error> // std::errc, std::error_code
 
 #include <gdcmAttribute.h>
 #include <gdcmDataSet.h>
+#include <gdcmReader.h>
 #include <gdcmSequenceOfItems.h>
 #include <gdcmSmartPointer.h>
 #include <gdcmTag.h>
 
-#include "logging.h"   // Warning, WarningF, Error, Debug
+#include "logging.h"   // Warning, WarningF, Error, Debug, DebugF
 #include "tz_compat.h" // tz::
 
 namespace spider
@@ -673,7 +676,7 @@ GetRadionuclideHalfLife(const gdcm::DataSet& ds)
 }
 
 Spect
-ReadDicomSpect(const gdcm::DataSet& ds)
+ReadSpectFromDataset(const gdcm::DataSet& ds)
 {
   return Spect{ .patient_name = GetPatientName(ds),
                 .radiopharmaceutical_start_date_time
@@ -686,6 +689,54 @@ ReadDicomSpect(const gdcm::DataSet& ds)
                 .timezone_offset_from_utc = GetTimezoneOffsetFromUtc(ds),
                 .decay_correction = GetDecayCorrection(ds),
                 .radionuclide_half_life = GetRadionuclideHalfLife(ds) };
+}
+
+std::expected<Spect, ReadSpectFromDirectoryError>
+ReadSpectFromDirectory(std::string_view dir)
+{
+  std::error_code ec;
+  std::filesystem::directory_iterator it(dir, ec);
+  if (ec)
+    return std::unexpected(ReadSpectFromDirectoryError{
+        .code = ReadSpectFromDirectoryErrorCode::kOpenDirectoryError,
+        .error_code = ec });
+
+  const std::filesystem::directory_iterator end{};
+  while (it != end)
+    {
+      const std::filesystem::directory_entry& dir_entry = *it;
+      if (dir_entry.is_regular_file(ec)) // ignore failed OS API call
+        {
+          // Use GDCM Reader's SetStream instead of SetFileName
+          // because std::filesystem::path is wchar_t on Windows.
+          std::ifstream is(dir_entry.path(), std::ios::binary);
+          if (is)
+            {
+              gdcm::Reader reader;
+              reader.SetStream(is);
+              DebugF("Attempting to read '{}' as a DICOM file",
+                     // See compiler support for
+                     // std::formatter<std::filesystem::path>.
+                     dir_entry.path().string());
+              if (reader.Read())
+                {
+                  DebugF("Successfully read '{}' as a DICOM file",
+                         dir_entry.path().string());
+                  return ReadSpectFromDataset(reader.GetFile().GetDataSet());
+                }
+            }
+        }
+
+      it.increment(ec);
+      if (ec)
+        return std::unexpected(ReadSpectFromDirectoryError{
+            .code = ReadSpectFromDirectoryErrorCode::kTraverseDirectoryError,
+            .error_code = ec });
+    }
+
+  return std::unexpected(ReadSpectFromDirectoryError{
+      .code = ReadSpectFromDirectoryErrorCode::kNoReadableDicomFileError,
+      .error_code = std::nullopt });
 }
 
 } // namespace spider

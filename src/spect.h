@@ -10,6 +10,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <system_error> // std::error_code
 
 #include <gdcmDataSet.h>
 
@@ -468,9 +469,63 @@ GetDecayCorrection(const gdcm::DataSet& ds);
 std::optional<double>
 GetRadionuclideHalfLife(const gdcm::DataSet& ds);
 
-// Fill a Spect from the DICOM attributes in dataset DS.
+// Read a Spect from the DICOM attributes in dataset DS.
 Spect
-ReadDicomSpect(const gdcm::DataSet& ds);
+ReadSpectFromDataset(const gdcm::DataSet& ds);
+
+enum class ReadSpectFromDirectoryErrorCode
+{
+  kOpenDirectoryError,
+  kTraverseDirectoryError,
+  kNoReadableDicomFileError
+};
+
+constexpr std::string_view
+ToString(ReadSpectFromDirectoryErrorCode e)
+{
+  switch (e)
+    {
+    case ReadSpectFromDirectoryErrorCode::kOpenDirectoryError:
+      return "failed to open directory";
+    case ReadSpectFromDirectoryErrorCode::kTraverseDirectoryError:
+      return "failed to advance to next directory entry";
+    case ReadSpectFromDirectoryErrorCode::kNoReadableDicomFileError:
+      return "no readable DICOM file in directory";
+    }
+  assert(false && "Unhandled ReadSpectFromDirectoryErrorCode");
+  return "unknown error";
+}
+
+struct ReadSpectFromDirectoryError
+{
+  ReadSpectFromDirectoryErrorCode code;
+  // This field has a value when CODE is kOpenDirectoryError or
+  // kTraverseDirectoryError.
+  std::optional<std::error_code> error_code;
+};
+
+inline std::string
+ToString(const ReadSpectFromDirectoryError& e)
+{
+  switch (e.code)
+    {
+    case ReadSpectFromDirectoryErrorCode::kOpenDirectoryError:
+    case ReadSpectFromDirectoryErrorCode::kTraverseDirectoryError:
+      {
+        assert(e.error_code.has_value());
+        if (e.error_code.has_value())
+          return std::string(ToString(e.code)) + ": "
+                 + e.error_code.value().message();
+        return std::string(ToString(e.code));
+      }
+    default:
+      return std::string(ToString(e.code));
+    }
+}
+
+// Read a Spect from a DICOM file in directory DIR.
+std::expected<Spect, ReadSpectFromDirectoryError>
+ReadSpectFromDirectory(std::string_view dir);
 
 } // namespace spider
 

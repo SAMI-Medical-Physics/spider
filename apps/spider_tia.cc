@@ -9,23 +9,21 @@
 #include <cstdio>  // std::fputc, std::fputs, std::puts, stderr, stdout
 #include <cstdlib> // EXIT_FAILURE, EXIT_SUCCESS
 #include <filesystem>
-#include <fstream>   // std::ifstream
 #include <stdexcept> // std::runtime_error
 #include <string>
-#include <string_view>
-#include <system_error> // std::error_code
 #include <vector>
 
-#include <gdcmDataSet.h>
-#include <gdcmReader.h>
 #include <itkImage.h>
 #include <itkImageFileWriter.h>
 #include <itkMacro.h> // itk::ExceptionObject
 
 #include "logging.h"          // LogLevel, SetLogLevel, Warning,
-                              // Debug, DebugF
-#include "spect.h"            // Spect, ReadDicomSpect, ToString for
-                              // SpectError, MakeAcquisitionSysTime,
+                              // Debug, DebugF, Error, ErrorF
+#include "spect.h"            // Spect, ReadSpectFromDirectory,
+                              // ToString for
+                              // ReadSpectFromDirectoryError, ToString
+                              // for SpectError,
+                              // MakeAcquisitionSysTime,
                               // MakeRadiopharmaceuticalStartSysTime,
                               // ComputeDecayFactor, UsesTimeZone
 #include "output_filenames.h" // OutputFilenames
@@ -218,39 +216,6 @@ ParseArguments(int argc, char* argv[])
   return out;
 }
 
-bool
-ReadDicomFileInDir(const std::string_view dir,
-                   std::filesystem::path& path_found, gdcm::Reader& r)
-{
-  std::error_code ec;
-  std::filesystem::directory_iterator it(dir, ec);
-  if (ec)
-    {
-      spider::ErrorF("{}: Cannot open directory '{}': {}", kProgramName, dir,
-                     ec.message());
-      std::exit(EXIT_FAILURE);
-    }
-  const std::filesystem::directory_iterator end{};
-  for (; it != end; ++it)
-    {
-      const std::filesystem::directory_entry& e = *it;
-      if (!e.is_regular_file())
-        continue;
-      // Use SetStream instead of SetFileName because filesystem::path
-      // is wchar_t on Windows.
-      std::ifstream is(e.path(), std::ios::binary);
-      if (!is)
-        continue;
-      r.SetStream(is);
-      if (r.Read())
-        {
-          path_found = e.path();
-          return true;
-        }
-    }
-  return false;
-}
-
 double
 GetRadionuclideHalfLife(const std::vector<spider::Spect>& spects)
 {
@@ -286,22 +251,21 @@ main(int argc, char* argv[])
 
   // Read DICOM attributes for each SPECT.
   std::vector<spider::Spect> spects;
+  spects.reserve(args.dicom_dirs.size());
   for (std::size_t i = 0; i < args.dicom_dirs.size(); ++i)
     {
-      std::filesystem::path p;
-      gdcm::Reader r;
-      if (!ReadDicomFileInDir(args.dicom_dirs[i], p, r))
+      spider::DebugF("SPECT {}: input directory '{}'", i + 1,
+                     args.dicom_dirs[i]);
+      const auto spect = spider::ReadSpectFromDirectory(args.dicom_dirs[i]);
+      if (!spect.has_value())
         {
-          spider::ErrorF("{}: Failed to read a DICOM file in directory '{}'",
-                         kProgramName, args.dicom_dirs[i]);
+          spider::ErrorF(
+              "{}: failed to read SPECT information from directory '{}': {}",
+              kProgramName, args.dicom_dirs[i],
+              spider::ToString(spect.error()));
           return EXIT_FAILURE;
         }
-      const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-      spider::DebugF("SPECT {}: reading DICOM attributes in {}...", i + 1,
-                     // FIXME: See compiler support for
-                     // std::formatter<std::filesystem::path>.
-                     p.string());
-      spects.emplace_back(spider::ReadDicomSpect(ds));
+      spects.push_back(spect.value());
       spider::DebugF("SPECT {}: {}", i + 1, spects.back());
     }
 

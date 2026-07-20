@@ -75,7 +75,12 @@ SetRadionuclideHalfLife(double half_life, gdcm::DataSet& ds)
   ds.Insert(seq_de);
 }
 
-constexpr char kTestFilename[] = SPIDER_TEST_DATA_DIR
+// Directory containing a test DICOM series of SOP Class Positron
+// Emission Tomography Image Storage.
+constexpr char kTestDataDirectory[] = SPIDER_TEST_DATA_DIR "/PETAC/";
+
+// Any SOP Instance (DICOM file) in the test DICOM series.
+constexpr char kTestDataFilename[] = SPIDER_TEST_DATA_DIR
     "/PETAC/"
     "C11PHANTOM.PT.PET-MR_QA_MULTIPLE_PET_PHANTOM.30003.0077.2018.11.07.17.59."
     "46.799308.153692236.IMA";
@@ -95,7 +100,7 @@ TEST(GetPatientNameTest, Example)
 TEST(GetPatientNameTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetPatientName(ds), "C11Phantom");
@@ -112,7 +117,7 @@ TEST(GetRadiopharmaceuticalStartDateTimeTest, Example)
 TEST(GetRadiopharmaceuticalStartDateTimeTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetRadiopharmaceuticalStartDateTime(ds),
@@ -132,7 +137,7 @@ TEST(GetAcquisitionDateTest, Example)
 TEST(GetAcquisitionDateTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetAcquisitionDate(ds), "20181105");
@@ -151,7 +156,7 @@ TEST(GetAcquisitionTimeTest, Example)
 TEST(GetAcquisitionTimeTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetAcquisitionTime(ds), "122601.000000 ");
@@ -170,7 +175,7 @@ TEST(GetSeriesDateTest, Example)
 TEST(GetSeriesDateTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetSeriesDate(ds), "20181105");
@@ -189,7 +194,7 @@ TEST(GetSeriesTimeTest, Example)
 TEST(GetSeriesTimeTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetSeriesTime(ds), "122601.000000 ");
@@ -208,7 +213,7 @@ TEST(GetFrameReferenceTimeTest, Example)
 TEST(GetFrameReferenceTimeTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetFrameReferenceTime(ds), 566124.53848358);
@@ -227,7 +232,7 @@ TEST(GetTimezoneOffsetFromUtcTest, Example)
 TEST(GetTimezoneOffsetFromUtcTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_FALSE(spider::GetTimezoneOffsetFromUtc(ds).has_value());
@@ -246,7 +251,7 @@ TEST(GetDecayCorrectionTest, Example)
 TEST(GetDecayCorrectionTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetDecayCorrection(ds), "START ");
@@ -269,19 +274,19 @@ TEST(GetRadionuclideHalfLifeTest, AttributeAbsent)
 TEST(GetRadionuclideHalfLifeTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
   EXPECT_EQ(spider::GetRadionuclideHalfLife(ds), 1223.0);
 }
 
-TEST(ReadDicomSpectTest, RealDataset)
+TEST(ReadSpectFromDatasetTest, RealDataset)
 {
   gdcm::Reader r;
-  r.SetFileName(kTestFilename);
+  r.SetFileName(kTestDataFilename);
   ASSERT_TRUE(r.Read());
   const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  spider::Spect spect = spider::ReadSpectFromDataset(ds);
 
   EXPECT_EQ(spect.patient_name, "C11Phantom");
   EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
@@ -294,6 +299,24 @@ TEST(ReadDicomSpectTest, RealDataset)
   EXPECT_FALSE(spect.timezone_offset_from_utc.has_value());
   EXPECT_EQ(spect.decay_correction, "START ");
   EXPECT_EQ(spect.radionuclide_half_life, 1223.0);
+}
+
+TEST(ReadSpectFromDirectoryTest, RealDataset)
+{
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
+
+  EXPECT_EQ(spect.value().patient_name, "C11Phantom");
+  EXPECT_EQ(spect.value().radiopharmaceutical_start_date_time,
+            "20181105120000.000000 ");
+  EXPECT_EQ(spect.value().acquisition_date, "20181105");
+  EXPECT_EQ(spect.value().acquisition_time, "122601.000000 ");
+  EXPECT_EQ(spect.value().series_date, "20181105");
+  EXPECT_EQ(spect.value().series_time, "122601.000000 ");
+  EXPECT_EQ(spect.value().frame_reference_time, 566124.53848358);
+  EXPECT_FALSE(spect.value().timezone_offset_from_utc.has_value());
+  EXPECT_EQ(spect.value().decay_correction, "START ");
+  EXPECT_EQ(spect.value().radionuclide_half_life, 1223.0);
 }
 
 TEST(ParseDicomDateTest, Example)
@@ -865,18 +888,18 @@ TEST(MakeSysTimeFromDicomDateTimeTest, NoOffset)
 
 TEST(MakeAcquisitionSysTimeTest, RealDataset)
 {
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
-  // This test DICOM file does not have a TimezoneOffsetFromUtc, so a
-  // caller-supplied time zone is used.
-  EXPECT_EQ(spect.acquisition_date, "20181105");
-  EXPECT_EQ(spect.acquisition_time, "122601.000000 ");
-  EXPECT_FALSE(spect.timezone_offset_from_utc.has_value());
-  // Hand-craft a sys time consistent with spect.acquisition_date and
-  // spect.acquisition_time.
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
+
+  // This test DICOM series does not have a TimezoneOffsetFromUtc, so
+  // a caller-supplied time zone is used.
+  EXPECT_EQ(spect.value().acquisition_date, "20181105");
+  EXPECT_EQ(spect.value().acquisition_time, "122601.000000 ");
+  EXPECT_FALSE(spect.value().timezone_offset_from_utc.has_value());
+
+  // Hand-craft a sys time consistent with
+  // spect.value().acquisition_date and
+  // spect.value().acquisition_time.
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
   spider::tz::local_seconds lt
@@ -887,26 +910,24 @@ TEST(MakeAcquisitionSysTimeTest, RealDataset)
         + std::chrono::seconds{ 1 };
   auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
 
-  auto st = spider::MakeAcquisitionSysTime(spect, tz);
+  auto st = spider::MakeAcquisitionSysTime(spect.value(), tz);
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
   EXPECT_EQ(st.value(), zt.get_sys_time());
 }
 
 TEST(MakeRadiopharmaceuticalStartSysTimeTest, RealDataset)
 {
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
-  // This test DICOM file has a RadiopharmaceuticalStartDateTime
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
+
+  // This test DICOM series has a RadiopharmaceuticalStartDateTime
   // without a UTC offset suffix and TimezoneOffsetFromUtc is absent,
   // so a caller-supplied time zone is used.
-  EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
+  EXPECT_EQ(spect.value().radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
-  EXPECT_FALSE(spect.timezone_offset_from_utc.has_value());
+  EXPECT_FALSE(spect.value().timezone_offset_from_utc.has_value());
   // Hand-craft a sys time consistent with
-  // spect.radiopharmaceutical_start_date_time.
+  // spect.value().radiopharmaceutical_start_date_time.
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Vancouver");
   spider::tz::local_seconds lt = spider::tz::local_days{
@@ -914,7 +935,7 @@ TEST(MakeRadiopharmaceuticalStartSysTimeTest, RealDataset)
   } + std::chrono::hours{ 12 };
   auto zt = spider::tz::zoned_time<std::chrono::seconds>{ tz, lt };
 
-  auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect, tz);
+  auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect.value(), tz);
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
   EXPECT_EQ(st.value(), zt.get_sys_time());
 }
@@ -936,27 +957,24 @@ TEST(ComputeDecayFactorNoneTest, ExtraHalfLife)
   // decay-corrects from frame reference time to acquisition start.
   // If the frame reference time is extended by one half-life, the
   // decay factor should double.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  // This test DICOM file does not have the attribute
+  // This test DICOM series does not have the attribute
   // TimezoneOffsetFromUtc, so ComputeDecayFactorNone must be supplied
   // with a time zone.
   const spider::tz::time_zone* tz
       = spider::tz::locate_zone("America/Barbados");
-  auto df = spider::ComputeDecayFactorNone(spect, tz);
+  auto df = spider::ComputeDecayFactorNone(spect.value(), tz);
   ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
 
-  ASSERT_TRUE(spect.frame_reference_time.has_value());
-  ASSERT_TRUE(spect.radionuclide_half_life.has_value());
+  ASSERT_TRUE(spect.value().frame_reference_time.has_value());
+  ASSERT_TRUE(spect.value().radionuclide_half_life.has_value());
   // Spect::frame_reference_time is in milliseconds and
   // Spect::radionuclide_half_life is in seconds.
-  spect.frame_reference_time.value()
-      += spect.radionuclide_half_life.value() * 1000.0;
-  auto df_twice = spider::ComputeDecayFactorNone(spect, tz);
+  spect.value().frame_reference_time.value()
+      += spect.value().radionuclide_half_life.value() * 1000.0;
+  auto df_twice = spider::ComputeDecayFactorNone(spect.value(), tz);
   ASSERT_TRUE(df_twice.has_value()) << spider::ToString(df_twice.error());
   EXPECT_DOUBLE_EQ(df_twice.value(), 2.0 * df.value());
 }
@@ -972,34 +990,32 @@ TEST(ComputeDecayFactorAdminTest, UtcOffsetSuffix)
   // Spect::radiopharmaceutical_start_date_time so it is interpreted
   // in a different time zone to Spect::acquisiton_date and
   // Spect::acquisition_time.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  // This test DICOM file does not have the attribute
+  // This test DICOM series does not have the attribute
   // TimezoneOffsetFromUtc, so ComputeDecayFactorAdmin must be
   // supplied with a time zone.
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Asia/Singapore");
-  auto df = spider::ComputeDecayFactorAdmin(spect, tz);
+  auto df = spider::ComputeDecayFactorAdmin(spect.value(), tz);
   ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
 
   // Now modify Spect::radiopharmaceutical_start_date_time.
-  EXPECT_EQ(spect.radiopharmaceutical_start_date_time,
+  EXPECT_EQ(spect.value().radiopharmaceutical_start_date_time,
             "20181105120000.000000 ");
   // Asia/Singapore is +08:00 (and does not observe DST), so
   // specifying a UTC offset of +14:00 makes the administration 6
   // hours earlier.
-  spect.radiopharmaceutical_start_date_time = "20181105120000.000000+1400";
-  auto df_new = spider::ComputeDecayFactorAdmin(spect, tz);
+  spect.value().radiopharmaceutical_start_date_time
+      = "20181105120000.000000+1400";
+  auto df_new = spider::ComputeDecayFactorAdmin(spect.value(), tz);
   ASSERT_TRUE(df_new.has_value()) << spider::ToString(df_new.error());
 
   // Calculate the decay factor over 6 hours, noting that
   // Spect::radionuclide_half_life is in seconds.
-  ASSERT_TRUE(spect.radionuclide_half_life.has_value());
+  ASSERT_TRUE(spect.value().radionuclide_half_life.has_value());
   double df_extra = std::exp(-std::log(2) * (60.0 * 60.0 * 6.0)
-                             / spect.radionuclide_half_life.value());
+                             / spect.value().radionuclide_half_life.value());
 
   EXPECT_DOUBLE_EQ(df_new.value(), df.value() * df_extra);
 }
@@ -1008,36 +1024,32 @@ TEST(ComputeDecayFactorTest, DefersToNone)
 {
   // Check that ComputeDecayFactor defers to ComputeDecayFactorNone
   // when Spect::decay_correction is "NONE".
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
-  spect.decay_correction = "NONE";
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
+
+  spect.value().decay_correction = "NONE";
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Australia/Perth");
-  auto df_none = spider::ComputeDecayFactorNone(spect, tz);
+  auto df_none = spider::ComputeDecayFactorNone(spect.value(), tz);
   ASSERT_TRUE(df_none.has_value()) << spider::ToString(df_none.error());
-  auto df = spider::ComputeDecayFactor(spect, tz);
+  auto df = spider::ComputeDecayFactor(spect.value(), tz);
   ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
   EXPECT_DOUBLE_EQ(df.value(), df_none.value());
 }
 
 TEST(ComputeDecayFactorTest, DecayCorrectionStart)
 {
-  // This test DICOM file has DecayCorrection START, so the decay
+  // This test DICOM series has DecayCorrection START, so the decay
   // factor is unity by definition.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  ASSERT_TRUE(spect.decay_correction.has_value());
-  auto dc = spider::ParseDicomDecayCorrection(spect.decay_correction.value());
+  ASSERT_TRUE(spect.value().decay_correction.has_value());
+  auto dc = spider::ParseDicomDecayCorrection(
+      spect.value().decay_correction.value());
   ASSERT_TRUE(dc.has_value());
   EXPECT_EQ(dc.value(), spider::DecayCorrection::kStart);
 
-  auto df = spider::ComputeDecayFactor(spect);
+  auto df = spider::ComputeDecayFactor(spect.value());
   ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
   EXPECT_DOUBLE_EQ(df.value(), 1.0);
 }
@@ -1046,49 +1058,44 @@ TEST(ComputeDecayFactorTest, DefersToAdmin)
 {
   // Check that ComputeDecayFactor defers to ComputeDecayFactorAdmin
   // when Spect::decay_correction is "ADMIN ".
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
-  spect.decay_correction = "ADMIN ";
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
+
+  spect.value().decay_correction = "ADMIN ";
   const spider::tz::time_zone* tz = spider::tz::locate_zone("Africa/Cairo");
-  auto df_admin = spider::ComputeDecayFactorAdmin(spect, tz);
+  auto df_admin = spider::ComputeDecayFactorAdmin(spect.value(), tz);
   ASSERT_TRUE(df_admin.has_value()) << spider::ToString(df_admin.error());
-  auto df = spider::ComputeDecayFactor(spect, tz);
+  auto df = spider::ComputeDecayFactor(spect.value(), tz);
   ASSERT_TRUE(df.has_value()) << spider::ToString(df.error());
   EXPECT_DOUBLE_EQ(df.value(), df_admin.value());
 }
 
 TEST(UsesTimeZoneTest, DateAndTimeUsesTimeZone)
 {
-  // This test demonstrates that, for the given test DICOM file,
+  // This test demonstrates that, for the given test DICOM series,
   // UsesTimeZone returns true and a caller-supplied time zone is used
   // when forming time points from DICOM DA and TM values in spect.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  // This DICOM file does not have the attribute
+  // This DICOM series does not have the attribute
   // TimezoneOffsetFromUtc, so a caller-supplied time zone is used to
-  // form time points from DICOM DA and TM values in spect.
-  EXPECT_TRUE(spider::UsesTimeZone(spect));
+  // form time points from DICOM DA and TM values in spect.value().
+  EXPECT_TRUE(spider::UsesTimeZone(spect.value()));
   // MakeAcquisitionSysTime forms a time point from the DICOM DA
   // AcquisitionDate and TM AcquisitionTime.  Since UsesTimeZone
   // returned true, MakeAcquisitionSysTime should return an error when
   // the caller does not supply a time zone.
-  EXPECT_FALSE(spider::MakeAcquisitionSysTime(spect).has_value());
+  EXPECT_FALSE(spider::MakeAcquisitionSysTime(spect.value()).has_value());
 
   // When the caller provides a time zone, a value is returned.
   auto st = spider::MakeAcquisitionSysTime(
-      spect, spider::tz::locate_zone("Asia/Singapore"));
+      spect.value(), spider::tz::locate_zone("Asia/Singapore"));
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
   // We know it uses the supplied time zone because a different time
   // zone gives a different result.
   auto st_other = spider::MakeAcquisitionSysTime(
-      spect, spider::tz::locate_zone("America/Halifax"));
+      spect.value(), spider::tz::locate_zone("America/Halifax"));
   ASSERT_TRUE(st_other.has_value()) << spider::ToString(st_other.error());
   EXPECT_NE(st.value(), st_other.value());
 }
@@ -1098,66 +1105,61 @@ TEST(UsesTimeZoneTest, DateAndTimeDoesNotUseTimeZone)
   // This test demonstrates that, after modifying Spect to include a
   // TimezoneOffsetFromUtc, UsesTimeZone returns false and
   // caller-supplied time zones are not used when forming time points
-  // from DICOM DA and TM values in spect.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  // from DICOM DA and TM values in spect.value().
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  // This DICOM file does not have the attribute
+  // This DICOM series does not have the attribute
   // TimezoneOffsetFromUtc, so modify the parsed Spect.
-  spect.timezone_offset_from_utc = "+0300";
-  EXPECT_FALSE(spider::UsesTimeZone(spect));
+  spect.value().timezone_offset_from_utc = "+0300";
+  EXPECT_FALSE(spider::UsesTimeZone(spect.value()));
   // MakeAcquisitionSysTime forms a time point from the DICOM DA
   // AcquisitionDate and TM AcquisitionTime.  Since UsesTimeZone
   // returned false, MakeAcquisitionSysTime should return a value even
   // when the caller does not supply a time zone.
-  auto st = spider::MakeAcquisitionSysTime(spect);
+  auto st = spider::MakeAcquisitionSysTime(spect.value());
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
 
   // When a time zone is provided, it has no effect on the returned
   // value. To demonstrate this, supply a time zone with a different
   // UTC offset (+08:00).
   auto st_tz = spider::MakeAcquisitionSysTime(
-      spect, spider::tz::locate_zone("Asia/Singapore"));
+      spect.value(), spider::tz::locate_zone("Asia/Singapore"));
   ASSERT_TRUE(st_tz.has_value()) << spider::ToString(st_tz.error());
   EXPECT_EQ(st.value(), st_tz.value());
 }
 
 TEST(UsesTimeZoneTest, DateTimeWithoutUtcSuffixUsesTimeZone)
 {
-  // This test demonstrates that, for the given test DICOM file,
+  // This test demonstrates that, for the given test DICOM series,
   // UsesTimeZone returns true and a caller-supplied time zone is used
   // when forming a time point from a DICOM DT value without a UTC
   // offset suffix in Spect.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  // This DICOM file does not have the attribute
+  // This DICOM series does not have the attribute
   // TimezoneOffsetFromUtc, so a caller-supplied time zone is used to
   // form time points from DICOM DT values that lack a UTC offset
   // suffix.
-  EXPECT_TRUE(spider::UsesTimeZone(spect));
+  EXPECT_TRUE(spider::UsesTimeZone(spect.value()));
   // MakeRadiopharmaceuticalStartSysTime forms a time point from the
   // DICOM DT RadiopharmaceuticalStartDateTime.  The
-  // RadiopharmaceuticalStartDateTime in this DICOM file does not have
-  // a UTC offset suffix.  Since UsesTimeZone returned true,
+  // RadiopharmaceuticalStartDateTime in this DICOM series does not
+  // have a UTC offset suffix.  Since UsesTimeZone returned true,
   // MakeRadiopharmaceuticalStartSysTime should return an error when
   // the caller does not supply a time zone.
-  EXPECT_FALSE(spider::MakeRadiopharmaceuticalStartSysTime(spect).has_value());
+  EXPECT_FALSE(
+      spider::MakeRadiopharmaceuticalStartSysTime(spect.value()).has_value());
 
   // When the caller provides a time zone, a value is returned.
   auto st = spider::MakeRadiopharmaceuticalStartSysTime(
-      spect, spider::tz::locate_zone("Asia/Singapore"));
+      spect.value(), spider::tz::locate_zone("Asia/Singapore"));
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
   // We know it uses the supplied time zone because a different time
   // zone gives a different result.
   auto st_other = spider::MakeRadiopharmaceuticalStartSysTime(
-      spect, spider::tz::locate_zone("America/Halifax"));
+      spect.value(), spider::tz::locate_zone("America/Halifax"));
   ASSERT_TRUE(st_other.has_value()) << spider::ToString(st_other.error());
   EXPECT_NE(st.value(), st_other.value());
 }
@@ -1168,30 +1170,27 @@ TEST(UsesTimeZoneTest, DateTimeWithoutUtcSuffixDoesNotUseTimeZone)
   // TimezoneOffsetFromUtc, UsesTimeZone returns false and
   // caller-supplied time zones are not used when forming time points
   // from DICOM DT values without a UTC offset suffix in Spect.
-  gdcm::Reader r;
-  r.SetFileName(kTestFilename);
-  ASSERT_TRUE(r.Read());
-  const gdcm::DataSet& ds = r.GetFile().GetDataSet();
-  spider::Spect spect = spider::ReadDicomSpect(ds);
+  auto spect = spider::ReadSpectFromDirectory(kTestDataDirectory);
+  ASSERT_TRUE(spect.has_value()) << spider::ToString(spect.error());
 
-  // This DICOM file does not have the attribute
+  // This DICOM series does not have the attribute
   // TimezoneOffsetFromUtc, so modify the parsed Spect.
-  spect.timezone_offset_from_utc = "+0300";
-  EXPECT_FALSE(spider::UsesTimeZone(spect));
+  spect.value().timezone_offset_from_utc = "+0300";
+  EXPECT_FALSE(spider::UsesTimeZone(spect.value()));
   // MakeRadiopharmaceuticalStartSysTime forms a time point from the
   // DICOM DT RadiopharmaceuticalStartDateTime.  The
-  // RadiopharmaceuticalStartDateTime in this DICOM file does not have
-  // a UTC offset suffix.  Since UsesTimeZone returned false,
+  // RadiopharmaceuticalStartDateTime in this DICOM series does not
+  // have a UTC offset suffix.  Since UsesTimeZone returned false,
   // MakeRadiopharmaceuticalStartSysTime should return a value even
   // when the caller does not supply a time zone.
-  auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect);
+  auto st = spider::MakeRadiopharmaceuticalStartSysTime(spect.value());
   ASSERT_TRUE(st.has_value()) << spider::ToString(st.error());
 
   // When a time zone is provided, it has no effect on the returned
   // value.  To demonstrate this, supply a time zone with a different
   // UTC offset (+08:00).
   auto st_tz = spider::MakeRadiopharmaceuticalStartSysTime(
-      spect, spider::tz::locate_zone("Asia/Singapore"));
+      spect.value(), spider::tz::locate_zone("Asia/Singapore"));
   ASSERT_TRUE(st_tz.has_value()) << spider::ToString(st_tz.error());
   EXPECT_EQ(st.value(), st_tz.value());
 }
