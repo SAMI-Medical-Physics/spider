@@ -28,11 +28,13 @@ cp "$SPECTCTS_DIR"/SPECT_Cts/scan2/spect/* "$spect2_dir"
 # Make Spider's TIA image: tia.nii.gz.  Requires the external programs
 # dcm2niix and elastix.  Note the documentation for the benchmark TIA
 # image describes registering SPECTs to the first SPECT.
-"@CMAKE_BINARY_DIR@/bin/spider" -f -z America/Detroit \
-    "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
-    "$spect2_dir" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
-    "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
+spider_outdir=$(
+    "@CMAKE_BINARY_DIR@/bin/spider" -f -z America/Detroit \
+        "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
+        "$spect2_dir" \
+        "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
+        "$SPECTCTS_DIR/SPECT_Cts/scan4/spect"
+)
 
 # Compare Spider's TIA image with the one in the benchmark dataset.
 
@@ -53,25 +55,26 @@ dcm2niix -o . -f ct1 -z y -w 1 -g i "$SPECTCTS_DIR/SPECT_Cts/scan1/ct"
 # contours at a TIA of 10^11 disintegrations/mL (approx. 28 MBq.h/mL).
 # Display the CT background using a window width of 400 and window
 # level of 50.
-"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz tia.nii.gz \
-    ct1.nii.gz 170 1e11 0.5 400 50
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz \
+    "$spider_outdir/tia.nii.gz" ct1.nii.gz 170 1e11 0.5 400 50
 
 # Slice 154 contains Lesion 2 (left lobe).
-"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz tia.nii.gz \
-    ct1.nii.gz 154 1e11 0.5 400 50
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz \
+    "$spider_outdir/tia.nii.gz" ct1.nii.gz 154 1e11 0.5 400 50
 
 # Slice 132 contains Lesion 3 (lymph node).
-"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz tia.nii.gz \
-    ct1.nii.gz 132 1e11 0.5 400 50
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz \
+    "$spider_outdir/tia.nii.gz" ct1.nii.gz 132 1e11 0.5 400 50
 
 # Slice 114 contains Lesion 4 (chest wall).
-"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz tia.nii.gz \
-    ct1.nii.gz 114 1e11 0.5 400 50
+"@CMAKE_BINARY_DIR@/benchmark/slice_compare" snmmi-tia.nii.gz \
+    "$spider_outdir/tia.nii.gz" ct1.nii.gz 114 1e11 0.5 400 50
 
 # Joint histogram.  TIA images have units of disintegrations/mL;
 # display MBq.h/mL in joint histogram.
 JOINT_HIST_FILENAME=tia_joint_hist.svg
-"@CMAKE_BINARY_DIR@/benchmark/joint_hist" snmmi-tia.nii.gz tia.nii.gz |
+"@CMAKE_BINARY_DIR@/benchmark/joint_hist" snmmi-tia.nii.gz \
+    "$spider_outdir/tia.nii.gz" |
     gnuplot -c "@CMAKE_SOURCE_DIR@/benchmark/joint_hist.gp" \
         "Reference TIA (MBq h mL^{-1})" "Spider TIA (MBq h mL^{-1})" 3.6e9 \
         "$JOINT_HIST_FILENAME"

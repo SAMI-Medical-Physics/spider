@@ -68,29 +68,41 @@ shift $((OPTIND - 1))
     usage
 }
 
+# Pass through verbose mode to spider_id.
+spider_id_opts=
+if [ "$verbose" -eq 1 ]; then
+    spider_id_opts=-v
+fi
+output_dir=$(
+    "@SPIDER_BINDIR@/spider_id" $spider_id_opts "$1"
+)
+"$mkdir_cmd" -p "$output_dir"
+
 # Convert each SPECT DICOM series to a 3D NIfTI image.
 i=1
 for d in "$@"; do
-    outdir="spect$i"
+    dcm2niix_outdir="$output_dir/spect$i"
     printf 'Converting SPECT %i DICOM series to 3D image: %s\n' \
-        "$i" "$outdir/spect$i.nii.gz" >&2
-    ensure_filename_available "$outdir/spect$i.nii.gz"
-    "$mkdir_cmd" -p "$outdir"
+        "$i" "$dcm2niix_outdir/spect$i.nii.gz" >&2
+    ensure_filename_available "$dcm2niix_outdir/spect$i.nii.gz"
+    "$mkdir_cmd" -p "$dcm2niix_outdir"
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
     # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
     # any previous output file so we can detect when this happens via
     # a missing output file.
-    "$rm_cmd" -f "$outdir/spect$i.nii.gz"
+    "$rm_cmd" -f "$dcm2niix_outdir/spect$i.nii.gz"
     # "-z y" writes a compressed file.  "-w 1" overwrites output
     # files.  Use "-g i" (ignore user defaults file) to ensure the
     # output file is called "spect$i.nii.gz".
     if [ "$verbose" -eq 1 ]; then
-        "$dcm2niix_cmd" -o "$outdir" -f "spect$i" -z y -w 1 -g i "$d" >&2
+        "$dcm2niix_cmd" -o "$dcm2niix_outdir" -f "spect$i" -z y -w 1 -g i "$d" \
+            >&2
     else
-        "$dcm2niix_cmd" -o "$outdir" -f "spect$i" -z y -w 1 -g i "$d" >/dev/null
+        "$dcm2niix_cmd" -o "$dcm2niix_outdir" -f "spect$i" -z y -w 1 -g i "$d" \
+            >/dev/null
     fi
-    test -e "$outdir/spect$i.nii.gz"
+    test -e "$dcm2niix_outdir/spect$i.nii.gz"
     i=$((i + 1))
 done
 
@@ -135,16 +147,17 @@ fi
 n_spects=$#
 i=2
 while [ "$i" -le "$n_spects" ]; do
-    outdir="registered_spect$i"
+    elastix_outdir="$output_dir/registered_spect$i"
     printf 'Registering SPECT %i to SPECT 1: %s\n' \
-        "$i" "$outdir/result.0.nii.gz" >&2
-    ensure_filename_available "$outdir/result.0.nii"
-    "$mkdir_cmd" -p "$outdir"
-    "$elastix_cmd" -f spect1/spect1.nii.gz -m "spect$i/spect$i.nii.gz" \
-        -out "$outdir" -p "$elastix_param" -loglevel $elastix_log_level >&2
+        "$i" "$elastix_outdir/result.0.nii.gz" >&2
+    ensure_filename_available "$elastix_outdir/result.0.nii"
+    "$mkdir_cmd" -p "$elastix_outdir"
+    "$elastix_cmd" -f "$output_dir/spect1/spect1.nii.gz" \
+        -m "$output_dir/spect$i/spect$i.nii.gz" -out "$elastix_outdir" \
+        -p "$elastix_param" -loglevel $elastix_log_level >&2
     transform_parameters=$(
         "$grep_cmd" '^(TransformParameters' \
-            "$outdir/TransformParameters.0.txt" || true
+            "$elastix_outdir/TransformParameters.0.txt" || true
     )
     if [ -n "$transform_parameters" ]; then
         printf 'SPECT %i transform: %s\n' "$i" "$transform_parameters" >&2
@@ -152,8 +165,8 @@ while [ "$i" -le "$n_spects" ]; do
     # Set negative pixel values to zero to reduce .nii.gz size (for
     # the SNMMI challenge datasets, from 38-45 MiB to 26-29 MiB).
     "@SPIDER_BINDIR@/spider_clamp" $spider_clamp_opts \
-        "$outdir/result.0.nii" "$outdir/result.0.nii.gz"
-    "$rm_cmd" "$outdir/result.0.nii"
+        "$elastix_outdir/result.0.nii" "$elastix_outdir/result.0.nii.gz"
+    "$rm_cmd" "$elastix_outdir/result.0.nii"
     i=$((i + 1))
 done
 
@@ -191,10 +204,10 @@ if [ -n "$dicom_dirs" ]; then
 fi
 
 # Add image arguments.
-set -- "$@" -i "spect1/spect1.nii.gz"
+set -- "$@" -i "$output_dir/spect1/spect1.nii.gz"
 i=2
 while [ "$i" -le "$n_spects" ]; do
-    set -- "$@" -i "registered_spect$i/result.0.nii.gz"
+    set -- "$@" -i "$output_dir/registered_spect$i/result.0.nii.gz"
     i=$((i + 1))
 done
 
@@ -212,8 +225,10 @@ if [ -n "$tz_list" ]; then
 fi
 
 # Use compression.
-tia_filename=tia.nii.gz
+tia_filename="$output_dir/tia.nii.gz"
 set -- "$@" -o "$tia_filename"
 
 printf 'Computing time-integrated activity image: %s\n' "$tia_filename" >&2
 "@SPIDER_BINDIR@/spider_tia" "$@"
+
+printf '%s\n' "$output_dir"

@@ -1,6 +1,6 @@
 .\" SPDX-License-Identifier: GFDL-1.3-or-later
 .\" Copyright (C) 2026 South Australia Medical Imaging
-.Dd 4 July 2026
+.Dd 24 July 2026
 .Dt SPIDER 1
 .Os
 .Sh NAME
@@ -23,8 +23,20 @@ images are registered to the SPECT in
 .Ar directory1 .
 All SPECTs are expected to have the same value for the DICOM attribute
 Units (0054,1001), and the resulting time-integrated activity image
-has those units \(mu seconds.  The image is written in compressed
-NIfTI format to a file named tia.nii.gz in the current directory.
+has those units \(mu seconds.
+.Pp
+All output files produced by
+.Nm
+are placed in an output directory.  The output directory is created
+under the current directory.  The name of the output directory is the
+radiopharmaceutical administration identifier computed by
+.Xr spider_id 1 .
+.Nm
+prints the name of the output directory to the standard output.  The
+time-integrated activity image is written in compressed NIfTI format
+to a file named
+.Pa tia.nii.gz
+in the output directory.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds

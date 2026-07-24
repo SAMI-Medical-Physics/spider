@@ -153,21 +153,41 @@
     (computed-file "spider-tia-image" build-tia-image))
 
   (define build
-    #~(begin
-        (mkdir #$output)
-        (for-each (lambda (i dir)
-                    (symlink dir (format #f "~a/spect~a" #$output i)))
-                  (iota (length (list #$@spect-dirs)) 1)
-                  (list #$@spect-dirs))
+    (with-imported-modules '((guix build utils)) ;for mkdir-p
+      #~(begin
+          (use-modules (ice-9 popen)    ;for open-pipe*
+                       (ice-9 rdelim)   ;for read-line
+                       (guix build utils))
+          (let* ((program (string-append #$spider "/bin/spider_id"))
+                 (args (append (if #$verbose?
+                                   (list "-v")
+                                   '())
+                               (list #$(car dirs))))
+                 (port (apply open-pipe* OPEN_READ program args))
+                 (id (read-line port))
+                 (output-dir (in-vicinity #$output id)))
 
-        (for-each (lambda (i dir)
-                    (symlink dir
-                             (format #f "~a/registered_spect~a" #$output i)))
-                  (iota (length (list #$@registered-spect-dirs)) 2)
-                  (list #$@registered-spect-dirs))
+            (unless (zero? (close-pipe port))
+              (error "spider_id failed\n"))
 
-        (symlink (string-append #$tia-image "/tia.nii.gz")
-                 (string-append #$output "/tia.nii.gz"))))
+            (mkdir-p output-dir)
+
+            (for-each (lambda (i dir)
+                        (symlink dir (format #f "~a/spect~a" output-dir i)))
+                      (iota (length (list #$@spect-dirs)) 1)
+                      (list #$@spect-dirs))
+
+            (for-each (lambda (i dir)
+                        (symlink dir
+                                 (format #f "~a/registered_spect~a"
+                                         output-dir i)))
+                      (iota (length (list #$@registered-spect-dirs)) 2)
+                      (list #$@registered-spect-dirs))
+
+            (symlink (string-append #$tia-image "/tia.nii.gz")
+                     (string-append output-dir "/tia.nii.gz"))
+
+            (format #t "~a~%" id)))))
 
   (computed-file "spider-output" build))
 

@@ -116,46 +116,54 @@
      #~(begin
          (use-modules (guix build utils)
                       (ice-9 popen)
-                      (ice-9 receive))
-         ;; Generate PNG images of axial slices over registered CT.
-         (map
-          (lambda (z)
-            (invoke (string-append #$spider-benchmark "/slice_compare")
-                    (string-append #$snmmi-tia-pt4 "/tia.nii.gz")
-                    (string-append #$spider-output-snmmi-pt4 "/tia.nii.gz")
-                    (string-append #$(ct-snmmi-pt4 1) "/out.nii.gz")
-                    ;; Display contours at a TIA of 10^11 disintegrations/mL
-                    ;; (approx. 28 MBq.h/mL).  Display the CT background using a
-                    ;; window width of 400 and window level of 50.
-                    z "1e11" "0.5" "400" "50")
-            (install-file (string-append "image1_" z ".png") #$output)
-            (install-file (string-append "image2_" z ".png") #$output))
-          '("145"         ;slice 145 (0-indexed) contains Lesion 1 (liver large)
-            "133"))       ;slice 133 contains Lesion 2 (liver small)
+                      (ice-9 receive)
+                      (ice-9 ftw)       ;for scandir
+                      (srfi srfi-26))   ;for cut
+         (let* ((pred (negate (cut member <> (list "." ".."))))
+                ;; The directory named by the radiopharmaceutical administration
+                ;; identifier.
+                (dir (car (scandir #$spider-output-snmmi-pt4 pred)))
+                (spider-outdir (in-vicinity #$spider-output-snmmi-pt4 dir)))
 
-         ;; Joint histogram.
-         (let ((outfile "tia_joint_hist.svg"))
-           ;; joint_hist.gp uses 'cat'.
-           (setenv "PATH" (string-append #$coreutils "/bin"))
-           (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig
-           (receive (from to pids)
-               (pipeline
-                (list (append (list (string-append #$spider-benchmark
-                                                   "/joint_hist")
-                                    (string-append #$snmmi-tia-pt4
-                                                   "/tia.nii.gz")
-                                    (string-append #$spider-output-snmmi-pt4
-                                                   "/tia.nii.gz")))
-                      (list (string-append #$gnuplot "/bin/gnuplot")
-                            "-c" #$(local-file "../../joint_hist.gp")
-                            "Reference TIA (MBq h mL^{-1})"
-                            "Spider TIA (MBq h mL^{-1})"
-                            ;; TIA images have units of disintegrations/mL;
-                            ;; display MBq.h/mL in joint histogram.
-                            "3.6e9" outfile)))
-             (close to)
-             (close from)
-             (for-each waitpid pids))
-           (install-file outfile #$output))))))
+           ;; Generate PNG images of axial slices over registered CT.
+           (map
+            (lambda (z)
+              (invoke (string-append #$spider-benchmark "/slice_compare")
+                      (string-append #$snmmi-tia-pt4 "/tia.nii.gz")
+                      (string-append spider-outdir "/tia.nii.gz")
+                      (string-append #$(ct-snmmi-pt4 1) "/out.nii.gz")
+                      ;; Display contours at a TIA of 10^11 disintegrations/mL
+                      ;; (approx. 28 MBq.h/mL).  Display the CT background using
+                      ;; a window width of 400 and window level of 50.
+                      z "1e11" "0.5" "400" "50")
+              (install-file (string-append "image1_" z ".png") #$output)
+              (install-file (string-append "image2_" z ".png") #$output))
+            '("145"       ;slice 145 (0-indexed) contains Lesion 1 (liver large)
+              "133"))     ;slice 133 contains Lesion 2 (liver small)
+
+           ;; Joint histogram.
+           (let ((outfile "tia_joint_hist.svg"))
+             ;; joint_hist.gp uses 'cat'.
+             (setenv "PATH" (string-append #$coreutils "/bin"))
+             (setenv "XDG_CACHE_HOME" ".")    ;placate Fontconfig
+             (receive (from to pids)
+                 (pipeline
+                  (list (append (list (string-append #$spider-benchmark
+                                                     "/joint_hist")
+                                      (string-append #$snmmi-tia-pt4
+                                                     "/tia.nii.gz")
+                                      (string-append spider-outdir
+                                                     "/tia.nii.gz")))
+                        (list (string-append #$gnuplot "/bin/gnuplot")
+                              "-c" #$(local-file "../../joint_hist.gp")
+                              "Reference TIA (MBq h mL^{-1})"
+                              "Spider TIA (MBq h mL^{-1})"
+                              ;; TIA images have units of disintegrations/mL;
+                              ;; display MBq.h/mL in joint histogram.
+                              "3.6e9" outfile)))
+               (close to)
+               (close from)
+               (for-each waitpid pids))
+             (install-file outfile #$output)))))))
 
 tia-comparison-snmmi-pt4

@@ -91,7 +91,8 @@ if(MSVC)
   endif()
 else()
   # SPIDER_DATADIR and SPIDER_BINDIR are used in spider.sh.in to
-  # locate Parameters_Rigid.txt and spider_tia, respectively.
+  # locate Parameters_Rigid.txt and Spider programs (e.g. spider_tia),
+  # respectively.
 
   # For the build tree.
   set(SPIDER_DATADIR

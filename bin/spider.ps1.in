@@ -104,40 +104,56 @@ function ensure_filename_available
     }
 }
 
+# Pass through verbose mode to spider_id.
+$spider_id_opts = @()
+if ($verbose)
+{
+    $spider_id_opts += '-v'
+}
+$output_dir = & (Join-Path $PSScriptRoot 'spider_id.exe') @spider_id_opts `
+  $directories[0]
+if ($LASTEXITCODE -ne 0)
+{
+    exit $LASTEXITCODE
+}
+New-Item -ItemType Directory -Path $output_dir -Force | Out-Null
+
 # Convert each SPECT DICOM series to a 3D NIfTI image.
 $i = 1
 foreach ($d in $directories)
 {
-    $outdir = "spect$i"
+    $dcm2niix_outdir = "spect$i"
     [Console]::Error.WriteLine(
         'Converting SPECT {0} DICOM series to 3D image: {1}/spect{0}.nii.gz',
-        $i, $outdir
+        $i, $dcm2niix_outdir
     )
-    ensure_filename_available (Join-Path $outdir "spect$i.nii.gz")
-    New-Item -ItemType Directory -Path $outdir -Force | Out-Null
+    ensure_filename_available (Join-Path $dcm2niix_outdir "spect$i.nii.gz")
+    New-Item -ItemType Directory -Path $dcm2niix_outdir -Force | Out-Null
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
     # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
     # any previous output file so we can detect when this happens via
     # a missing output file.
-    Remove-Item (Join-Path $outdir "spect$i.nii.gz") -ErrorAction Ignore
+    Remove-Item (Join-Path $dcm2niix_outdir "spect$i.nii.gz") `
+      -ErrorAction Ignore
     # "-z y" writes a compressed file.  "-w 1" overwrites output
     # files.  Use "-g i" (ignore user defaults file) to ensure the
     # output file is called "spect$i.nii.gz".
     if ($verbose)
     {
-        & $dcm2niix_cmd -o $outdir -f "spect$i" -z y -w 1 -g i $d |
-            ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
+        & $dcm2niix_cmd -o $dcm2niix_outdir -f "spect$i" -z y -w 1 -g i $d |
+          ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
     }
     else
     {
-        & $dcm2niix_cmd -o $outdir -f "spect$i" -z y -w 1 -g i $d | Out-Null
+        & $dcm2niix_cmd -o $dcm2niix_outdir -f "spect$i" -z y -w 1 -g i $d |
+          Out-Null
     }
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
     }
-    if (-not (Test-Path (Join-Path $outdir "spect$i.nii.gz")))
+    if (-not (Test-Path (Join-Path $dcm2niix_outdir "spect$i.nii.gz")))
     {
         exit 1
     }
@@ -207,16 +223,17 @@ if ($verbose)
 
 for ($i=2; $i -le $directories.Count; $i++)
 {
-    $outdir = "registered_spect$i"
+    $elastix_outdir = "registered_spect$i"
     [Console]::Error.WriteLine(
-        'Registering SPECT {0} to SPECT 1: {1}/result.0.nii.gz', $i, $outdir
+        'Registering SPECT {0} to SPECT 1: {1}/result.0.nii.gz',
+        $i, $elastix_outdir
     )
-    ensure_filename_available (Join-Path $outdir 'result.0.nii')
-    New-Item -ItemType Directory -Path $outdir -Force | Out-Null
+    ensure_filename_available (Join-Path $elastix_outdir 'result.0.nii')
+    New-Item -ItemType Directory -Path $elastix_outdir -Force | Out-Null
     $elastix_args = @(
         '-f', (Join-Path 'spect1' 'spect1.nii.gz')
         '-m', (Join-Path "spect$i" "spect$i.nii.gz")
-        '-out', $outdir
+        '-out', $elastix_outdir
         '-p', $elastix_param
         '-loglevel', $elastix_log_level
     )
@@ -226,7 +243,7 @@ for ($i=2; $i -le $directories.Count; $i++)
     {
         exit $LASTEXITCODE
     }
-    Select-String -Path "$outdir/TransformParameters.0.txt" `
+    Select-String -Path "$elastix_outdir/TransformParameters.0.txt" `
       -Pattern '^\(TransformParameters' |
       ForEach-Object {
         [Console]::Error.WriteLine('SPECT {0} transform: {1}', $i, $_.Line)
@@ -236,13 +253,14 @@ for ($i=2; $i -le $directories.Count; $i++)
     # Do not rely on the 'bin' directory of the install tree being in
     # PATH.
     & (Join-Path $PSScriptRoot 'spider_clamp.exe') @spider_clamp_opts `
-      (Join-Path $outdir 'result.0.nii') (Join-Path $outdir 'result.0.nii.gz') `
-      2>&1 | ForEach-Object {[Console]::Error.WriteLine("spider_clamp | $_")}
+      (Join-Path $elastix_outdir 'result.0.nii') `
+      (Join-Path $elastix_outdir 'result.0.nii.gz') 2>&1 |
+      ForEach-Object {[Console]::Error.WriteLine("spider_clamp | $_")}
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
     }
-    Remove-Item (Join-Path $outdir 'result.0.nii') -ErrorAction Ignore
+    Remove-Item (Join-Path $elastix_outdir 'result.0.nii') -ErrorAction Ignore
 }
 
 # Make TIA image.  Build arguments for spider_tia.
@@ -266,11 +284,18 @@ for ($i = 0; $i -lt $directories.Count; $i++)
     $spider_tia_args += '-d', $directories[$i], '-i'
     if ($i -eq 0)
     {
-        $spider_tia_args += (Join-Path 'spect1' 'spect1.nii.gz')
+        # 'Join-Path' can only take 2 args in PowerShell 5.1.
+        $spider_tia_args += (
+            Join-Path (Join-Path $output_dir 'spect1') 'spect1.nii.gz'
+        )
     }
     else
     {
-        $spider_tia_args += (Join-Path "registered_spect$($i+1)" 'result.0.nii.gz')
+        $spider_tia_args += (
+            Join-Path (
+                Join-Path $output_dir "registered_spect$($i+1)"
+            ) 'result.0.nii.gz'
+        )
     }
 }
 
@@ -284,7 +309,7 @@ if ($time_zone)
 }
 
 # Use compression.
-$tia_filename='tia.nii.gz'
+$tia_filename = Join-Path $output_dir 'tia.nii.gz'
 $spider_tia_args += '-o', $tia_filename
 
 [Console]::Error.WriteLine(
@@ -294,4 +319,11 @@ $spider_tia_args += '-o', $tia_filename
 # PATH.
 & (Join-Path $PSScriptRoot 'spider_tia.exe') @spider_tia_args 2>&1 |
     ForEach-Object {[Console]::Error.WriteLine("spider_tia | $_")}
-exit $LASTEXITCODE
+if ($LASTEXITCODE -ne 0)
+{
+    exit $LASTEXITCODE
+}
+
+[Console]::Out.WriteLine($output_dir)
+
+exit 0
