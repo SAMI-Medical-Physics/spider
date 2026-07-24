@@ -26,4 +26,5 @@ if(NOT SPIDER_TEST_DATA_DIR)
     "SPIDER_DOWNLOAD_TEST_DATA is set to OFF but SPIDER_TEST_DATA_DIR is unset.")
 endif()
 
+add_subdirectory(apps)
 add_subdirectory(src)

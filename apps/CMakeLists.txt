@@ -16,6 +16,18 @@ set_target_properties(spider_clamp PROPERTIES
 )
 
 add_executable(
+  spider_id
+  spider_id.cc
+)
+target_link_libraries(spider_id
+  PRIVATE
+  spider_logging
+  spider_spect
+)
+target_compile_definitions(spider_id
+  PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+
+add_executable(
   spider_tia
   spider_tia.cc
 )
@@ -36,6 +48,7 @@ set_target_properties(spider_tia PROPERTIES
 if(MSVC)
   install(TARGETS
     spider_clamp
+    spider_id
     spider_tia
     RUNTIME_DEPENDENCY_SET spider_runtime_deps
   )
@@ -65,6 +78,7 @@ if(MSVC)
 else()
   install(TARGETS
     spider_clamp
+    spider_id
     spider_tia
   )
 endif()
