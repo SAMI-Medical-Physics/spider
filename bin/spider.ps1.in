@@ -122,7 +122,7 @@ New-Item -ItemType Directory -Path $output_dir -Force | Out-Null
 $i = 1
 foreach ($d in $directories)
 {
-    $dcm2niix_outdir = "spect$i"
+    $dcm2niix_outdir = "$output_dir/spect$i"
     [Console]::Error.WriteLine(
         'Converting SPECT {0} DICOM series to 3D image: {1}/spect{0}.nii.gz',
         $i, $dcm2niix_outdir
@@ -223,7 +223,7 @@ if ($verbose)
 
 for ($i=2; $i -le $directories.Count; $i++)
 {
-    $elastix_outdir = "registered_spect$i"
+    $elastix_outdir = "$output_dir/registered_spect$i"
     [Console]::Error.WriteLine(
         'Registering SPECT {0} to SPECT 1: {1}/result.0.nii.gz',
         $i, $elastix_outdir
@@ -231,8 +231,9 @@ for ($i=2; $i -le $directories.Count; $i++)
     ensure_filename_available (Join-Path $elastix_outdir 'result.0.nii')
     New-Item -ItemType Directory -Path $elastix_outdir -Force | Out-Null
     $elastix_args = @(
-        '-f', (Join-Path 'spect1' 'spect1.nii.gz')
-        '-m', (Join-Path "spect$i" "spect$i.nii.gz")
+        # 'Join-Path' can only take 2 args in PowerShell 5.1.
+        '-f', (Join-Path $output_dir (Join-Path 'spect1' 'spect1.nii.gz'))
+        '-m', (Join-Path $output_dir (Join-Path "spect$i" "spect$i.nii.gz"))
         '-out', $elastix_outdir
         '-p', $elastix_param
         '-loglevel', $elastix_log_level
@@ -284,7 +285,6 @@ for ($i = 0; $i -lt $directories.Count; $i++)
     $spider_tia_args += '-d', $directories[$i], '-i'
     if ($i -eq 0)
     {
-        # 'Join-Path' can only take 2 args in PowerShell 5.1.
         $spider_tia_args += (
             Join-Path (Join-Path $output_dir 'spect1') 'spect1.nii.gz'
         )
