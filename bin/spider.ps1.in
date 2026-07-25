@@ -203,11 +203,11 @@ else
 
 if ($verbose)
 {
-    $elastix_log_level=info
+    $elastix_log_level = 'info'
 }
 else
 {
-    $elastix_log_level=error
+    $elastix_log_level = 'error'
 }
 
 # Pass through overwrite and verbose mode to spider_clamp.
