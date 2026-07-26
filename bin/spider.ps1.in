@@ -9,8 +9,10 @@ param(
     [switch] $force,
     # Variables are case-insensitive in PowerShell.  Rename options to
     # avoid surprises.
+    # We use the 'Parameter' attribute below which makes PowerShell
+    # automatically add the Common Parameters, including Verbose.
+    [switch] $spider_verbose,
     [switch] $version,
-    [switch] $verbose,
     [Alias('e')]
     [string] $elastix_param,
     [Alias('z')]
@@ -69,7 +71,7 @@ if ($version)
 function usage
 {
     [Console]::Error.WriteLine(
-        'usage: spider [-f] [-version] [-verbose] [-e elastix_param]
+        'usage: spider [-f] [-spider_verbose] [-version] [-e elastix_param]
               [-z time_zone[,time_zone ...]] directory1 directory2 ...'
     )
     exit 2
@@ -106,7 +108,7 @@ function ensure_filename_available
 
 # Pass through verbose mode to spider_id.
 $spider_id_opts = @()
-if ($verbose)
+if ($spider_verbose)
 {
     $spider_id_opts += '-v'
 }
@@ -139,7 +141,7 @@ foreach ($d in $directories)
     # "-z y" writes a compressed file.  "-w 1" overwrites output
     # files.  Use "-g i" (ignore user defaults file) to ensure the
     # output file is called "spect$i.nii.gz".
-    if ($verbose)
+    if ($spider_verbose)
     {
         & $dcm2niix_cmd -o $dcm2niix_outdir -f "spect$i" -z y -w 1 -g i $d |
           ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
@@ -201,7 +203,7 @@ else
     )
 }
 
-if ($verbose)
+if ($spider_verbose)
 {
     $elastix_log_level = 'info'
 }
@@ -216,7 +218,7 @@ if ($force)
 {
     $spider_clamp_opts += '-f'
 }
-if ($verbose)
+if ($spider_verbose)
 {
     $spider_clamp_opts += '-v'
 }
@@ -274,7 +276,7 @@ if ($force)
 }
 
 # Propagate verbose mode.
-if ($verbose)
+if ($spider_verbose)
 {
     $spider_tia_args += '-v'
 }
