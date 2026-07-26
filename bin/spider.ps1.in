@@ -118,7 +118,8 @@ if ($LASTEXITCODE -ne 0)
 {
     exit $LASTEXITCODE
 }
-New-Item -ItemType Directory -Path $output_dir -Force | Out-Null
+New-Item -ItemType Directory -Path $output_dir -Force -ErrorAction Stop |
+  Out-Null
 
 # Convert each SPECT DICOM series to a 3D NIfTI image.
 $i = 1
@@ -130,7 +131,8 @@ foreach ($d in $directories)
         $i, $dcm2niix_outdir
     )
     ensure_filename_available (Join-Path $dcm2niix_outdir "spect$i.nii.gz")
-    New-Item -ItemType Directory -Path $dcm2niix_outdir -Force | Out-Null
+    New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+      -ErrorAction Stop | Out-Null
     # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
     # even though no NIfTI file is produced (see:
     # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
@@ -231,7 +233,8 @@ for ($i=2; $i -le $directories.Count; $i++)
         $i, $elastix_outdir
     )
     ensure_filename_available (Join-Path $elastix_outdir 'result.0.nii')
-    New-Item -ItemType Directory -Path $elastix_outdir -Force | Out-Null
+    New-Item -ItemType Directory -Path $elastix_outdir -Force `
+      -ErrorAction Stop | Out-Null
     $elastix_args = @(
         # 'Join-Path' can only take 2 args in PowerShell 5.1.
         '-f', (Join-Path $output_dir (Join-Path 'spect1' 'spect1.nii.gz'))
