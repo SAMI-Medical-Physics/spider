@@ -10,6 +10,7 @@
 .Nm spider
 .Op Fl fVv
 .Op Fl e Ar elastix_param
+.Op Fl o Ar output_root
 .Op Fl z Ar time_zone
 .Ar directory1
 .Ar directory2
@@ -29,7 +30,8 @@ has those units \(mu seconds.
 All output files produced by
 .Nm
 are placed in an output directory.
-The output directory is created under the current directory.
+By default, the output directory is created under the current working
+directory.
 The name of the output directory is the radiopharmaceutical
 administration identifier computed by
 .Xr spider_id 1 .
@@ -54,6 +56,13 @@ are ignored and set to "true" and "nii", respectively.
 .Pp
 .It Fl f
 Overwrite output files.
+.Pp
+.It Fl o Ar output_root
+The directory under which the output directory is created.
+If omitted, the current working directory is used.
+If
+.Ar output_root
+does not exist, it is created.
 .Pp
 .It Fl V
 Display the version number and exit.

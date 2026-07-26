@@ -20,12 +20,14 @@ sed_cmd=sed
 PROGRAM_NAME=${0##*/}
 
 usage() {
-    printf 'usage: %s [-fVv] [-e elastix_param] [-z time_zone] directory1 directory2 ...\n' \
+    printf 'usage: %s [-fVv] [-e elastix_param] [-o output_root] [-z time_zone]
+              directory1 directory2 ...\n' \
         "$PROGRAM_NAME" >&2
     exit 2
 }
 
 overwrite=0
+output_root=
 verbose=0
 elastix_param="@SPIDER_DATADIR@/Parameters_Rigid.txt"
 tz_list=""
@@ -40,9 +42,11 @@ ensure_filename_available() {
     fi
 }
 
-while getopts "fVve:z:" opt; do
+while getopts "e:fo:Vvz:" opt; do
     case "$opt" in
+    e) elastix_param=$OPTARG ;;
     f) overwrite=1 ;;
+    o) output_root=$OPTARG ;;
     V)
         spider_version="@PROJECT_VERSION@"
         dcm2niix_version=$("$dcm2niix_cmd" -v | "$sed_cmd" -n '2{s/^v//;p}')
@@ -52,7 +56,6 @@ while getopts "fVve:z:" opt; do
         exit 0
         ;;
     v) verbose=1 ;;
-    e) elastix_param=$OPTARG ;;
     z) tz_list=${tz_list}${tz_list:+'
 '}$OPTARG ;;
     \?) usage ;;
@@ -73,9 +76,13 @@ spider_id_opts=
 if [ "$verbose" -eq 1 ]; then
     spider_id_opts=-v
 fi
-output_dir=$(
-    "@SPIDER_BINDIR@/spider_id" $spider_id_opts "$1"
-)
+id=$("@SPIDER_BINDIR@/spider_id" $spider_id_opts "$1")
+
+if [ -n "$output_root" ]; then
+    output_dir="$output_root/$id"
+else
+    output_dir="$id"
+fi
 "$mkdir_cmd" -p "$output_dir"
 
 # Convert each SPECT DICOM series to a 3D NIfTI image.

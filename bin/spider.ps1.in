@@ -5,16 +5,18 @@
 # no work re-use.
 
 param(
+    [Alias('e')]
+    [string] $elastix_param,
     [Alias('f')]
     [switch] $force,
+    [Alias('o')]
+    [string] $output_root,
     # Variables are case-insensitive in PowerShell.  Rename options to
     # avoid surprises.
     # We use the 'Parameter' attribute below which makes PowerShell
     # automatically add the Common Parameters, including Verbose.
     [switch] $spider_verbose,
     [switch] $version,
-    [Alias('e')]
-    [string] $elastix_param,
     [Alias('z')]
     [string[]] $time_zone,
     [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
@@ -72,7 +74,8 @@ function usage
 {
     [Console]::Error.WriteLine(
         'usage: spider [-f] [-spider_verbose] [-version] [-e elastix_param]
-              [-z time_zone[,time_zone ...]] directory1 directory2 ...'
+              [-o output_root] [-z time_zone[,time_zone ...]]
+              directory1 directory2 ...'
     )
     exit 2
 }
@@ -112,11 +115,20 @@ if ($spider_verbose)
 {
     $spider_id_opts += '-v'
 }
-$output_dir = & (Join-Path $PSScriptRoot 'spider_id.exe') @spider_id_opts `
+$id = & (Join-Path $PSScriptRoot 'spider_id.exe') @spider_id_opts `
   $directories[0]
 if ($LASTEXITCODE -ne 0)
 {
     exit $LASTEXITCODE
+}
+
+if ($output_root)
+{
+    $output_dir = Join-Path $output_root $id
+}
+else
+{
+    $output_dir = $id
 }
 New-Item -ItemType Directory -Path $output_dir -Force -ErrorAction Stop |
   Out-Null
