@@ -17,9 +17,10 @@
 .Sh DESCRIPTION
 .Nm
 computes the time-integrated activity image from a time series of two
-or more SPECT scans.  Each directory argument specifies a SPECT DICOM
-series of SOP Class Positron Emission Tomography Image Storage.  SPECT
-images are registered to the SPECT in
+or more SPECT scans.
+Each directory argument specifies a SPECT DICOM series of SOP Class
+Positron Emission Tomography Image Storage.
+SPECT images are registered to the SPECT in
 .Ar directory1 .
 All SPECTs are expected to have the same value for the DICOM attribute
 Units (0054,1001), and the resulting time-integrated activity image
@@ -27,23 +28,26 @@ has those units \(mu seconds.
 .Pp
 All output files produced by
 .Nm
-are placed in an output directory.  The output directory is created
-under the current directory.  The name of the output directory is the
-radiopharmaceutical administration identifier computed by
+are placed in an output directory.
+The output directory is created under the current directory.
+The name of the output directory is the radiopharmaceutical
+administration identifier computed by
 .Xr spider_id 1 .
 .Nm
-prints the name of the output directory to the standard output.  The
-time-integrated activity image is written in compressed NIfTI format
-to a file named
+prints the name of the output directory to the standard output.
+The time-integrated activity image is written in compressed NIfTI
+format to a file named
 .Pa tia.nii.gz
 in the output directory.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
 .It Fl e Ar elastix_param
-The elastix parameter file to use for SPECT image registration.  See
+The elastix parameter file to use for SPECT image registration.
+See
 .Lk http://elastix.dev
-for details.  The default is the installed
+for details.
+The default is the installed
 .Pa share/spider/Parameters_Rigid.txt .
 The values of the parameters WriteResultImage and ResultImageFormat
 are ignored and set to "true" and "nii", respectively.
@@ -55,7 +59,8 @@ Overwrite output files.
 Display the version number and exit.
 .Pp
 .It Fl v
-Verbose mode.  Print additional informational messages.
+Verbose mode.
+Print additional informational messages.
 .Pp
 .It Fl z Ar time_zone
 For this SPECT's DICOM series, interpret DICOM Date, Time, and Date
@@ -63,9 +68,10 @@ Time values that lack an explicit time zone in
 .Ar time_zone ,
 the name of a time zone in the IANA tz database (e.g. Europe/Paris).
 If this option is specified only once, this time zone is used for all
-SPECTs.  If this option is specified more than once, it must be
-specified once for each SPECT, in the same order as the directory
-arguments.  If omitted, the local time zone is used for all SPECTs.
+SPECTs.
+If this option is specified more than once, it must be specified once
+for each SPECT, in the same order as the directory arguments.
+If omitted, the local time zone is used for all SPECTs.
 .El
 .Sh EXIT STATUS
 .Ex -std

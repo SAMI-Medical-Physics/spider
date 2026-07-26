@@ -18,17 +18,18 @@ sets negative pixel values to zero, and writes the result to
 .Ar output_file .
 .Pp
 The input and output image files may be in NIfTI format, compressed or
-not.  MetaImage and NRRD formats are also supported if the
-corresponding ImageIO module is included in the ITK library against
-which
+not.
+MetaImage and NRRD formats are also supported if the corresponding
+ImageIO module is included in the ITK library against which
 .Nm
 was built.
 .Ar input_file
 and
 .Ar output_file
 must each have a file name suffix corresponding to their respective
-file formats.  For MetaImage and NRRD detached header formats, the
-name of the header file must be specified.
+file formats.
+For MetaImage and NRRD detached header formats, the name of the header
+file must be specified.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
@@ -39,7 +40,8 @@ Overwrite output files.
 Display the version number and exit.
 .Pp
 .It Fl v
-Verbose mode.  Causes
+Verbose mode.
+Causes
 .Nm
 to print debugging messages about its progress.
 .Pp
