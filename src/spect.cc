@@ -544,7 +544,9 @@ GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds)
   if (!ds.FindDataElement(tag_ris))
     {
       Warning(
-          "missing DICOM attribute: RadiopharmaceuticalInformationSequence");
+          "missing DICOM attribute: RadiopharmaceuticalInformationSequence; "
+          "failed to extract RadionuclideHalfLife, "
+          "RadiopharmaceuticalStartDateTime, and RadionuclideCodeSequence");
       return {};
     }
 
@@ -552,8 +554,11 @@ GetRadiopharmaceuticalInfo(const gdcm::DataSet& ds)
       = ds.GetDataElement(tag_ris).GetValueAsSQ();
   if (!sq_ris || !sq_ris->GetNumberOfItems())
     {
-      Warning("DICOM attribute RadiopharmaceuticalInformationSequence is "
-              "present but either empty or not encoded as SQ");
+      Warning(
+          "DICOM attribute RadiopharmaceuticalInformationSequence is present "
+          "but either empty or not encoded as SQ; failed to extract "
+          "RadionuclideHalfLife, RadiopharmaceuticalStartDateTime, and "
+          "RadionuclideCodeSequence");
       return {};
     }
 
