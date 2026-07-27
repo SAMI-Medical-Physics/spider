@@ -6,10 +6,14 @@
 set -eu
 
 echo "[1/2] Benchmark: SNMMI Challenge - Patient 4"
+echo "Entering directory 'snmmi/pt4'"
 (cd snmmi/pt4 && ./run.sh)
+echo "Leaving directory 'snmmi/pt4'"
 
 echo "[2/2] Benchmark: SNMMI Challenge - Patient 6"
+echo "Entering directory 'snmmi/pt6'"
 (cd snmmi/pt6 && ./run.sh)
+echo "Leaving directory 'snmmi/pt6'"
 
 # Generate a report of the benchmark results (requires docutils).
 if command -v rst2html5 >/dev/null 2>&1; then
