@@ -18,12 +18,15 @@ TIA_DIR="@SPIDER_BENCHMARK_SNMMI_PT6_TIA_DIR@"
 
 # One slice of the 2nd SPECT has modality 'NM' while the rest have
 # 'PT', which causes dcm2niix to write 2 images.
+nm_modality=2.16.840.1.114362.1.11987842.22403444876.565511897.618.970.dcm
+printf '%s%s%s\n' \
+    'Changing DICOM attribute Modality from "NM" to "PT" ' \
+    'in one slice of SPECT 2: ' "$nm_modality"
 spect2_dir=/tmp/spider-benchmark-snmmi-pt6-spect2
 mkdir -p "$spect2_dir"
 rm -f "$spect2_dir"/*
 cp "$SPECTCTS_DIR"/SPECT_Cts/scan2/spect/* "$spect2_dir"
-"@CMAKE_CURRENT_BINARY_DIR@/set_modality_pt" \
-    "$spect2_dir/2.16.840.1.114362.1.11987842.22403444876.565511897.618.970.dcm"
+"@CMAKE_CURRENT_BINARY_DIR@/set_modality_pt" "$spect2_dir/$nm_modality"
 
 # Make Spider's TIA image: tia.nii.gz.  Requires the external programs
 # dcm2niix and elastix.  Note the documentation for the benchmark TIA
