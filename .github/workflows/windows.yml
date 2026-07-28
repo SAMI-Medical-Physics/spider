@@ -67,6 +67,8 @@ jobs:
         working-directory: ../spider-install/share/man/man1
         run: |
           groff -mandoc -Tpdf spider.1 > spider.1.pdf
+          groff -mandoc -Tpdf spider_clamp.1 > spider_clamp.1.pdf
+          groff -mandoc -Tpdf spider_id.1 > spider_id.1.pdf
           groff -mandoc -Tpdf spider_tia.1 > spider_tia.1.pdf
       - name: Install licenses
         run: |
