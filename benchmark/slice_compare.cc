@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 South Australia Medical Imaging
 
-// Usage: ./slice_compare image1 image2 background z contour alpha \
+// Usage: ./slice_compare image1 image2 background z contour alpha
 //                        window_width window_level
 //
 // For each of the 3D scalar images IMAGE1 and IMAGE2, output a PNG
