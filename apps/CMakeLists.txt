@@ -56,33 +56,38 @@ if(MSVC)
     spider_tia
     RUNTIME_DEPENDENCY_SET spider_runtime_deps
   )
-  option(SPIDER_BUNDLE_EXTERNAL_DLLS
-    "Bundle external DLL dependencies in the install tree."
-    ON
-  )
-  if(SPIDER_BUNDLE_EXTERNAL_DLLS)
-    install(RUNTIME_DEPENDENCY_SET spider_runtime_deps
-      PRE_EXCLUDE_REGEXES
-      "api-ms-"
-      "ext-ms-"
-      # Windows system DLL dependencies that are not resolved on the
-      # GitHub-hosted runner image Windows Server 2025.  On Windows,
-      # DLL dependency names are converted to lowercase for matching
-      # filters.
-      "^azureattestmanager\\.dll$"
-      "^azureattestnormal\\.dll$"
-      "^hvsifiletrust\\.dll$"
-      "^pdmutilities\\.dll$"
-      "^wtdsensor\\.dll$"
-      "^wpaxholder\\.dll$"
-      "^wtdccm\\.dll$"
-      POST_EXCLUDE_REGEXES "system32"
-    )
-  endif()
 else()
   install(TARGETS
     spider_clamp
     spider_id
     spider_tia
+  )
+endif()
+
+include(CMakeDependentOption)
+cmake_dependent_option(
+  SPIDER_BUNDLE_EXTERNAL_DLLS
+  "Bundle external DLL dependencies in the install tree."
+  ON
+  MSVC
+  OFF
+)
+if(SPIDER_BUNDLE_EXTERNAL_DLLS)
+  install(RUNTIME_DEPENDENCY_SET spider_runtime_deps
+    PRE_EXCLUDE_REGEXES
+    "api-ms-"
+    "ext-ms-"
+    # Windows system DLL dependencies that are not resolved on the
+    # GitHub-hosted runner image Windows Server 2025.  On Windows, DLL
+    # dependency names are converted to lowercase for matching
+    # filters.
+    "^azureattestmanager\\.dll$"
+    "^azureattestnormal\\.dll$"
+    "^hvsifiletrust\\.dll$"
+    "^pdmutilities\\.dll$"
+    "^wtdsensor\\.dll$"
+    "^wpaxholder\\.dll$"
+    "^wtdccm\\.dll$"
+    POST_EXCLUDE_REGEXES "system32"
   )
 endif()
