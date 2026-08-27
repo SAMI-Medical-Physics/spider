@@ -31,6 +31,71 @@ set_target_properties(spider_id PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# Spider Workbench.
+if(SPIDER_BUILD_WORKBENCH)
+  # Use separate targets for build and install trees due to
+  # posix_spawn; see SPIDER_PATHNAME compile definitions below.
+  add_executable(
+    spider_workbench-build
+    spider_workbench.cc
+  )
+  add_executable(
+    spider_workbench
+    spider_workbench.cc
+  )
+
+  # Require FLTK (<https://www.fltk.org>) built with CMake.
+  find_package(FLTK CONFIG REQUIRED)
+  # Prefer shared libraries.
+  if(TARGET fltk::fltk-shared)
+    target_link_libraries(spider_workbench-build
+      PRIVATE
+      fltk::fltk-shared
+    )
+    target_link_libraries(spider_workbench
+      PRIVATE
+      fltk::fltk-shared
+    )
+  elseif(TARGET fltk::fltk)
+    target_link_libraries(spider_workbench-build
+      PRIVATE
+      fltk::fltk
+    )
+    target_link_libraries(spider_workbench
+      PRIVATE
+      fltk::fltk
+    )
+  elseif(TARGET fltk)           # FLTK 1.3
+    find_package(X11 REQUIRED)
+    target_link_libraries(spider_workbench-build
+      PRIVATE
+      fltk
+      X11::X11
+    )
+    target_link_libraries(spider_workbench
+      PRIVATE
+      fltk
+      X11::X11
+    )
+  else()
+    message(FATAL_ERROR
+      "Found FLTK but not any of the targets: "
+      "fltk::fltk-shared, fltk::fltk, or fltk"
+    )
+  endif()
+
+  target_compile_definitions(spider_workbench-build
+    PRIVATE SPIDER_PATHNAME="${CMAKE_BINARY_DIR}/bin/spider")
+  target_compile_definitions(spider_workbench-build
+    PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+
+  include(GNUInstallDirs)     # for CMAKE_INSTALL_FULL_BINDIR
+  target_compile_definitions(spider_workbench
+    PRIVATE SPIDER_PATHNAME="${CMAKE_INSTALL_FULL_BINDIR}/spider")
+  target_compile_definitions(spider_workbench
+    PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+endif()
+
 add_executable(
   spider_tia
   spider_tia.cc
@@ -49,6 +114,7 @@ set_target_properties(spider_tia PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
+# Install.
 if(MSVC)
   install(TARGETS
     spider_clamp
@@ -62,6 +128,10 @@ else()
     spider_id
     spider_tia
   )
+endif()
+
+if(SPIDER_BUILD_WORKBENCH)
+  install(TARGETS spider_workbench)
 endif()
 
 include(CMakeDependentOption)

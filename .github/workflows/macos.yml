@@ -32,10 +32,11 @@ jobs:
           cmake --build ../itk-build --verbose
           cmake --install ../itk-build
       - name: Install other Spider dependencies
-        run: brew install howard-hinnant-date googletest
+        run: brew install fltk googletest howard-hinnant-date
       - name: Configure
         run: |
           cmake -S . -B build -DBUILD_TESTING=ON \
+            -DSPIDER_BUILD_WORKBENCH=ON \
             -DITK_DIR="$PWD/../itk-install/lib/cmake/ITK-5.4" \
             -DCMAKE_INSTALL_PREFIX="$PWD/../spider-install"
       - name: Build

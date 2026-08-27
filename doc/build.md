@@ -6,6 +6,10 @@ If your C++ standard library is libc++, you may also need Howard
 Hinnant's [date library](https://github.com/HowardHinnant/date) with
 timezone support.
 
+Building the graphical interface Spider Workbench additionally
+requires [FLTK](https://www.fltk.org) and passing CMake the flag
+`-DSPIDER_BUILD_WORKBENCH=ON`.
+
 Building Spider's tests additionally requires
 [GoogleTest](https://google.github.io/googletest/) and passing CMake
 the flag `-DBUILD_TESTING=ON`.

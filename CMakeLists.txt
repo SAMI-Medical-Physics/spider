@@ -64,6 +64,15 @@ else()
 endif()
 
 add_subdirectory(src)
+
+include(CMakeDependentOption)
+cmake_dependent_option(
+  SPIDER_BUILD_WORKBENCH
+  "Build the graphical program Spider Workbench"
+  OFF
+  "NOT MSVC"
+  OFF
+)
 add_subdirectory(apps)
 
 if(SPIDER_BUILD_BENCHMARKS)

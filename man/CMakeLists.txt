@@ -6,3 +6,10 @@ install(FILES
   spider_tia.1
   DESTINATION "${CMAKE_INSTALL_MANDIR}/man1"
 )
+
+if(SPIDER_BUILD_WORKBENCH)
+  install(FILES
+    spider_workbench.1
+    DESTINATION "${CMAKE_INSTALL_MANDIR}/man1"
+  )
+endif()

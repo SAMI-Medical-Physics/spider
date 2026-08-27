@@ -7,11 +7,25 @@
              (guix git-download)
              (gnu packages check)
              (gnu packages compression)
+             (gnu packages fltk)        ;fltk
+             (gnu packages xorg)        ;libx11, libxft
+             (gnu packages gl)          ;glu
+             (gnu packages image)       ;libjpeg-turbo, libpng
              (gnu packages image-processing)
              (gnu packages maths)
              (gnu packages nss)
              (gnu packages python-xyz)
              (guix-science packages neuroscience)) ;dcm2niix
+
+(define fltk-cmake
+  (package/inherit fltk
+    (build-system cmake-build-system)
+    (arguments
+     (list
+      #:tests? #f                       ;following Guix proper
+      #:configure-flags #~(list "-DFLTK_BUILD_SHARED_LIBS=ON")))
+    (native-inputs (list))
+    (inputs (list glu libjpeg-turbo libpng libx11 libxft zlib))))
 
 (define spider
   (package
@@ -25,7 +39,8 @@
    (arguments
     (list
      #:configure-flags
-     #~(list "-DSPIDER_DOWNLOAD_TEST_DATA=OFF"
+     #~(list "-DSPIDER_BUILD_WORKBENCH=ON"
+             "-DSPIDER_DOWNLOAD_TEST_DATA=OFF"
              (string-append "-DSPIDER_TEST_DATA_DIR=" (canonicalize-path ".")
                             "/source/pet-images-01"))
      #:phases
@@ -47,7 +62,7 @@
                                    inputs (string-append "bin/" command))))))
               '("awk" "dcm2niix" "elastix" "grep" "mkdir" "mktemp" "rm"
                 "sed")))))))
-   (inputs (list dcm2niix elastix insight-toolkit))
+   (inputs (list dcm2niix elastix fltk-cmake insight-toolkit))
    (native-inputs
     (list (origin
             (method url-fetch)
