@@ -91,3 +91,24 @@ endif()
 add_subdirectory(bin)
 
 add_subdirectory(man)
+
+# Improve discoverability of options that are OFF by default.
+message(STATUS "")
+message(STATUS "Spider configuration (options OFF by default):")
+if(SPIDER_HAVE_SPAWN_H)
+  message(STATUS
+    "  Build Spider Workbench (SPIDER_BUILD_WORKBENCH): "
+    "${SPIDER_BUILD_WORKBENCH}"
+  )
+endif()
+if(MSVC)
+  message(STATUS
+    "  Bundle external executables (SPIDER_BUNDLE_EXTERNAL_EXECUTABLES): "
+    "${SPIDER_BUNDLE_EXTERNAL_EXECUTABLES}"
+  )
+endif()
+message(STATUS "  Build tests (BUILD_TESTING): ${BUILD_TESTING}")
+message(STATUS "  Build benchmarks (SPIDER_BUILD_BENCHMARKS): "
+  "${SPIDER_BUILD_BENCHMARKS}"
+)
+message(STATUS "")
