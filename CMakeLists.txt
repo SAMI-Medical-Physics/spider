@@ -65,12 +65,14 @@ endif()
 
 add_subdirectory(src)
 
+include(CheckIncludeFile)
+check_include_file(spawn.h SPIDER_HAVE_SPAWN_H)
 include(CMakeDependentOption)
 cmake_dependent_option(
   SPIDER_BUILD_WORKBENCH
   "Build the graphical program Spider Workbench"
   OFF
-  "NOT MSVC"
+  SPIDER_HAVE_SPAWN_H
   OFF
 )
 add_subdirectory(apps)
