@@ -31,13 +31,25 @@ jobs:
             -DBUILD_TESTING=OFF
           cmake --build ../itk-build --verbose
           cmake --install ../itk-build
+        # Homebrew uses CMake for FLTK "--HEAD" but not for version
+        # 1.4.5.
+      - name: Build FLTK
+        run: |
+          git clone --branch release-1.4.5 --depth 1 \
+            https://github.com/fltk/fltk.git ../fltk-source
+          cmake -S ../fltk-source -B ../fltk-build \
+            -DCMAKE_INSTALL_PREFIX="$PWD/../fltk-install" \
+            -DFLTK_BUILD_SHARED_LIBS=ON
+          cmake --build ../fltk-build --verbose
+          cmake --install ../fltk-build
       - name: Install other Spider dependencies
-        run: brew install fltk googletest howard-hinnant-date
+        run: brew install googletest howard-hinnant-date
       - name: Configure
         run: |
           cmake -S . -B build -DBUILD_TESTING=ON \
             -DSPIDER_BUILD_WORKBENCH=ON \
             -DITK_DIR="$PWD/../itk-install/lib/cmake/ITK-5.4" \
+            -DFLTK_DIR="$PWD/../fltk-install/share/fltk" \
             -DCMAKE_INSTALL_PREFIX="$PWD/../spider-install"
       - name: Build
         run: cmake --build build --verbose
