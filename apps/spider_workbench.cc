@@ -6,11 +6,11 @@
 #include <assert.h>
 #include <signal.h>    // killpg, SIGTERM
 #include <spawn.h>     // posix_spawn*, POSIX_SPAWN_SETPGROUP
-#include <stddef.h>    // NULL
+#include <stddef.h>    // NULL, size_t
 #include <stdio.h>     // fprintf, perror, snprintf
 #include <stdlib.h>    // exit, EXIT_FAILURE
 #include <string.h>    // strerror
-#include <sys/types.h> // pid_t, size_t, ssize_t
+#include <sys/types.h> // pid_t, ssize_t
 #include <sys/wait.h> // waitpid, WEXITSTATUS, WIFEXITED, WIFSIGNALED, WTERMSIG
 #include <time.h>   // difftime, localtime_r, strftime, struct tm, time, time_t
 #include <unistd.h> // close, getcwd, pipe, read, STDERR_FILENO
