@@ -84,16 +84,16 @@ if(SPIDER_BUILD_WORKBENCH)
     )
   endif()
 
-  target_compile_definitions(spider_workbench-build
-    PRIVATE SPIDER_PATHNAME="${CMAKE_BINARY_DIR}/bin/spider")
-  target_compile_definitions(spider_workbench-build
-    PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+  target_compile_definitions(spider_workbench-build PRIVATE
+    SPIDER_PATHNAME="${CMAKE_BINARY_DIR}/bin/spider"
+    SPIDER_VERSION="${PROJECT_VERSION}"
+  )
 
   include(GNUInstallDirs)     # for CMAKE_INSTALL_FULL_BINDIR
-  target_compile_definitions(spider_workbench
-    PRIVATE SPIDER_PATHNAME="${CMAKE_INSTALL_FULL_BINDIR}/spider")
-  target_compile_definitions(spider_workbench
-    PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+  target_compile_definitions(spider_workbench PRIVATE
+    SPIDER_PATHNAME="${CMAKE_INSTALL_FULL_BINDIR}/spider"
+    SPIDER_VERSION="${PROJECT_VERSION}"
+  )
 endif()
 
 add_executable(
