@@ -88,8 +88,10 @@ OutputFilenames(std::string_view filename, bool compress)
   // Other NRRD.
   if (ext == ".nhdr")
     return { out, WithExtension(out, compress ? ".raw.gz" : ".raw") };
-  // The dotfile ".nhdr" gives an error but still writes an empty file
-  // with that name.  "x.Nhdr" and ".Nhdr" give attached headers.
+  // The dotfile ".nhdr" gives an error message but still writes an
+  // empty file with that name; see
+  // <https://github.com/InsightSoftwareConsortium/ITK/issues/6820>.
+  // "x.Nhdr" and ".Nhdr" give attached headers.
   const auto ext_lower = Lower(ext.string());
   const auto fname_lower = Lower(fname.string());
   if (ext_lower == ".nrrd" || fname == ".nrrd" || ext_lower == ".nhdr"
