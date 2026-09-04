@@ -65,14 +65,13 @@ endif()
 
 add_subdirectory(src)
 
-include(CheckIncludeFile)
-check_include_file(spawn.h SPIDER_HAVE_SPAWN_H)
+# spider_workbench requires a POSIX-conformant system.
 include(CMakeDependentOption)
 cmake_dependent_option(
   SPIDER_BUILD_WORKBENCH
   "Build the graphical program Spider Workbench"
   OFF
-  SPIDER_HAVE_SPAWN_H
+  "NOT WIN32"
   OFF
 )
 add_subdirectory(apps)
