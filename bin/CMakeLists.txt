@@ -4,7 +4,7 @@ install(FILES
   DESTINATION "${CMAKE_INSTALL_DATADIR}/spider"
 )
 
-if(MSVC)
+if(WIN32)
   # SPIDER_DATADIR_FROM_BINDIR is used in spider.ps1.in to locate
   # Parameters_Rigid.txt.  It is a relative path to support relocation
   # of the install tree.  It is allowed to be different for the build
@@ -45,7 +45,13 @@ if(MSVC)
     spider.cmd
     DESTINATION "${CMAKE_INSTALL_BINDIR}"
   )
-else()
+endif()
+
+if(NOT MSVC)
+  # XXX: On MS-Windows (e.g. in an environment from MSYS2), the POSIX
+  # shell script spider does not support Unicode arguments; use the
+  # PowerShell script instead.
+
   # SPIDER_DATADIR and SPIDER_BINDIR are used in spider.sh.in to
   # locate Parameters_Rigid.txt and Spider programs (e.g. spider_tia),
   # respectively.

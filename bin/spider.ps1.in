@@ -23,6 +23,12 @@ param(
     [string[]] $directories
 )
 
+# elastix (version 5.3.1) calls 'SetConsoleOutputCP(CP_UTF8)', which
+# changes the console's output code page from 437 to 65001 (UTF-8).
+# This makes Unicode characters display correctly, but only in
+# subsequent runs of the script.  Set it for the first run too.
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 # Handle comma-separated repeated option arguments passed to
 # spider.cmd wrapper.
 if ($time_zone)
@@ -42,6 +48,8 @@ else
     (Get-Command dcm2niix -ErrorAction Stop).Source
 }
 
+# XXX: elastix supports Unicode characters in arguments on MS-Windows
+# since version 5.3.1.
 $elastix_bundled = (Join-Path $PSScriptRoot 'elastix.exe')
 $elastix_cmd = if (Test-Path -LiteralPath $elastix_bundled)
 {
@@ -147,36 +155,48 @@ foreach ($d in $directories)
         $i, $dcm2niix_outdir
     )
     ensure_filename_available (Join-Path $dcm2niix_outdir "spect$i.nii.gz")
-    New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+
+    # dcm2niix on MS-Windows does not handle the input directory or
+    # output directory containing Unicode characters.  The directory
+    # operands ($d) and $output_dir may contain Unicode characters.
+    $tmp_injunction = Join-Path $env:TEMP ("spider-dcm2niix-input-" + (New-Guid))
+    New-Item -ItemType Junction -Path $tmp_injunction -Target $d `
       -ErrorAction Stop | Out-Null
-    # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
-    # even though no NIfTI file is produced (see:
-    # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
-    # any previous output file so we can detect when this happens via
-    # a missing output file.
-    Remove-Item (Join-Path $dcm2niix_outdir "spect$i.nii.gz") `
-      -ErrorAction Ignore
+    $tmp_outdir = Join-Path $env:TEMP ("spider-dcm2niix-output-" + (New-Guid))
+    New-Item -ItemType Directory -Path $tmp_outdir -ErrorAction Stop | Out-Null
+
     # "-z y" writes a compressed file.  "-w 1" overwrites output
     # files.  Use "-g i" (ignore user defaults file) to ensure the
     # output file is called "spect$i.nii.gz".
     if ($spider_verbose)
     {
-        & $dcm2niix_cmd -o $dcm2niix_outdir -f "spect$i" -z y -w 1 -g i $d |
+        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i $tmp_injunction |
           ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
     }
     else
     {
-        & $dcm2niix_cmd -o $dcm2niix_outdir -f "spect$i" -z y -w 1 -g i $d |
+        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i $tmp_injunction |
           Out-Null
     }
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
     }
-    if (-not (Test-Path (Join-Path $dcm2niix_outdir "spect$i.nii.gz")))
+
+    # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
+    # even though no NIfTI file is produced (see:
+    # <https://github.com/rordenlab/dcm2niix/issues/1020>).
+    if (-not (Test-Path (Join-Path $tmp_outdir "spect$i.nii.gz")))
     {
         exit 1
     }
+
+    New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+      -ErrorAction Stop | Out-Null
+    Get-ChildItem -LiteralPath $tmp_outdir |
+      Move-Item -Destination $dcm2niix_outdir -Force
+    [System.IO.Directory]::Delete($tmp_injunction)
+    Remove-Item -LiteralPath $tmp_outdir
     ++$i
 }
 

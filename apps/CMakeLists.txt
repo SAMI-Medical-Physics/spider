@@ -14,6 +14,20 @@ target_compile_definitions(spider_clamp
 set_target_properties(spider_clamp PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+# On MS-Windows, set the process code page to UTF-8 so that arguments
+# containing Unicode characters are processed correctly without using
+# 'wmain'.  This is supported since Windows 10 1903 (May 2019 update);
+# see:
+# <https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page>.
+if(MSVC)
+  target_sources(spider_clamp
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest"
+  )
+elseif(MINGW)
+  target_sources(spider_clamp
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.rc"
+  )
+endif()
 
 add_executable(
   spider_id
@@ -30,6 +44,15 @@ target_compile_definitions(spider_id
 set_target_properties(spider_id PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+if(MSVC)
+  target_sources(spider_id
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest"
+  )
+elseif(MINGW)
+  target_sources(spider_id
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.rc"
+  )
+endif()
 
 # Spider Workbench.
 if(SPIDER_BUILD_WORKBENCH)
@@ -113,6 +136,15 @@ target_compile_definitions(spider_tia
 set_target_properties(spider_tia PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
+if(MSVC)
+  target_sources(spider_tia
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest"
+  )
+elseif(MINGW)
+  target_sources(spider_tia
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.rc"
+  )
+endif()
 
 # Install.
 if(MSVC)
