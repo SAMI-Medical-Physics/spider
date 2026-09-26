@@ -94,7 +94,7 @@ add_subdirectory(man)
 # Improve discoverability of options that are OFF by default.
 message(STATUS "")
 message(STATUS "Spider configuration (options OFF by default):")
-if(SPIDER_HAVE_SPAWN_H)
+if(NOT WIN32)
   message(STATUS
     "  Build Spider Workbench (SPIDER_BUILD_WORKBENCH): "
     "${SPIDER_BUILD_WORKBENCH}"
