@@ -4,6 +4,7 @@ install(FILES
   DESTINATION "${CMAKE_INSTALL_DATADIR}/spider"
 )
 
+# Windows PowerShell 5.1 script spider.ps1.
 if(WIN32)
   # SPIDER_DATADIR_FROM_BINDIR is used in spider.ps1.in to locate
   # Parameters_Rigid.txt.  It is a relative path to support relocation
@@ -22,9 +23,6 @@ if(WIN32)
     "${SPIDER_SOURCEDIR_FROM_BINDIR}/etc"
   )
   configure_file(spider.ps1.in spider.ps1 @ONLY)
-  file(COPY spider.cmd
-    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
-  )
 
   # For the installation.
   cmake_path(
@@ -41,12 +39,20 @@ if(WIN32)
     DESTINATION "${CMAKE_INSTALL_BINDIR}"
     RENAME spider.ps1
   )
+endif()
+
+# MS-Windows batch file spider.cmd.
+if(WIN32)
+  file(COPY spider.cmd
+    DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+  )
   install(FILES
     spider.cmd
     DESTINATION "${CMAKE_INSTALL_BINDIR}"
   )
 endif()
 
+# POSIX shell script spider.
 if(NOT MSVC)
   # XXX: On MS-Windows (e.g. in an environment from MSYS2), the POSIX
   # shell script spider does not support Unicode arguments; use the
