@@ -56,67 +56,115 @@ endif()
 
 # Spider Workbench.
 if(SPIDER_BUILD_WORKBENCH)
-  # Use separate targets for build and install trees due to
-  # posix_spawn; see SPIDER_PATHNAME compile definitions below.
-  add_executable(
-    spider_workbench-build
-    spider_workbench.cc
-  )
-  add_executable(
-    spider_workbench
-    spider_workbench.cc
-  )
-
   # Require FLTK (<https://www.fltk.org>) built with CMake.
   find_package(FLTK CONFIG REQUIRED)
-  # Prefer shared libraries.
-  if(TARGET fltk::fltk-shared)
-    target_link_libraries(spider_workbench-build
-      PRIVATE
-      fltk::fltk-shared
+
+  if(WIN32)
+    add_executable(
+      spider_workbench
+      spider_workbench_win32.cc
     )
-    target_link_libraries(spider_workbench
-      PRIVATE
-      fltk::fltk-shared
+    # Prefer shared libraries.
+    if(TARGET fltk::fltk-shared)
+      target_link_libraries(spider_workbench
+        PRIVATE
+        fltk::fltk-shared
+      )
+    elseif(TARGET fltk::fltk)
+      target_link_libraries(spider_workbench
+        PRIVATE
+        fltk::fltk
+      )
+    elseif(TARGET fltk)           # FLTK 1.3
+      target_link_libraries(spider_workbench
+        PRIVATE
+        fltk
+      )
+    else()
+      message(FATAL_ERROR
+        "Found FLTK but not any of the targets: "
+        "fltk::fltk-shared, fltk::fltk, or fltk"
+      )
+    endif()
+    target_compile_definitions(spider_workbench
+      PRIVATE SPIDER_VERSION="${PROJECT_VERSION}"
     )
-  elseif(TARGET fltk::fltk)
-    target_link_libraries(spider_workbench-build
-      PRIVATE
-      fltk::fltk
+    # spider_workbench looks for spider.ps1 in the same directory, so
+    # this is for running spider_workbench from the build tree.
+    set_target_properties(spider_workbench PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
-    target_link_libraries(spider_workbench
-      PRIVATE
-      fltk::fltk
+    if(MSVC)
+      target_sources(spider_workbench
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest"
+      )
+    elseif(MINGW)
+      target_sources(spider_workbench
+        PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.rc"
+      )
+    endif()
+
+  else() # NOT WIN32
+    # Use separate targets for build and install trees due to
+    # posix_spawn; see SPIDER_PATHNAME compile definitions below.
+    add_executable(
+      spider_workbench-build
+      spider_workbench.cc
     )
-  elseif(TARGET fltk)           # FLTK 1.3
-    find_package(X11 REQUIRED)
-    target_link_libraries(spider_workbench-build
-      PRIVATE
-      fltk
-      X11::X11
+    add_executable(
+      spider_workbench
+      spider_workbench.cc
     )
-    target_link_libraries(spider_workbench
-      PRIVATE
-      fltk
-      X11::X11
+
+    # Prefer shared libraries.
+    if(TARGET fltk::fltk-shared)
+      target_link_libraries(spider_workbench-build
+        PRIVATE
+        fltk::fltk-shared
+      )
+      target_link_libraries(spider_workbench
+        PRIVATE
+        fltk::fltk-shared
+      )
+    elseif(TARGET fltk::fltk)
+      target_link_libraries(spider_workbench-build
+        PRIVATE
+        fltk::fltk
+      )
+      target_link_libraries(spider_workbench
+        PRIVATE
+        fltk::fltk
+      )
+    elseif(TARGET fltk)           # FLTK 1.3
+      find_package(X11 REQUIRED)
+      target_link_libraries(spider_workbench-build
+        PRIVATE
+        fltk
+        X11::X11
+      )
+      target_link_libraries(spider_workbench
+        PRIVATE
+        fltk
+        X11::X11
+      )
+    else()
+      message(FATAL_ERROR
+        "Found FLTK but not any of the targets: "
+        "fltk::fltk-shared, fltk::fltk, or fltk"
+      )
+    endif()
+
+    target_compile_definitions(spider_workbench-build PRIVATE
+      SPIDER_PATHNAME="${CMAKE_BINARY_DIR}/bin/spider"
+      SPIDER_VERSION="${PROJECT_VERSION}"
     )
-  else()
-    message(FATAL_ERROR
-      "Found FLTK but not any of the targets: "
-      "fltk::fltk-shared, fltk::fltk, or fltk"
+
+    include(GNUInstallDirs)     # for CMAKE_INSTALL_FULL_BINDIR
+    target_compile_definitions(spider_workbench PRIVATE
+      SPIDER_PATHNAME="${CMAKE_INSTALL_FULL_BINDIR}/spider"
+      SPIDER_VERSION="${PROJECT_VERSION}"
     )
   endif()
-
-  target_compile_definitions(spider_workbench-build PRIVATE
-    SPIDER_PATHNAME="${CMAKE_BINARY_DIR}/bin/spider"
-    SPIDER_VERSION="${PROJECT_VERSION}"
-  )
-
-  include(GNUInstallDirs)     # for CMAKE_INSTALL_FULL_BINDIR
-  target_compile_definitions(spider_workbench PRIVATE
-    SPIDER_PATHNAME="${CMAKE_INSTALL_FULL_BINDIR}/spider"
-    SPIDER_VERSION="${PROJECT_VERSION}"
-  )
 endif()
 
 add_executable(
@@ -163,7 +211,14 @@ else()
 endif()
 
 if(SPIDER_BUILD_WORKBENCH)
-  install(TARGETS spider_workbench)
+  if(MSVC)
+    install(TARGETS
+      spider_workbench
+      RUNTIME_DEPENDENCY_SET spider_runtime_deps
+    )
+  else()
+    install(TARGETS spider_workbench)
+  endif()
 endif()
 
 include(CMakeDependentOption)

@@ -65,13 +65,8 @@ endif()
 
 add_subdirectory(src)
 
-# spider_workbench requires a POSIX-conformant system.
-include(CMakeDependentOption)
-cmake_dependent_option(
-  SPIDER_BUILD_WORKBENCH
+option(SPIDER_BUILD_WORKBENCH
   "Build the graphical program Spider Workbench"
-  OFF
-  "NOT WIN32"
   OFF
 )
 add_subdirectory(apps)
@@ -94,12 +89,9 @@ add_subdirectory(man)
 # Improve discoverability of options that are OFF by default.
 message(STATUS "")
 message(STATUS "Spider configuration (options OFF by default):")
-if(NOT WIN32)
-  message(STATUS
-    "  Build Spider Workbench (SPIDER_BUILD_WORKBENCH): "
-    "${SPIDER_BUILD_WORKBENCH}"
-  )
-endif()
+message(STATUS "  Build Spider Workbench (SPIDER_BUILD_WORKBENCH): "
+  "${SPIDER_BUILD_WORKBENCH}"
+)
 if(MSVC)
   message(STATUS
     "  Bundle external executables (SPIDER_BUNDLE_EXTERNAL_EXECUTABLES): "

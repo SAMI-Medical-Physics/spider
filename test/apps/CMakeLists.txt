@@ -26,3 +26,16 @@ if(WIN32)
     "テスト/PETAC"
   )
 endif()
+
+# Test escaping command line arguments on MS-Windows.
+if(WIN32 AND SPIDER_BUILD_WORKBENCH)
+  add_executable(
+    append_escape_arg
+    "${CMAKE_SOURCE_DIR}/apps/append_escape_arg.cc"
+  )
+  target_compile_definitions(append_escape_arg PRIVATE TEST)
+  add_test(
+    NAME append_escape_arg
+    COMMAND $<TARGET_FILE:append_escape_arg>
+  )
+endif()
