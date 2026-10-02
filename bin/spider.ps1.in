@@ -48,8 +48,8 @@ else
     (Get-Command dcm2niix -ErrorAction Stop).Source
 }
 
-# XXX: elastix supports Unicode characters in arguments on MS-Windows
-# since version 5.3.1.
+# XXX: elastix supports non-ASCII Unicode characters in arguments on
+# MS-Windows since version 5.3.1.
 $elastix_bundled = (Join-Path $PSScriptRoot 'elastix.exe')
 $elastix_cmd = if (Test-Path -LiteralPath $elastix_bundled)
 {
@@ -156,12 +156,42 @@ foreach ($d in $directories)
     )
     ensure_filename_available (Join-Path $dcm2niix_outdir "spect$i.nii.gz")
 
-    # dcm2niix on MS-Windows does not handle the input directory or
-    # output directory containing Unicode characters.  The directory
-    # operands ($d) and $output_dir may contain Unicode characters.
-    $tmp_injunction = Join-Path $env:TEMP ("spider-dcm2niix-input-" + (New-Guid))
-    New-Item -ItemType Junction -Path $tmp_injunction -Target $d `
-      -ErrorAction Stop | Out-Null
+    # dcm2niix on MS-Windows does not handle input directory or output
+    # directory pathnames that contain non-ASCII characters.  The
+    # directory operands ($d) and $output_dir may contain non-ASCII
+    # characters.
+    $input_dir_has_non_ascii = $d -match '[^\x00-\x7F]'
+    $input_dir_on_network = [IO.DriveInfo]::new($d).DriveType -eq 'Network'
+    if ($input_dir_has_non_ascii)
+    {
+        if ($input_dir_on_network)
+        {
+            # A junction cannot reference/target a directory on a
+            # network drive.
+            $dcm2niix_tmp_input_dir = Join-Path $env:TEMP `
+              ("spider-dcm2niix-input-" + (New-Guid))
+            New-Item -ItemType Directory -Path $dcm2niix_tmp_input_dir `
+              -ErrorAction Stop | Out-Null
+            Get-ChildItem -LiteralPath $d |
+              Copy-Item -Destination $dcm2niix_tmp_input_dir -Force `
+              -ErrorAction Stop | Out-Null
+            # This is an ASCII-only pathname.
+            $dcm2niix_input_pathname = $dcm2niix_tmp_input_dir
+        }
+        else
+        {
+            $dcm2niix_tmp_input_junction = Join-Path $env:TEMP `
+              ("spider-dcm2niix-input-" + (New-Guid))
+            New-Item -ItemType Junction -Path $dcm2niix_tmp_input_junction `
+              -Target $d -ErrorAction Stop | Out-Null
+            $dcm2niix_input_pathname = $dcm2niix_tmp_input_junction
+        }
+    }
+    else
+    {
+        $dcm2niix_input_pathname = $d
+    }
+
     $tmp_outdir = Join-Path $env:TEMP ("spider-dcm2niix-output-" + (New-Guid))
     New-Item -ItemType Directory -Path $tmp_outdir -ErrorAction Stop | Out-Null
 
@@ -170,13 +200,14 @@ foreach ($d in $directories)
     # output file is called "spect$i.nii.gz".
     if ($spider_verbose)
     {
-        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i $tmp_injunction |
+        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i `
+          $dcm2niix_input_pathname |
           ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
     }
     else
     {
-        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i $tmp_injunction |
-          Out-Null
+        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i `
+          $dcm2niix_input_pathname | Out-Null
     }
     if ($LASTEXITCODE -ne 0)
     {
@@ -195,8 +226,20 @@ foreach ($d in $directories)
       -ErrorAction Stop | Out-Null
     Get-ChildItem -LiteralPath $tmp_outdir |
       Move-Item -Destination $dcm2niix_outdir -Force
-    [System.IO.Directory]::Delete($tmp_injunction)
     Remove-Item -LiteralPath $tmp_outdir
+
+    if ($input_dir_has_non_ascii)
+    {
+        if ($input_dir_on_network)
+        {
+            Remove-Item -LiteralPath $dcm2niix_tmp_input_dir -Recurse -Force
+        }
+        else
+        {
+            [System.IO.Directory]::Delete($dcm2niix_tmp_input_junction)
+        }
+    }
+
     ++$i
 }
 
