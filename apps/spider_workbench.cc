@@ -7,7 +7,7 @@
 #include <signal.h>    // killpg, SIGTERM
 #include <spawn.h>     // posix_spawn*, POSIX_SPAWN_SETPGROUP
 #include <stddef.h>    // NULL, size_t
-#include <stdio.h>     // fprintf, perror, snprintf
+#include <stdio.h>     // fprintf, perror, snprintf, stderr
 #include <stdlib.h>    // exit, EXIT_FAILURE
 #include <string.h>    // strerror
 #include <sys/types.h> // pid_t, ssize_t
@@ -548,6 +548,7 @@ CloseWindowCallback(Fl_Widget* w, void* p)
   Data* data = (Data*)(p);
   if (data->child_pid == 0)
     {
+      // Calling 'hide' on the main window causes the program to end.
       w->hide();
       return;
     }
