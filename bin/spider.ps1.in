@@ -192,41 +192,61 @@ foreach ($d in $directories)
         $dcm2niix_input_pathname = $d
     }
 
-    $tmp_outdir = Join-Path $env:TEMP ("spider-dcm2niix-output-" + (New-Guid))
-    New-Item -ItemType Directory -Path $tmp_outdir -ErrorAction Stop | Out-Null
+    $dcm2niix_outdir_has_non_ascii = $dcm2niix_outdir -match '[^\x00-\x7F]'
+    if ($dcm2niix_outdir_has_non_ascii)
+    {
+        $dcm2niix_tmp_outdir = Join-Path $env:TEMP `
+          ("spider-dcm2niix-output-" + (New-Guid))
+        New-Item -ItemType Directory -Path $dcm2niix_tmp_outdir `
+          -ErrorAction Stop | Out-Null
+        $dcm2niix_outdir_real = $dcm2niix_tmp_outdir
+    }
+    else
+    {
+        New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+          -ErrorAction Stop | Out-Null
+
+        # dcm2niix exits with 0 when $d is an invalid option
+        # (e.g. "-d"), even though no NIfTI file is produced (see:
+        # <https://github.com/rordenlab/dcm2niix/issues/1020>).
+        # Delete any previous output file so we can detect when this
+        # happens via a missing output file.
+        Remove-Item (Join-Path $dcm2niix_outdir "spect$i.nii.gz") `
+          -ErrorAction Ignore
+        $dcm2niix_outdir_real = $dcm2niix_outdir
+    }
 
     # "-z y" writes a compressed file.  "-w 1" overwrites output
     # files.  Use "-g i" (ignore user defaults file) to ensure the
     # output file is called "spect$i.nii.gz".
     if ($spider_verbose)
     {
-        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i `
+        & $dcm2niix_cmd -o $dcm2niix_outdir_real -f "spect$i" -z y -w 1 -g i `
           $dcm2niix_input_pathname |
           ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
     }
     else
     {
-        & $dcm2niix_cmd -o $tmp_outdir -f "spect$i" -z y -w 1 -g i `
+        & $dcm2niix_cmd -o $dcm2niix_outdir_real -f "spect$i" -z y -w 1 -g i `
           $dcm2niix_input_pathname | Out-Null
     }
     if ($LASTEXITCODE -ne 0)
     {
         exit $LASTEXITCODE
     }
-
-    # dcm2niix exits with 0 when $d is an invalid option (e.g. "-d"),
-    # even though no NIfTI file is produced (see:
-    # <https://github.com/rordenlab/dcm2niix/issues/1020>).
-    if (-not (Test-Path (Join-Path $tmp_outdir "spect$i.nii.gz")))
+    if (-not (Test-Path (Join-Path $dcm2niix_outdir_real "spect$i.nii.gz")))
     {
         exit 1
     }
 
-    New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
-      -ErrorAction Stop | Out-Null
-    Get-ChildItem -LiteralPath $tmp_outdir |
-      Move-Item -Destination $dcm2niix_outdir -Force
-    Remove-Item -LiteralPath $tmp_outdir
+    if ($dcm2niix_outdir_has_non_ascii)
+    {
+        New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+          -ErrorAction Stop | Out-Null
+        Get-ChildItem -LiteralPath $dcm2niix_tmp_outdir |
+          Move-Item -Destination $dcm2niix_outdir -Force
+        Remove-Item -LiteralPath $dcm2niix_tmp_outdir
+    }
 
     if ($input_dir_has_non_ascii)
     {
