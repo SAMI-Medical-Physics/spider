@@ -240,7 +240,9 @@ struct SpiderArgv
 // Construct argv for spider process using the current widget
 // state/values.  The return value's argv[0] can be used as the path
 // argument to posix_spawn (i.e. it identifies the new process image
-// file to execute).
+// file to execute).  The return value's argv is an array of pointers
+// to null-terminated strings, is terminated by a null pointer, and
+// argv[0] is not a null pointer.
 SpiderArgv
 MakeSpiderArgv(const Data& data)
 {
@@ -408,18 +410,20 @@ RunCallback(Fl_Widget*, void* p)
   data->display->buffer()->append(timestamp);
   data->display->buffer()->append("\n\n");
 
-  // TODO: Show the invoked command in the text display widget
-  // instead.
-  fprintf(stderr,
-          "[INFO] Created a child process by executing '%s' with argv = [",
-          child_argv.argv[0]);
-  for (char const** p = child_argv.argv; *p; ++p)
+  data->display->buffer()->append("Executing '");
+  data->display->buffer()->append(child_argv.argv[0]);
+  data->display->buffer()->append("' with arguments [");
+  for (char const** p = &child_argv.argv[1]; *p; ++p)
     {
-      if (p != child_argv.argv)
-        fputs(", ", stderr);
-      fprintf(stderr, "'%s'", *p);
+      if (p != &child_argv.argv[1])
+        {
+          data->display->buffer()->append(", ");
+        }
+      data->display->buffer()->append("'");
+      data->display->buffer()->append(*p);
+      data->display->buffer()->append("'");
     }
-  fputs("]\n", stderr);
+  data->display->buffer()->append("]\n");
 
   status = posix_spawn_file_actions_destroy(&actions);
   if (status != 0)
