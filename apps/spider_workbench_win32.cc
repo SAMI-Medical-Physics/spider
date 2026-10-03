@@ -740,6 +740,15 @@ main(int argc, char* argv[])
     char cwd[2048]; // FL_PATH_MAX from <FL/filename.H> is 2048
     if (_getcwd(cwd, sizeof(cwd)))
       {
+        // FLTK's file chooser dialog returns forward slashes in
+        // paths.  Follow this convention.
+        for (char* p = cwd; *p; ++p)
+          {
+            if (*p == '\\')
+              {
+                *p = '/';
+              }
+          }
         output_root.value(cwd);
       }
   }
