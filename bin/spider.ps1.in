@@ -161,9 +161,12 @@ foreach ($d in $directories)
     # directory operands ($d) and $output_dir may contain non-ASCII
     # characters.
     $input_dir_has_non_ascii = $d -match '[^\x00-\x7F]'
-    $input_dir_on_network = [IO.DriveInfo]::new($d).DriveType -eq 'Network'
     if ($input_dir_has_non_ascii)
     {
+        $input_dir_absolute = `
+          (Resolve-Path -LiteralPath $d -ErrorAction Stop).ProviderPath
+        $input_dir_on_network = $input_dir_absolute.StartsWith("\\") `
+          -or [IO.DriveInfo]::new($input_dir_absolute).DriveType -eq 'Network'
         if ($input_dir_on_network)
         {
             # A junction cannot reference/target a directory on a
