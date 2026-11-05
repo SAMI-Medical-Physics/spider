@@ -151,6 +151,12 @@ if [ "$verbose" -eq 1 ]; then
     spider_clamp_opts="$spider_clamp_opts -v"
 fi
 
+# Pass through verbose mode to spider_image_compare.
+spider_image_compare_opts=
+if [ "$verbose" -eq 1 ]; then
+    spider_image_compare_opts=-v
+fi
+
 n_spects=$#
 i=2
 while [ "$i" -le "$n_spects" ]; do
@@ -174,6 +180,29 @@ while [ "$i" -le "$n_spects" ]; do
     "@SPIDER_BINDIR@/spider_clamp" $spider_clamp_opts \
         "$elastix_outdir/result.0.nii" "$elastix_outdir/result.0.nii.gz"
     "$rm_cmd" "$elastix_outdir/result.0.nii"
+
+    # Compare the registered image with the fixed image.
+    compare_outdir="$elastix_outdir/compare_to_spect1"
+    # For clarity, ensure all files named like spider_image_compare
+    # output in compare_outdir are from the current run.  It is not
+    # sufficient for spider_image_compare to overwrite output files.
+    for f in "$compare_outdir"/slice_*.png; do
+        if [ -e "$f" ]; then
+            ensure_filename_available "$f"
+            break
+        fi
+    done
+    "$rm_cmd" -f "$compare_outdir"/slice_*.png
+    "$mkdir_cmd" -p "$compare_outdir"
+    # Use "-r" to reverse the row order because the row order was
+    # previously reversed by dcm2niix.  dcm2niix has an
+    # option-argument "-y n" to preserve the row order, but this is an
+    # "advanced feature" and it may not be fully supported, so we do
+    # not use it.
+    "@SPIDER_BINDIR@/spider_image_compare" $spider_image_compare_opts \
+        -r -o "$compare_outdir" \
+        "$output_dir/spect1/spect1.nii.gz" "$elastix_outdir/result.0.nii.gz"
+
     i=$((i + 1))
 done
 

@@ -38,8 +38,8 @@
   (define elastix
     (specification->package "elastix"))
 
-  (define (run-elastix-and-clamp fixed moving verbose?)
-    (computed-file "spider-elastix-output-clamped"
+  (define (run-elastix-and-augment fixed moving verbose?)
+    (computed-file "spider-elastix-output-augmented"
                    ;; For invoke and install-file.
                    (with-imported-modules '((guix build utils))
                      #~(begin
@@ -63,7 +63,28 @@
                          ;; Exclude elastix log file and IterationInfo files for
                          ;; reproducibility.
                          (install-file "result.0.nii.gz" #$output)
-                         (install-file "TransformParameters.0.txt" #$output)))))
+                         (install-file "TransformParameters.0.txt" #$output)
+
+                         (mkdir (string-append #$output "/compare_to_fixed"))
+                         (apply invoke (string-append #$spider
+                                                      "/bin/"
+                                                      "spider_image_compare")
+                                (append (if #$verbose?
+                                            (list "-v")
+                                            '())
+                                        ;; Use "-r" to reverse the row order
+                                        ;; because the row order was previously
+                                        ;; reversed by dcm2niix.  dcm2niix has
+                                        ;; an option-argument "-y n" to preserve
+                                        ;; the row order, but this is an
+                                        ;; "advanced feature" and it may not be
+                                        ;; fully supported, so we do not use it.
+                                        (list "-r"
+                                              "-o"
+                                              (string-append #$output
+                                                             "/compare_to_fixed")
+                                              #$fixed
+                                              "result.0.nii.gz")))))))
 
   (define (run-elastix fixed moving)
     (computed-file "spider-elastix-output"
@@ -82,8 +103,8 @@
                          (install-file "result.0.nii" #$output)
                          (install-file "TransformParameters.0.txt" #$output)))))
 
-  (define (clamp-elastix-output elastix-output verbose?)
-    (computed-file "spider-elastix-output-clamped-split"
+  (define (augment-elastix-output elastix-output fixed verbose?)
+    (computed-file "spider-elastix-output-augmented-split"
                    (with-imported-modules '((guix build utils)) ;for invoke
                      #~(begin
                          (use-modules (guix build utils))
@@ -104,7 +125,30 @@
                                          (symlink file
                                                   (format #f "~a/~a" #$output
                                                           f)))))
-                                   (find-files #$elastix-output))))))
+                                   (find-files #$elastix-output))
+
+                         (mkdir (string-append #$output "/compare_to_fixed"))
+                         (apply invoke (string-append #$spider
+                                                      "/bin/"
+                                                      "spider_image_compare")
+                                (append (if #$verbose?
+                                            (list "-v")
+                                            '())
+                                        ;; Use "-r" to reverse the row order
+                                        ;; because the row order was previously
+                                        ;; reversed by dcm2niix.  dcm2niix has
+                                        ;; an option-argument "-y n" to preserve
+                                        ;; the row order, but this is an
+                                        ;; "advanced feature" and it may not be
+                                        ;; fully supported, so we do not use it.
+                                        (list "-r"
+                                              "-o"
+                                              (string-append #$output
+                                                             "/compare_to_fixed")
+                                              #$fixed
+                                              (string-append #$output
+                                                             "/result.0.nii"
+                                                             ".gz"))))))))
 
   (define spect-dirs
     (map run-dcm2niix dirs))
@@ -118,8 +162,10 @@
     (let ((fixed (car spect-images)))
       (map (lambda (moving)
              (if split-build?
-                 (clamp-elastix-output (run-elastix fixed moving) verbose?)
-                 (run-elastix-and-clamp fixed moving verbose?)))
+                 (augment-elastix-output (run-elastix fixed moving)
+                                         fixed
+                                         verbose?)
+                 (run-elastix-and-augment fixed moving verbose?)))
            (cdr spect-images))))
 
   (define registered-images

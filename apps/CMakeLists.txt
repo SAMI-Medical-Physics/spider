@@ -65,6 +65,10 @@ target_link_libraries(spider_image_compare
 )
 target_compile_definitions(spider_image_compare
   PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+# For running Spider pipeline scripts from the build tree.
+set_target_properties(spider_image_compare PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
 if(MSVC)
   target_sources(spider_image_compare
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest"
