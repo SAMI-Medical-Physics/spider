@@ -26,23 +26,14 @@ if(NOT SPIDER_HAVE_STD_CHRONO_TZ)
   find_package(date CONFIG REQUIRED) # https://github.com/HowardHinnant/date
 endif()
 
-set(SPIDER_ITK_REQUIRED_COMPONENTS
+find_package(ITK REQUIRED
+  COMPONENTS
   ITKCommon
   ITKIOImageBase
   ITKIONIFTI
+  ITKIOPNG
   ITKStatistics
-)
-
-option(SPIDER_BUILD_BENCHMARKS
-  "Build the benchmarks.  Warning: Downloads 155 MB by default."
-  OFF)
-
-if(SPIDER_BUILD_BENCHMARKS)
-  list(APPEND SPIDER_ITK_REQUIRED_COMPONENTS ITKIOPNG ITKTransform)
-endif()
-
-find_package(ITK REQUIRED
-  COMPONENTS ${SPIDER_ITK_REQUIRED_COMPONENTS}
+  ITKTransform
   OPTIONAL_COMPONENTS
   ITKIOMeta
   ITKIONRRD
@@ -71,6 +62,10 @@ option(SPIDER_BUILD_WORKBENCH
 )
 add_subdirectory(apps)
 
+option(SPIDER_BUILD_BENCHMARKS
+  "Build the benchmarks.  Warning: Downloads 155 MB by default."
+  OFF
+)
 if(SPIDER_BUILD_BENCHMARKS)
   add_subdirectory(benchmark)
 endif()

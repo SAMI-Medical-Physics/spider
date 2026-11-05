@@ -1,0 +1,115 @@
+\" SPDX-License-Identifier: GFDL-1.3-or-later
+.\" Copyright (C) 2026 South Australia Medical Imaging
+.Dd 5 November 2026
+.Dt SPIDER_IMAGE_COMPARE 1
+.Os
+.Sh NAME
+.Nm spider_image_compare
+.Nd compare two images
+.Sh SYNOPSIS
+.Nm spider_image_compare
+.Op Fl frVv
+.Op Fl b Ar background
+.Op Fl l Ar window_level
+.Op Fl o Ar output_directory
+.Op Fl w Ar window_width
+.Ar image1 image2
+.Sh DESCRIPTION
+.Nm
+writes PNG images in which colour conveys the relative pixel values of
+corresponding pixels in
+.Ar image1
+and
+.Ar image2 ,
+which are 3D scalar images with matching size, spacing, origin, and
+direction.
+Relative pixel values are determined separately for each input image.
+A pixel that has a small relative pixel value in both images has
+little colour; one that has a large relative value in
+.Ar image1
+and a small relative value in
+.Ar image2
+approaches yellow; one that has a small relative value in
+.Ar image1
+and a large relative value in
+.Ar image2
+approaches blue; and one that has a large relative value in both
+images approaches magenta.
+.Pp
+A PNG image is written for each slice along the third image dimension.
+PNG images are written in the current directory, unless the
+.Fl o
+option is specified.
+Output files are named "slice_000.png", "slice_001.png", etc.
+.Pp
+.Ar image1
+and
+.Ar image2
+may be in NIfTI format, compressed or not.
+MetaImage and NRRD formats are also supported if the corresponding
+ImageIO module is included in the ITK library against which
+.Nm
+was built.
+The image files must each have a file name suffix corresponding to
+their respective file formats.
+For MetaImage and NRRD detached header formats, the name of the header
+file must be specified.
+.Pp
+The options are as follows:
+.Bl -tag -width Ds
+.It Fl b Ar background
+Use the 3D scalar image
+.Ar background
+as a greyscale background in the PNG images.
+It is expected to be co-registered with
+.Ar image1
+but may have different size, spacing, origin, and direction.
+The supported file formats and file name suffix requirements are the
+same as for
+.Ar image1
+and
+.Ar image2 .
+.Pp
+.It Fl f
+Overwrite output files.
+.Pp
+.It Fl l Ar window_level
+Set the window level for the background image specified by
+.Fl b .
+No window is applied unless both
+.Fl l
+and
+.Fl w
+are specified.
+.Pp
+.It Fl o Ar output_directory
+Write the PNG images to
+.Ar output_directory .
+.Ar output_directory
+must already exist.
+.Pp
+.It Fl r
+Reverse the row order in the PNG images.
+.Pp
+.It Fl V
+Display the version number and exit.
+.Pp
+.It Fl v
+Verbose mode.
+Causes
+.Nm
+to print debugging messages about its progress.
+.Pp
+.It Fl w Ar window_width
+Set the window width for the background image specified by
+.Fl b .
+No window is applied unless both
+.Fl l
+and
+.Fl w
+are specified.
+.El
+.Sh EXIT STATUS
+.Ex -std
+.Sh SEE ALSO
+.Xr spider 1

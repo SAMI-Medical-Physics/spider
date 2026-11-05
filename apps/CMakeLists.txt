@@ -54,6 +54,27 @@ elseif(MINGW)
   )
 endif()
 
+# spider_image_compare.
+add_executable(
+  spider_image_compare
+  spider_image_compare.cc
+)
+target_link_libraries(spider_image_compare
+  PRIVATE
+  ${ITK_LIBRARIES}
+)
+target_compile_definitions(spider_image_compare
+  PRIVATE SPIDER_VERSION="${PROJECT_VERSION}")
+if(MSVC)
+  target_sources(spider_image_compare
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.manifest"
+  )
+elseif(MINGW)
+  target_sources(spider_image_compare
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/utf8.rc"
+  )
+endif()
+
 # Spider Workbench.
 if(SPIDER_BUILD_WORKBENCH)
   # Require FLTK (<https://www.fltk.org>) built with CMake.
@@ -199,6 +220,7 @@ if(MSVC)
   install(TARGETS
     spider_clamp
     spider_id
+    spider_image_compare
     spider_tia
     RUNTIME_DEPENDENCY_SET spider_runtime_deps
   )
@@ -206,6 +228,7 @@ else()
   install(TARGETS
     spider_clamp
     spider_id
+    spider_image_compare
     spider_tia
   )
 endif()
