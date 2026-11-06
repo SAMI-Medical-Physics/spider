@@ -1,6 +1,6 @@
 .\" SPDX-License-Identifier: GFDL-1.3-or-later
 .\" Copyright (C) 2026 South Australia Medical Imaging
-.Dd 24 July 2026
+.Dd 6 November 2026
 .Dt SPIDER 1
 .Os
 .Sh NAME
@@ -9,6 +9,8 @@
 .Sh SYNOPSIS
 .Nm spider
 .Op Fl fVv
+.Op Fl C Ar ct_image
+.Op Fl c Ar ct_directory
 .Op Fl e Ar elastix_param
 .Op Fl o Ar output_root
 .Op Fl z Ar time_zone
@@ -44,6 +46,39 @@ in the output directory.
 .Pp
 The options are as follows:
 .Bl -tag -width Ds
+.It Fl C Ar ct_image
+Use a CT image as a greyscale background in images comparing
+registered SPECT images.
+It is expected to be co-registered with the SPECT in
+.Ar directory1
+but may have different size, spacing, origin, and direction.
+This option does not affect the computed time-integrated activity
+image.
+.Pp
+The file
+.Ar ct_image
+may be in NIfTI format, compressed or not.
+MetaImage and NRRD formats are also supported if the corresponding
+ImageIO module is included in the ITK library against which
+.Xr spider_image_compare 1
+was built.
+The file name must have a suffix corresponding to its file format.
+For MetaImage and NRRD detached header formats, the name of the header
+file must be specified.
+.Pp
+.It Fl c Ar ct_directory
+Use the CT image from the DICOM series in
+.Ar ct_directory
+as a greyscale background in images comparing registered SPECT images.
+It is expected to be co-registered with the SPECT in
+.Ar directory1
+but may have different size, spacing, origin, and direction.
+This option does not affect the computed time-integrated activity
+image.
+This option has no effect if the
+.Fl C
+option is specified.
+.Pp
 .It Fl e Ar elastix_param
 The elastix parameter file to use for SPECT image registration.
 See

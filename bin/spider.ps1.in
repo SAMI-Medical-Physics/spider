@@ -5,14 +5,16 @@
 # no work re-use.
 
 param(
+    # Variables are case-insensitive in PowerShell.  Rename options
+    # and option-arguments accordingly.
+    [string] $ct_directory,
+    [string] $ct_image,
     [Alias('e')]
     [string] $elastix_param,
     [Alias('f')]
     [switch] $force,
     [Alias('o')]
     [string] $output_root,
-    # Variables are case-insensitive in PowerShell.  Rename options to
-    # avoid surprises.
     # We use the 'Parameter' attribute below which makes PowerShell
     # automatically add the Common Parameters, including Verbose.
     [switch] $spider_verbose,
@@ -85,9 +87,9 @@ if ($version)
 function usage
 {
     [Console]::Error.WriteLine(
-        'usage: spider [-f] [-spider_verbose] [-version] [-e elastix_param]
-              [-o output_root] [-z time_zone[,time_zone ...]]
-              directory1 directory2 ...'
+        'usage: spider [-f] [-spider_verbose] [-version] [-ct_directory ct_directory]
+              [-ct_image ct_image] [-e elastix_param] [-o output_root]
+              [-z time_zone[,time_zone ...]] directory1 directory2 ...'
     )
     exit 2
 }
@@ -327,11 +329,134 @@ if ($spider_verbose)
     $spider_clamp_opts += '-v'
 }
 
-# Pass through verbose mode to spider_image_compare.
+if ($ct_directory -and -not $ct_image)
+{
+    # Convert the CT DICOM series in $ct_directory to a 3D NIfTI image
+    # for spider_image_compare.
+    $dcm2niix_outdir = "$output_dir/ct1"
+    [Console]::Error.WriteLine(
+        'Converting CT DICOM series to 3D image: {1}/ct1.nii.gz',
+        $dcm2niix_outdir
+    )
+    ensure_filename_available (Join-Path $dcm2niix_outdir 'ct1.nii.gz')
+
+    # dcm2niix on MS-Windows does not handle input directory or output
+    # directory pathnames that contain non-ASCII characters.
+    # $ct_directory and $output_dir may contain non-ASCII characters.
+    $input_dir_has_non_ascii = $ct_directory -match '[^\x00-\x7F]'
+    if ($input_dir_has_non_ascii)
+    {
+        $input_dir_absolute = `
+          (Resolve-Path -LiteralPath $ct_directory -ErrorAction Stop).ProviderPath
+        $input_dir_on_network = $input_dir_absolute.StartsWith("\\") `
+          -or [IO.DriveInfo]::new($input_dir_absolute).DriveType -eq 'Network'
+        if ($input_dir_on_network)
+        {
+            # A junction cannot reference/target a directory on a
+            # network drive.
+            $dcm2niix_tmp_input_dir = Join-Path $env:TEMP `
+              ("spider-dcm2niix-input-" + (New-Guid))
+            New-Item -ItemType Directory -Path $dcm2niix_tmp_input_dir `
+              -ErrorAction Stop | Out-Null
+            Get-ChildItem -LiteralPath $ct_directory |
+              Copy-Item -Destination $dcm2niix_tmp_input_dir -Force `
+              -ErrorAction Stop | Out-Null
+            # This is an ASCII-only pathname.
+            $dcm2niix_input_pathname = $dcm2niix_tmp_input_dir
+        }
+        else
+        {
+            $dcm2niix_tmp_input_junction = Join-Path $env:TEMP `
+              ("spider-dcm2niix-input-" + (New-Guid))
+            New-Item -ItemType Junction -Path $dcm2niix_tmp_input_junction `
+              -Target $ct_directory -ErrorAction Stop | Out-Null
+            $dcm2niix_input_pathname = $dcm2niix_tmp_input_junction
+        }
+    }
+    else
+    {
+        $dcm2niix_input_pathname = $ct_directory
+    }
+
+    $dcm2niix_outdir_has_non_ascii = $dcm2niix_outdir -match '[^\x00-\x7F]'
+    if ($dcm2niix_outdir_has_non_ascii)
+    {
+        $dcm2niix_tmp_outdir = Join-Path $env:TEMP `
+          ("spider-dcm2niix-output-" + (New-Guid))
+        New-Item -ItemType Directory -Path $dcm2niix_tmp_outdir `
+          -ErrorAction Stop | Out-Null
+        $dcm2niix_outdir_real = $dcm2niix_tmp_outdir
+    }
+    else
+    {
+        New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+          -ErrorAction Stop | Out-Null
+
+        # dcm2niix exits with 0 when $ct_directory is an invalid
+        # option (e.g. "-d"), even though no NIfTI file is produced
+        # (see: <https://github.com/rordenlab/dcm2niix/issues/1020>).
+        # Delete any previous output file so we can detect when this
+        # happens via a missing output file.
+        Remove-Item (Join-Path $dcm2niix_outdir 'ct1.nii.gz') `
+          -ErrorAction Ignore
+        $dcm2niix_outdir_real = $dcm2niix_outdir
+    }
+
+    # "-z y" writes a compressed file.  "-w 1" overwrites output
+    # files.  Use "-g i" (ignore user defaults file) to ensure the
+    # output file is called "ct1.nii.gz".
+    if ($spider_verbose)
+    {
+        & $dcm2niix_cmd -o $dcm2niix_outdir_real -f ct1 -z y -w 1 -g i `
+          $dcm2niix_input_pathname |
+          ForEach-Object {[Console]::Error.WriteLine("dcm2niix | $_")}
+    }
+    else
+    {
+        & $dcm2niix_cmd -o $dcm2niix_outdir_real -f ct1 -z y -w 1 -g i `
+          $dcm2niix_input_pathname | Out-Null
+    }
+    if ($LASTEXITCODE -ne 0)
+    {
+        exit $LASTEXITCODE
+    }
+    if (-not (Test-Path (Join-Path $dcm2niix_outdir_real 'ct1.nii.gz')))
+    {
+        exit 1
+    }
+
+    if ($dcm2niix_outdir_has_non_ascii)
+    {
+        New-Item -ItemType Directory -Path $dcm2niix_outdir -Force `
+          -ErrorAction Stop | Out-Null
+        Get-ChildItem -LiteralPath $dcm2niix_tmp_outdir |
+          Move-Item -Destination $dcm2niix_outdir -Force
+        Remove-Item -LiteralPath $dcm2niix_tmp_outdir
+    }
+
+    if ($input_dir_has_non_ascii)
+    {
+        if ($input_dir_on_network)
+        {
+            Remove-Item -LiteralPath $dcm2niix_tmp_input_dir -Recurse -Force
+        }
+        else
+        {
+            [System.IO.Directory]::Delete($dcm2niix_tmp_input_junction)
+        }
+    }
+
+    $ct_image = Join-Path $dcm2niix_outdir 'ct1.nii.gz'
+}
+
 $spider_image_compare_opts = @()
 if ($spider_verbose)
 {
     $spider_image_compare_opts += '-v'
+}
+if ($ct_image)
+{
+    $spider_image_compare_opts += '-b', $ct_image, '-l', '50', '-w', '400'
 }
 
 for ($i=2; $i -le $directories.Count; $i++)

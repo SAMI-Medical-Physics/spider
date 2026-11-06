@@ -20,12 +20,14 @@ sed_cmd=sed
 PROGRAM_NAME=${0##*/}
 
 usage() {
-    printf 'usage: %s [-fVv] [-e elastix_param] [-o output_root] [-z time_zone]
-              directory1 directory2 ...\n' \
+    printf 'usage: %s [-fVv] [-C ct_image] [-c ct_directory] [-e elastix_param]
+              [-o output_root] [-z time_zone] directory1 directory2 ...\n' \
         "$PROGRAM_NAME" >&2
     exit 2
 }
 
+ct_directory=
+ct_image=
 overwrite=0
 output_root=
 verbose=0
@@ -42,8 +44,10 @@ ensure_filename_available() {
     fi
 }
 
-while getopts "e:fo:Vvz:" opt; do
+while getopts "C:c:e:fo:Vvz:" opt; do
     case "$opt" in
+    C) ct_image=$OPTARG ;;
+    c) ct_directory=$OPTARG ;;
     e) elastix_param=$OPTARG ;;
     f) overwrite=1 ;;
     o) output_root=$OPTARG ;;
@@ -151,13 +155,59 @@ if [ "$verbose" -eq 1 ]; then
     spider_clamp_opts="$spider_clamp_opts -v"
 fi
 
-# Pass through verbose mode to spider_image_compare.
-spider_image_compare_opts=
-if [ "$verbose" -eq 1 ]; then
-    spider_image_compare_opts=-v
+if [ -n "$ct_directory" ] && [ -z "$ct_image" ]; then
+    # Convert the CT DICOM series in $ct_directory to a 3D NIfTI image
+    # for spider_image_compare.
+    dcm2niix_outdir="$output_dir/ct1"
+    printf 'Converting CT DICOM series to 3D image: %s\n' \
+        "$dcm2niix_outdir/ct1.nii.gz" >&2
+    ensure_filename_available "$dcm2niix_outdir/ct1.nii.gz"
+    "$mkdir_cmd" -p "$dcm2niix_outdir"
+    # dcm2niix exits with 0 when $ct_directory is an invalid option
+    # (e.g. "-d"), even though no NIfTI file is produced (see:
+    # <https://github.com/rordenlab/dcm2niix/issues/1020>).  Delete
+    # any previous output file so we can detect when this happens via
+    # a missing output file.
+    "$rm_cmd" -f "$dcm2niix_outdir/ct1.nii.gz"
+    # "-z y" writes a compressed file.  "-w 1" overwrites output
+    # files.  Use "-g i" (ignore user defaults file) to ensure the
+    # output file is called "ct1.nii.gz".
+    if [ "$verbose" -eq 1 ]; then
+        "$dcm2niix_cmd" -o "$dcm2niix_outdir" -f ct1 -z y -w 1 -g i \
+            "$ct_directory" >&2
+    else
+        "$dcm2niix_cmd" -o "$dcm2niix_outdir" -f ct1 -z y -w 1 -g i \
+            "$ct_directory" >/dev/null
+    fi
+    ct_image="$dcm2niix_outdir/ct1.nii.gz"
+    test -e "$ct_image"
 fi
 
+# Use $@ to build the arguments for spider_image_compare so that
+# $ct_image can be quoted.  The same approach will be used for
+# spider_tia's arguments.  $@ currently holds the directory arguments,
+# and they will be used by spider_tia.  Write the directory arguments
+# to a newline list to preserve spaces.
 n_spects=$#
+dicom_dirs=
+for d in "$@"; do
+    dicom_dirs=${dicom_dirs}${dicom_dirs:+'
+'}$d
+done
+
+# Rebuild arguments for spider_image_compare.
+set --
+
+# Pass through verbose mode.
+if [ "$verbose" -eq 1 ]; then
+    set -- "$@" -v
+fi
+
+# Pass the CT image if provided.
+if [ -n "$ct_image" ]; then
+    set -- "$@" -b "$ct_image" -l 50 -w 400
+fi
+
 i=2
 while [ "$i" -le "$n_spects" ]; do
     elastix_outdir="$output_dir/registered_spect$i"
@@ -199,21 +249,13 @@ while [ "$i" -le "$n_spects" ]; do
     # option-argument "-y n" to preserve the row order, but this is an
     # "advanced feature" and it may not be fully supported, so we do
     # not use it.
-    "@SPIDER_BINDIR@/spider_image_compare" $spider_image_compare_opts \
-        -r -o "$compare_outdir" \
+    "@SPIDER_BINDIR@/spider_image_compare" "$@" -r -o "$compare_outdir" \
         "$output_dir/spect1/spect1.nii.gz" "$elastix_outdir/result.0.nii.gz"
 
     i=$((i + 1))
 done
 
 # Make TIA image.
-# Convert directory arguments to a newline list to preserve spaces.
-dicom_dirs=
-for d in "$@"; do
-    dicom_dirs=${dicom_dirs}${dicom_dirs:+'
-'}$d
-done
-
 # Rebuild arguments for spider_tia.
 set --
 

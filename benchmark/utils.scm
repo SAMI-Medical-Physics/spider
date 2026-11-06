@@ -29,7 +29,8 @@
 ;; For spider.
 (include "../guix.scm")
 
-(define* (run-spider dirs #:key verbose? (time-zone '()) split-build?)
+(define* (run-spider dirs #:key verbose? (time-zone '()) split-build?
+                     ct-directory ct-image)
   ;; A bare bones implementation of the Spider program using
   ;; G-expressions.  DIRS is a list of file-like objects, in Guix
   ;; parlance.  When SPLIT-BUILD? is true, it is faster to rebuild
@@ -38,7 +39,7 @@
   (define elastix
     (specification->package "elastix"))
 
-  (define (run-elastix-and-augment fixed moving verbose?)
+  (define (run-elastix-and-augment fixed moving ct-image verbose?)
     (computed-file "spider-elastix-output-augmented"
                    ;; For invoke and install-file.
                    (with-imported-modules '((guix build utils))
@@ -72,6 +73,10 @@
                                 (append (if #$verbose?
                                             (list "-v")
                                             '())
+                                        (if #$ct-image
+                                            (list "-b" #$ct-image "-l" "50"
+                                                  "-w" "400")
+                                            '())
                                         ;; Use "-r" to reverse the row order
                                         ;; because the row order was previously
                                         ;; reversed by dcm2niix.  dcm2niix has
@@ -103,7 +108,7 @@
                          (install-file "result.0.nii" #$output)
                          (install-file "TransformParameters.0.txt" #$output)))))
 
-  (define (augment-elastix-output elastix-output fixed verbose?)
+  (define (augment-elastix-output elastix-output fixed ct-image verbose?)
     (computed-file "spider-elastix-output-augmented-split"
                    (with-imported-modules '((guix build utils)) ;for invoke
                      #~(begin
@@ -134,6 +139,10 @@
                                 (append (if #$verbose?
                                             (list "-v")
                                             '())
+                                        (if #$ct-image
+                                            (list "-b" #$ct-image "-l" "50"
+                                                  "-w" "400")
+                                            '())
                                         ;; Use "-r" to reverse the row order
                                         ;; because the row order was previously
                                         ;; reversed by dcm2niix.  dcm2niix has
@@ -158,14 +167,26 @@
            (file-append dir "/out.nii.gz"))
          spect-dirs))
 
+  (define resolved-ct-image
+    (cond (ct-image ct-image)
+          (ct-directory (file-append (run-dcm2niix ct-directory) "/out.nii.gz"))
+          (else #f)))
+
+  (define ct-outdir
+    (if (and ct-directory (not ct-image))
+        (run-dcm2niix ct-directory)
+        #f))
+
   (define registered-spect-dirs
     (let ((fixed (car spect-images)))
       (map (lambda (moving)
              (if split-build?
                  (augment-elastix-output (run-elastix fixed moving)
                                          fixed
+                                         resolved-ct-image
                                          verbose?)
-                 (run-elastix-and-augment fixed moving verbose?)))
+                 (run-elastix-and-augment fixed moving resolved-ct-image
+                                          verbose?)))
            (cdr spect-images))))
 
   (define registered-images
@@ -222,6 +243,9 @@
                         (symlink dir (format #f "~a/spect~a" output-dir i)))
                       (iota (length (list #$@spect-dirs)) 1)
                       (list #$@spect-dirs))
+
+            (when #$ct-outdir
+              (symlink #$ct-outdir (string-append output-dir "/ct1")))
 
             (for-each (lambda (i dir)
                         (symlink dir
