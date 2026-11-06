@@ -43,6 +43,10 @@
   (file-append spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
                (number->string n) "/spect"))
 
+(define (ct-dicom-dir-snmmi-pt4 n)
+  (file-append spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
+               (number->string n) "/ct"))
+
 ;; For run-spider, run-dcm2niix, and spider-benchmark.
 (include "../../utils.scm")
 
@@ -55,7 +59,8 @@
                     (spect-dicom-dir-snmmi-pt4 4))
               #:verbose? #t
               #:time-zone (list "America/Detroit")
-              #:split-build? #t))
+              #:split-build? #t
+              #:ct-directory (ct-dicom-dir-snmmi-pt4 1)))
 
 
 ;;; TIA image included in the benchmark dataset.
@@ -93,10 +98,6 @@
 
 
 ;;; Compare TIA images from Spider and the benchmark dataset.
-
-(define (ct-dicom-dir-snmmi-pt4 n)
-  (file-append spect/cts-snmmi-pt4 "/patient_4/SPECT_Cts/scan"
-               (number->string n) "/ct"))
 
 (define (ct-snmmi-pt4 n)
   ;; 3D NIfTI image (out.nii.gz) and BIDS sidecar (out.json) of CT

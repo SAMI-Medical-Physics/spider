@@ -33,6 +33,7 @@ cp "$SPECTCTS_DIR"/SPECT_Cts/scan2/spect/* "$spect2_dir"
 # image describes registering SPECTs to the first SPECT.
 spider_outdir=$(
     "@CMAKE_BINARY_DIR@/bin/spider" -f -z America/Detroit \
+        -c "$SPECTCTS_DIR/SPECT_Cts/scan1/ct" \
         "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
         "$spect2_dir" \
         "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \

@@ -21,6 +21,7 @@ TIA_DIR="@SPIDER_BENCHMARK_SNMMI_PT4_TIA_DIR@"
 # image describes registering SPECTs to the first SPECT.
 spider_outdir=$(
     "@CMAKE_BINARY_DIR@/bin/spider" -f -z America/Detroit \
+        -c "$SPECTCTS_DIR/SPECT_Cts/scan1/ct" \
         "$SPECTCTS_DIR/SPECT_Cts/scan1/spect" \
         "$SPECTCTS_DIR/SPECT_Cts/scan2/spect" \
         "$SPECTCTS_DIR/SPECT_Cts/scan3/spect" \
