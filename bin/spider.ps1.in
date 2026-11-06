@@ -503,7 +503,7 @@ for ($i=2; $i -le $directories.Count; $i++)
     Remove-Item (Join-Path $elastix_outdir 'result.0.nii') -ErrorAction Ignore
 
     # Compare the registered image with the fixed image.
-    compare_outdir = Join-Path $elastix_outdir 'compare_to_spect1'
+    $compare_outdir = Join-Path $elastix_outdir 'compare_to_spect1'
     # For clarity, ensure all files named like spider_image_compare
     # output in compare_outdir are from the current run.  It is not
     # sufficient for spider_image_compare to overwrite output files.

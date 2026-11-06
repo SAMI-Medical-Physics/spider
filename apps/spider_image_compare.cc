@@ -296,8 +296,8 @@ ReaderResampleClampRescale(const char* image_filename,
 // image2 using bilinear interpolation:
 // <https://en.wikipedia.org/wiki/Bilinear_interpolation>.
 constexpr unsigned char kColourLowLow[] = { 0, 0, 0 };       // black
-constexpr unsigned char kColourHighLow[] = { 0, 0, 255 };    // blue
-constexpr unsigned char kColourLowHigh[] = { 255, 255, 0 };  // yellow
+constexpr unsigned char kColourHighLow[] = { 255, 255, 0 };  // yellow
+constexpr unsigned char kColourLowHigh[] = { 0, 0, 255 };    // blue
 constexpr unsigned char kColourHighHigh[] = { 255, 0, 255 }; // magenta
 
 class TernaryComposeFunctor
@@ -433,16 +433,16 @@ main(int argc, char* argv[])
   if (args.background_filename)
     {
       ternary_compose_filter = TernaryComposeFilterType::New();
-      ternary_compose_filter->SetInput1(image2_norm->GetOutput());
-      ternary_compose_filter->SetInput2(image1_norm->GetOutput());
+      ternary_compose_filter->SetInput1(image1_norm->GetOutput());
+      ternary_compose_filter->SetInput2(image2_norm->GetOutput());
       ternary_compose_filter->SetInput3(
           background_filters.rescale_filter->GetOutput());
     }
   else
     {
       binary_compose_filter = BinaryComposeFilterType::New();
-      binary_compose_filter->SetInput1(image2_norm->GetOutput());
-      binary_compose_filter->SetInput2(image1_norm->GetOutput());
+      binary_compose_filter->SetInput1(image1_norm->GetOutput());
+      binary_compose_filter->SetInput2(image2_norm->GetOutput());
     }
 
   // Reverse the row order, if requested.
